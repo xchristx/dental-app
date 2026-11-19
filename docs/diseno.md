@@ -1,6 +1,6 @@
 # Guía de diseño
 
-Cómo se ve y cómo se comporta la interfaz. La decisión de fondo está en [0008](decisiones/0008-diseno-e-interfaz.md). Esta guía se puede ir ajustando; si un cambio contradice la decisión 0008, se escribe una decisión nueva.
+Cómo se ve y cómo se comporta la interfaz. Las decisiones de fondo están en [0008](decisiones/0008-diseno-e-interfaz.md) (estilo) y [0009](decisiones/0009-interfaz-en-celular-y-escritorio.md) (celular y escritorio). Esta guía se puede ir ajustando; si un cambio contradice esas decisiones, se escribe una decisión nueva.
 
 ## Principios
 1. **Rápida entre paciente y paciente.** Lo frecuente (ver el día, agendar, marcar "Llegó", mandar un recordatorio) está a uno o dos toques.
@@ -61,8 +61,23 @@ El rojo **no** se usa como color de lugar, para que un choque nunca se confunda 
 ### Forma y espacio
 - Radios: `4px` para inputs y botones, `8px` para tarjetas, `12px` para hojas y diálogos. Las pills (`9999px`) solo en los badges.
 - Sombras: ninguna en reposo. Solo los diálogos y las hojas llevan `0 8px 24px rgba(0,0,0,0.06)` para separarse del fondo.
-- Toques: área mínima de **44 × 44 px**.
-- Margen lateral en el celular: 16 px.
+- Toques: área mínima de **44 × 44 px**. Con mouse, las vistas densas pueden usar controles de 36 px (`size="sm"`).
+- Margen lateral: 16 px en el celular, 24 px desde tablet y 32 px en escritorio.
+
+## Tamaños de pantalla
+
+Detalle en la decisión [0009](decisiones/0009-interfaz-en-celular-y-escritorio.md).
+
+| | Celular (< `md`) | Tablet (`md`) | Escritorio (`lg`) |
+|---|---|---|---|
+| Navegación | Barra inferior | Barra inferior | Barra lateral de 240 px |
+| Agenda | Día | Semana | Semana |
+| "Agendar" | Fijo abajo | En el encabezado | En el encabezado |
+| Formularios y detalle | Hoja inferior | Panel lateral derecho | Panel lateral derecho |
+
+- **Barra inferior:** fondo `superficie`, borde superior de 1 px, ícono y texto (14 px) en cada sección. Respeta el área segura del celular (`env(safe-area-inset-bottom)`).
+- **Barra lateral:** fondo `superficie` y borde derecho de 1 px. La sección activa lleva fondo `muted` y texto `texto`; las demás, texto `texto-secundario`.
+- Las listas y los formularios llegan hasta 768 px de ancho. La agenda usa todo el ancho.
 
 ## Tipografía
 | Uso | Fuente | Detalle |
@@ -81,14 +96,14 @@ Se cargan con `next/font`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
 ## Componentes
 - **Botón principal:** fondo `accion`, texto blanco, radio 4 px y sin sombra. Al presionarlo, `scale(0.98)`.
 - **Botón secundario:** fondo `superficie`, borde de 1 px y texto `texto`.
-- **Badge de estado:** pill, `text-xs`, mayúsculas y tracking 0,05em.
+- **Badge de estado:** pill, `text-xs` y `font-medium`, con mayúscula inicial ("Confirmada"). Sin mayúsculas completas: en la vista de semana las columnas son angostas y "CONFIRMADA" no entra.
   - `agendada`: gris.
   - `confirmada`: verde.
   - `atendida`: sin badge. Se muestra la hora de llegada.
   - `no_asistio`: peligro.
   - `cancelada`: tachada y con opacidad 50 %.
 - **Listas:** filas separadas por un borde inferior. No van tarjetas dentro de tarjetas.
-- **Formularios en el celular:** en una hoja inferior (sheet), no en un diálogo centrado.
+- **Formularios:** en el celular, en una hoja inferior (sheet). Desde tablet, en un panel lateral derecho. Nunca en un diálogo centrado.
 
 ## Agenda
 
@@ -106,7 +121,10 @@ Se cargan con `next/font`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
 - Botón principal fijo abajo: "Agendar".
 
 ### Tablet y laptop: vista de semana
-- Siete columnas, con los mismos bloques de la vista de día.
+- Encabezado: el rango de la semana en Newsreader ("23 – 29 de noviembre"), con flechas, "Hoy" y el botón "Agendar".
+- Siete columnas, con los mismos bloques de la vista de día. La columna de hoy se marca en el encabezado.
+- Al tocar una cita o un hueco, se abre el panel lateral derecho y la semana sigue a la vista.
+- Atajos de teclado en escritorio: `N` nueva cita, `T` hoy, `←` y `→` para cambiar de semana, `/` buscar paciente.
 
 ### Avisos
 - **Choque (bloquea):** banda `peligro` dentro de la hoja de la cita: "Ya tienes una cita en el consultorio de 10:00 a 11:00".
