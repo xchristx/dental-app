@@ -10,7 +10,23 @@ Cómo se ve y cómo se comporta la interfaz. La decisión de fondo está en [000
 
 ## Tokens
 
-Se definen una sola vez en `@theme` (Tailwind v4). Todos los pares de texto y fondo cumplen contraste AA (4,5 o más).
+Se definen una sola vez en [`apps/web/src/app/globals.css`](../apps/web/src/app/globals.css) (Tailwind v4). Todos los pares de texto y fondo cumplen contraste AA (4,5 o más).
+
+En el código, los neutros usan los nombres de shadcn/ui, para que sus componentes funcionen sin cambios:
+
+| Token de esta guía | Clase de Tailwind |
+|---|---|
+| `fondo` | `bg-background` |
+| `superficie` | `bg-card` / `bg-popover` |
+| `borde` | `border-border` |
+| `texto` | `text-foreground` |
+| `texto-secundario` | `text-muted-foreground` |
+| `accion` / `accion-hover` | `bg-primary` / `hover:bg-primary-hover` |
+| `peligro` | `bg-destructive-bg` + `text-destructive` |
+| Aviso que no bloquea | `bg-warning-bg` + `text-warning` |
+| `lugar-azul`, etc. | `bg-lugar-azul` + `text-lugar-azul-fg` |
+| Fuente de títulos (Newsreader) | `font-heading` |
+| Sombra de diálogos y hojas | `shadow-overlay` |
 
 ### Neutros
 | Token | Valor | Uso |

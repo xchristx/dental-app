@@ -1,0 +1,129 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+/*
+ * Tokens de diseño. Fuente única de colores, radios y fuentes.
+ * Ver docs/diseno.md y docs/decisiones/0008-diseno-e-interfaz.md.
+ * Todos los pares de texto y fondo cumplen contraste AA (4,5 o más).
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Neutros (nombres de shadcn, valores de docs/diseno.md) */
+  --background: #f7f6f3; /* fondo */
+  --foreground: #2f3437; /* texto */
+  --card: #ffffff; /* superficie */
+  --card-foreground: #2f3437;
+  --popover: #ffffff;
+  --popover-foreground: #2f3437;
+  --primary: #111111; /* accion */
+  --primary-hover: #333333; /* accion-hover */
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #2f3437;
+  --muted: #efefed;
+  --muted-foreground: #6f6e69; /* texto-secundario */
+  --accent: #efefed;
+  --accent-foreground: #2f3437;
+  --border: #eaeaea;
+  --input: #dcdcd8;
+  --ring: #6f6e69;
+
+  /* Avisos */
+  --destructive: #9f2f2d; /* peligro (texto) */
+  --destructive-bg: #fdebec; /* peligro (fondo) */
+  --warning: #956400; /* aviso que no bloquea (texto) */
+  --warning-bg: #fbf3db;
+
+  /* Color por lugar: fondo pálido + texto/borde */
+  --lugar-azul: #e1f3fe;
+  --lugar-azul-fg: #1f6c9f;
+  --lugar-verde: #edf3ec;
+  --lugar-verde-fg: #346538;
+  --lugar-amarillo: #fbf3db;
+  --lugar-amarillo-fg: #956400;
+  --lugar-morado: #f1eaf8;
+  --lugar-morado-fg: #6940a5;
+  --lugar-terracota: #faebdd;
+  --lugar-terracota-fg: #9a4a12;
+  --lugar-gris: #efefed;
+  --lugar-gris-fg: #55534e;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-newsreader);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-bg: var(--destructive-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+
+  --color-lugar-azul: var(--lugar-azul);
+  --color-lugar-azul-fg: var(--lugar-azul-fg);
+  --color-lugar-verde: var(--lugar-verde);
+  --color-lugar-verde-fg: var(--lugar-verde-fg);
+  --color-lugar-amarillo: var(--lugar-amarillo);
+  --color-lugar-amarillo-fg: var(--lugar-amarillo-fg);
+  --color-lugar-morado: var(--lugar-morado);
+  --color-lugar-morado-fg: var(--lugar-morado-fg);
+  --color-lugar-terracota: var(--lugar-terracota);
+  --color-lugar-terracota-fg: var(--lugar-terracota-fg);
+  --color-lugar-gris: var(--lugar-gris);
+  --color-lugar-gris-fg: var(--lugar-gris-fg);
+
+  /* Radios: 4px inputs y botones, 8px tarjetas, 12px hojas y diálogos */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Única sombra permitida: diálogos y hojas */
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.06);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+    line-height: 1.5;
+  }
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}

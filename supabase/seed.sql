@@ -1,0 +1,2 @@
+-- Datos de prueba para el entorno local y la demo.
+-- Siempre inventados: nunca datos de pacientes reales (ver CLAUDE.md).

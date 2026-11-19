@@ -4,9 +4,21 @@ App de gestión para consultorios odontológicos: agenda en varios lugares, hist
 
 Se construye con una dentista real que hoy lleva todo en papel.
 
-**Estado:** planificación. Todavía no hay código de la app.
+**Estado:** monorepo armado. Empezando el MVP 1 (agenda).
+
+## Desarrollo
+
+Requisitos: Node 24, pnpm (`corepack enable pnpm`), Docker y la CLI de Supabase.
+
+```sh
+pnpm install
+pnpm dev        # web en http://localhost:3000
+pnpm test       # tests de packages/core
+pnpm db:start   # Supabase local
+```
 
 ## Documentación
+
 - [Descubrimiento](docs/descubrimiento.md): cómo trabaja hoy la dentista y qué le complica.
 - [Alcance y etapas](docs/alcance.md)
 - [Preguntas pendientes](docs/preguntas-pendientes.md)
@@ -22,16 +34,19 @@ Se construye con una dentista real que hoy lleva todo en papel.
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack
+
 TypeScript · pnpm + Turborepo · Next.js · Tailwind v4 + shadcn/ui · Phosphor · Supabase (Postgres) · Zod · Vitest + pgTAP · Vercel · Expo + PowerSync (fase 2)
 
-## Estructura (planificada)
+## Estructura
+
 ```
 apps/web        Next.js (fase 1)
-apps/mobile     Expo Android, sin conexión (fase 2)
+apps/mobile     Expo Android, sin conexión (fase 2, todavía no existe)
 packages/core   lógica compartida: saldos, choques de agenda, odontograma
 supabase/       migraciones y datos de prueba
 docs/           descubrimiento, alcance y decisiones
 ```
 
 ## Privacidad
+
 Este repositorio nunca guarda datos de pacientes reales. Las demos y los datos de prueba se generan con datos inventados.
