@@ -8,8 +8,10 @@ import { configSupabase } from './config'
  * handlers. Se crea uno por request: nunca se comparte entre requests.
  */
 export async function crearClienteServidor() {
-  const { url, clavePublica } = configSupabase()
+  // Primero cookies(): con Cache Components marca que esto corre en cada
+  // request, y así el build no necesita las variables de Supabase.
   const cookieStore = await cookies()
+  const { url, clavePublica } = configSupabase()
 
   return createServerClient(url, clavePublica, {
     cookies: {

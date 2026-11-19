@@ -28,6 +28,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      # Sin variables de entorno, como un build nuevo en Netlify.
+      - run: pnpm build
 
   db:
     name: Base de datos (migraciones y pgTAP)
