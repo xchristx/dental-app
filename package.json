@@ -16,7 +16,8 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "db:types": "supabase gen types typescript --schema public > apps/web/src/lib/supabase/tipos-db.ts && prettier --write apps/web/src/lib/supabase/tipos-db.ts"
   },
   "devDependencies": {
     "prettier": "3.10.1",

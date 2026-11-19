@@ -4,7 +4,7 @@ App de gestión para consultorios odontológicos: agenda en varios lugares, hist
 
 Se construye con una dentista real que hoy lleva todo en papel.
 
-**Estado:** empezando el MVP 1 (agenda). Esquema de la base de datos listo; la interfaz todavía usa datos de prueba fijos.
+**Estado:** MVP 1 (agenda) en curso. Ya funcionan el inicio de sesión y la agenda leída desde la base (día en el celular, semana desde tablet). Falta agendar y editar citas.
 
 **Demo:** <https://sifel.netlify.app> (datos inventados).
 
