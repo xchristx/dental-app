@@ -5,7 +5,9 @@ import {
   ESTADOS_QUE_OCUPAN,
   EstadoCita,
   NuevaCita,
+  ReagendarCita,
   esFechaValida,
+  estadoAlReagendar,
   esHoraValida,
   fechaEnZona,
   formatearHora,
@@ -148,6 +150,8 @@ async function describirChoque(
   cita: Pick<NuevaCita, 'profesionalId' | 'lugarId'>,
   inicio: Date,
   fin: Date,
+  /** Al reagendar, la original vuelve a estar activa tras el rechazo: no es ella. */
+  excluirId?: string,
 ): Promise<string> {
   const porSillon = mensaje.includes('citas_sin_choque_sillon')
 
@@ -162,6 +166,7 @@ async function describirChoque(
     .gt('fin', inicio.toISOString())
     .order('inicio')
     .limit(1)
+  if (excluirId) consulta = consulta.neq('id', excluirId)
   consulta = porSillon
     ? consulta.eq('lugar_id', cita.lugarId)
     : consulta.eq('profesional_id', cita.profesionalId)
@@ -200,10 +205,10 @@ async function profesionalDelUsuario(supabase: Supabase): Promise<string | null>
 export type ResultadoCita = { ok: true } | { ok: false; error: string }
 
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const NO_ENCONTRADA: ResultadoCita = {
+const NO_ENCONTRADA = {
   ok: false,
   error: 'No encontramos esa cita. Recarga la página.',
-}
+} as const satisfies ResultadoCita
 
 async function leerCita(supabase: Supabase, id: string) {
   if (!ES_UUID.test(id)) return null
@@ -230,6 +235,13 @@ export async function cambiarEstadoCita(id: string, estado: string): Promise<Res
   const actual = EstadoCita.parse(cita.estado)
   if (!puedeCambiarA(actual, nuevo.data, cita.paciente_id === null)) {
     return { ok: false, error: 'La cita ya cambió. Recarga la página.' }
+  }
+  // Reactivar una cita que ya se reagendó dejaría al paciente con dos citas (0012).
+  if (nuevo.data === 'agendada' && (await yaSeReagendo(supabase, id))) {
+    return {
+      ok: false,
+      error: 'Esta cita ya se reagendó. Si hace falta, cambia o cancela la cita nueva.',
+    }
   }
 
   const llegada =
@@ -327,4 +339,80 @@ export async function guardarTelefono(
   if (!data?.length) return NO_ENCONTRADA
   refresh()
   return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
+// Reagendar (0005 y 0012)
+// ---------------------------------------------------------------------------
+
+export type ResultadoReagendar =
+  { ok: true; fecha: Fecha; id: string } | { ok: false; error: string }
+
+async function yaSeReagendo(supabase: Supabase, id: string): Promise<boolean> {
+  const { count } = await supabase
+    .from('citas')
+    .select('id', { count: 'exact', head: true })
+    .eq('reagendada_desde', id)
+    .is('deleted_at', null)
+  return (count ?? 0) > 0
+}
+
+/**
+ * Crea la cita nueva y deja la original cancelada o como "no asistió", en una
+ * sola transacción de Postgres (reagendar_cita). El paciente es el de la original.
+ */
+export async function reagendarCita(datos: unknown): Promise<ResultadoReagendar> {
+  const validacion = ReagendarCita.safeParse(datos)
+  if (!validacion.success) {
+    return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
+  }
+  const nueva = validacion.data
+  const supabase = await crearClienteServidor()
+  const original = await leerCita(supabase, nueva.citaOriginalId)
+  if (!original) return NO_ENCONTRADA
+
+  const estadoOriginal = estadoAlReagendar(
+    { estado: EstadoCita.parse(original.estado), inicio: new Date(original.inicio) },
+    new Date(),
+  )
+  const { inicio, fin } = rangoDeLaCita(nueva, ZONA)
+
+  const { error } = await supabase.rpc('reagendar_cita', {
+    p_original: nueva.citaOriginalId,
+    p_estado_original: estadoOriginal,
+    p_id: nueva.id,
+    p_profesional: nueva.profesionalId,
+    p_lugar: nueva.lugarId,
+    p_inicio: inicio.toISOString(),
+    p_fin: fin.toISOString(),
+    p_tipo_cita: nueva.tipoCitaId ?? undefined,
+    p_nota: nueva.nota ?? undefined,
+  })
+
+  if (error) {
+    switch (error.code) {
+      case '23P01':
+        return {
+          ok: false,
+          error: await describirChoque(supabase, error.message, nueva, inicio, fin, original.id),
+        }
+      case 'RE002':
+        return { ok: false, error: 'Esta cita ya se reagendó. Recarga la página.' }
+      case 'RE001':
+        return { ok: false, error: 'Esta cita no se puede reagendar.' }
+      case 'P0002':
+        return NO_ENCONTRADA
+      case '23503':
+        return {
+          ok: false,
+          error: 'Algún dato ya no existe. Recarga la página e inténtalo de nuevo.',
+        }
+      default:
+        console.error(`[reagendar] código=${error.code}: ${error.message}`)
+        return { ok: false, error: ERROR_GENERICO }
+    }
+  }
+
+  refresh()
+  return { ok: true, fecha: nueva.fecha, id: nueva.id }
 }

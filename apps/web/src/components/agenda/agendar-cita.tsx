@@ -9,6 +9,7 @@ import {
   esFechaValida,
   esHoraValida,
   fechaEnZona,
+  formatearDiaLargo,
   formatearHora,
   horasSugeridas,
   huecosLibres,
@@ -29,7 +30,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { agendarCita, ocupacionDelDia } from '@/lib/agenda/acciones'
+import { agendarCita, ocupacionDelDia, reagendarCita } from '@/lib/agenda/acciones'
 import type { OpcionesAgendar } from '@/lib/agenda/opciones'
 import { ZONA } from '@/lib/agenda/zona'
 import { cn } from '@/lib/utils'
@@ -61,7 +62,42 @@ interface Formulario {
   nota: string
 }
 
-function formularioInicial(opciones: OpcionesAgendar, fecha: Fecha): Formulario {
+/** La cita que se reagenda (0012): el formulario empieza con sus datos. */
+export interface DatosReagendar {
+  citaId: string
+  paciente: string
+  profesionalId: string
+  lugarId: string
+  tipoCitaId: string | null
+  duracionMin: number
+  nota: string | null
+  inicio: Date
+  /** Cómo queda la original al reagendar. */
+  quedaComo: 'cancelada' | 'no_asistio'
+}
+
+function formularioInicial(
+  opciones: OpcionesAgendar,
+  fecha: Fecha,
+  reagendar?: DatosReagendar,
+): Formulario {
+  if (reagendar) {
+    return {
+      id: crypto.randomUUID(),
+      modo: 'paciente',
+      pacienteId: null,
+      pacienteNuevo: null,
+      busqueda: '',
+      profesionalId: reagendar.profesionalId,
+      lugarId: reagendar.lugarId,
+      tipoCitaId: reagendar.tipoCitaId ?? '',
+      fecha,
+      hora: formatearHora(reagendar.inicio, ZONA),
+      horaTocada: false,
+      duracionMin: reagendar.duracionMin,
+      nota: reagendar.nota ?? '',
+    }
+  }
   const tipo = opciones.tiposCita[0]
   const profesionalId = opciones.profesionalPropia ?? opciones.profesionales[0]?.id ?? ''
   return {
@@ -92,17 +128,70 @@ function sumarMinutos(hora: string, minutos: number) {
 /** Botones "Agendar" (fijo abajo en el celular, en el encabezado desde tablet) y su formulario. */
 export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fecha: Fecha }) {
   const [abierto, setAbierto] = useState(false)
-  const [form, setForm] = useState(() => formularioInicial(opciones, fecha))
-  const [error, setError] = useState<string | null>(null)
-  const [guardando, iniciarGuardado] = useTransition()
+  // Cada vez que se abre, el formulario empieza de cero.
+  const [vez, setVez] = useState(0)
   const router = useRouter()
-  const ids = useId()
 
   function abrir() {
-    setForm(formularioInicial(opciones, fecha))
-    setError(null)
+    setVez((v) => v + 1)
     setAbierto(true)
   }
+
+  return (
+    <>
+      {/* Desde tablet: en el encabezado */}
+      <Button className="hidden md:inline-flex" onClick={abrir}>
+        <CalendarPlusIcon weight="bold" />
+        Agendar
+      </Button>
+
+      {/* Celular: fijo abajo, encima de la barra de navegación */}
+      <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-10 md:hidden">
+        <Button size="lg" className="w-full" onClick={abrir}>
+          <CalendarPlusIcon weight="bold" />
+          Agendar
+        </Button>
+      </div>
+
+      <FormularioCita
+        key={vez}
+        opciones={opciones}
+        fecha={fecha}
+        abierto={abierto}
+        onOpenChange={setAbierto}
+        onGuardada={(guardada) => {
+          setAbierto(false)
+          if (guardada.fecha !== fecha) router.push(`/?fecha=${guardada.fecha}`)
+        }}
+      />
+    </>
+  )
+}
+
+/**
+ * Formulario de una cita nueva, de un bloqueo o de una cita reagendada (0012).
+ * Muestra los horarios libres del día y avisa de traslados (0004).
+ */
+export function FormularioCita({
+  opciones,
+  fecha,
+  abierto,
+  onOpenChange,
+  onGuardada,
+  reagendar,
+}: {
+  opciones: OpcionesAgendar
+  /** Día con el que empieza el formulario. */
+  fecha: Fecha
+  abierto: boolean
+  onOpenChange: (abierto: boolean) => void
+  onGuardada: (cita: { id: string; fecha: Fecha }) => void
+  reagendar?: DatosReagendar
+}) {
+  const [form, setForm] = useState(() => formularioInicial(opciones, fecha, reagendar))
+  const [error, setError] = useState<string | null>(null)
+  const [guardando, iniciarGuardado] = useTransition()
+  const ids = useId()
 
   // Al cambiar algo, el aviso anterior ya no aplica.
   const cambiar = (cambios: Partial<Formulario>) => {
@@ -122,7 +211,10 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
     : [...DURACIONES, form.duracionMin].sort((a, b) => a - b)
 
   // Citas del día elegido (de todas las profesionales), para huecos y avisos.
-  const [ocupacion, setOcupacion] = useState<{ fecha: Fecha; citas: CitaOcupada[] } | null>(null)
+  const [ocupacion, setOcupacion] = useState<{
+    fecha: Fecha
+    citas: (CitaOcupada & { id: string })[]
+  } | null>(null)
   useEffect(() => {
     if (!abierto || !esFechaValida(form.fecha)) return
     let vigente = true
@@ -142,7 +234,11 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
     }
   }, [abierto, form.fecha])
 
-  const citasDelDia = ocupacion?.fecha === form.fecha ? ocupacion.citas : null
+  // Al reagendar, el horario de la original queda libre: no cuenta.
+  const citasDelDia =
+    ocupacion?.fecha === form.fecha
+      ? ocupacion.citas.filter((c) => c.id !== reagendar?.citaId)
+      : null
   const profesional = opciones.profesionales.find((p) => p.id === form.profesionalId)
   const margenTrasladoMin = profesional?.margenTrasladoMin ?? 30
   const nombreLugar = (id: string) =>
@@ -223,6 +319,25 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
     evento.preventDefault()
     setError(null)
 
+    if (reagendar) {
+      iniciarGuardado(async () => {
+        const resultado = await reagendarCita({
+          citaOriginalId: reagendar.citaId,
+          id: form.id,
+          profesionalId: form.profesionalId,
+          lugarId: lugarFinal,
+          tipoCitaId: form.tipoCitaId || null,
+          fecha: form.fecha,
+          hora: horaFinal,
+          duracionMin: form.duracionMin,
+          nota: form.nota,
+        })
+        if (!resultado.ok) setError(resultado.error)
+        else onGuardada({ id: resultado.id, fecha: resultado.fecha })
+      })
+      return
+    }
+
     const paciente =
       form.modo === 'bloqueo'
         ? { tipo: 'bloqueo' as const }
@@ -252,41 +367,33 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
         setError(resultado.error)
         return
       }
-      setAbierto(false)
-      if (resultado.fecha !== fecha) router.push(`/?fecha=${resultado.fecha}`)
+      onGuardada({ id: form.id, fecha: resultado.fecha })
     })
   }
 
+  const titulo = reagendar
+    ? `Reagendar a ${reagendar.paciente}`
+    : form.modo === 'bloqueo'
+      ? 'Nuevo bloqueo'
+      : 'Nueva cita'
+  const descripcion = reagendar
+    ? `La cita del ${formatearDiaLargo(fechaEnZona(reagendar.inicio, ZONA)).toLowerCase()} a las ${formatearHora(reagendar.inicio, ZONA)} queda ${reagendar.quedaComo === 'cancelada' ? 'cancelada' : 'como «No asistió»'}.`
+    : form.modo === 'bloqueo'
+      ? 'Un tiempo en que no atiendes: un trámite, la clínica, un viaje.'
+      : 'Si el horario choca con otra cita, te avisamos al guardar.'
+
   return (
-    <>
-      {/* Desde tablet: en el encabezado */}
-      <Button className="hidden md:inline-flex" onClick={abrir}>
-        <CalendarPlusIcon weight="bold" />
-        Agendar
-      </Button>
+    <Sheet open={abierto} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <form onSubmit={guardar} className="flex min-h-full flex-col" noValidate>
+          <SheetHeader>
+            <SheetTitle>{titulo}</SheetTitle>
+            <SheetDescription>{descripcion}</SheetDescription>
+          </SheetHeader>
 
-      {/* Celular: fijo abajo, encima de la barra de navegación */}
-      <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-10 md:hidden">
-        <Button size="lg" className="w-full" onClick={abrir}>
-          <CalendarPlusIcon weight="bold" />
-          Agendar
-        </Button>
-      </div>
-
-      <Sheet open={abierto} onOpenChange={setAbierto}>
-        <SheetContent>
-          <form onSubmit={guardar} className="flex min-h-full flex-col" noValidate>
-            <SheetHeader>
-              <SheetTitle>{form.modo === 'bloqueo' ? 'Nuevo bloqueo' : 'Nueva cita'}</SheetTitle>
-              <SheetDescription>
-                {form.modo === 'bloqueo'
-                  ? 'Un tiempo en que no atiendes: un trámite, la clínica, un viaje.'
-                  : 'Si el horario choca con otra cita, te avisamos al guardar.'}
-              </SheetDescription>
-            </SheetHeader>
-
-            <div className="flex flex-col gap-5 px-4 py-3 md:px-6">
-              {/* Cita o bloqueo */}
+          <div className="flex flex-col gap-5 px-4 py-3 md:px-6">
+            {/* Cita o bloqueo */}
+            {!reagendar && (
               <div
                 role="radiogroup"
                 aria-label="Qué vas a agendar"
@@ -308,304 +415,303 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
                   </button>
                 ))}
               </div>
+            )}
 
-              {form.modo === 'paciente' && (
-                <fieldset className="flex flex-col gap-2">
-                  <legend className="mb-1.5 text-sm font-medium">Paciente</legend>
+            {/* Al reagendar, el paciente es el de la original. */}
+            {form.modo === 'paciente' && !reagendar && (
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1.5 text-sm font-medium">Paciente</legend>
 
-                  {pacienteElegido || form.pacienteNuevo ? (
-                    <div className="border-border bg-card flex items-center justify-between gap-2 rounded-sm border py-1 pl-3">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {pacienteElegido?.nombre ?? form.pacienteNuevo?.nombre}
-                        </p>
-                        {form.pacienteNuevo && (
-                          <p className="text-muted-foreground text-sm">Paciente nuevo</p>
-                        )}
-                      </div>
+                {pacienteElegido || form.pacienteNuevo ? (
+                  <div className="border-border bg-card flex items-center justify-between gap-2 rounded-sm border py-1 pl-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {pacienteElegido?.nombre ?? form.pacienteNuevo?.nombre}
+                      </p>
+                      {form.pacienteNuevo && (
+                        <p className="text-muted-foreground text-sm">Paciente nuevo</p>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Cambiar paciente"
+                      onClick={() => cambiar({ pacienteId: null, pacienteNuevo: null })}
+                    >
+                      <XIcon weight="bold" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="search"
+                      aria-label="Buscar paciente"
+                      placeholder="Escribe el nombre"
+                      autoComplete="off"
+                      value={form.busqueda}
+                      onChange={(e) => cambiar({ busqueda: e.target.value })}
+                      className={claseCampo}
+                    />
+                    {coincidencias.length > 0 && (
+                      <ul className="border-border bg-card divide-border divide-y rounded-sm border">
+                        {coincidencias.map((p) => (
+                          <li key={p.id}>
+                            <button
+                              type="button"
+                              onClick={() => cambiar({ pacienteId: p.id, busqueda: '' })}
+                              className="hover:bg-muted flex min-h-11 w-full items-center px-3 text-left"
+                            >
+                              {p.nombre}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {form.busqueda.trim().length >= 2 && (
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Cambiar paciente"
-                        onClick={() => cambiar({ pacienteId: null, pacienteNuevo: null })}
-                      >
-                        <XIcon weight="bold" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <input
-                        type="search"
-                        aria-label="Buscar paciente"
-                        placeholder="Escribe el nombre"
-                        autoComplete="off"
-                        value={form.busqueda}
-                        onChange={(e) => cambiar({ busqueda: e.target.value })}
-                        className={claseCampo}
-                      />
-                      {coincidencias.length > 0 && (
-                        <ul className="border-border bg-card divide-border divide-y rounded-sm border">
-                          {coincidencias.map((p) => (
-                            <li key={p.id}>
-                              <button
-                                type="button"
-                                onClick={() => cambiar({ pacienteId: p.id, busqueda: '' })}
-                                className="hover:bg-muted flex min-h-11 w-full items-center px-3 text-left"
-                              >
-                                {p.nombre}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {form.busqueda.trim().length >= 2 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="justify-start"
-                          onClick={() =>
-                            cambiar({
-                              pacienteNuevo: {
-                                id: crypto.randomUUID(),
-                                nombre: form.busqueda.trim(),
-                                telefono: '',
-                              },
-                              busqueda: '',
-                            })
-                          }
-                        >
-                          <UserPlusIcon weight="bold" />
-                          <span className="truncate">
-                            Agregar «{form.busqueda.trim()}» como paciente nuevo
-                          </span>
-                        </Button>
-                      )}
-                    </>
-                  )}
-
-                  {form.pacienteNuevo && (
-                    <label className="flex flex-col gap-1.5 text-sm font-medium">
-                      Teléfono (opcional)
-                      <input
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="off"
-                        placeholder="Para enviarle recordatorios por WhatsApp"
-                        value={form.pacienteNuevo.telefono}
-                        onChange={(e) =>
+                        variant="outline"
+                        className="justify-start"
+                        onClick={() =>
                           cambiar({
-                            pacienteNuevo: form.pacienteNuevo && {
-                              ...form.pacienteNuevo,
-                              telefono: e.target.value,
+                            pacienteNuevo: {
+                              id: crypto.randomUUID(),
+                              nombre: form.busqueda.trim(),
+                              telefono: '',
                             },
+                            busqueda: '',
                           })
                         }
-                        className={claseCampo}
-                      />
-                    </label>
-                  )}
-                </fieldset>
-              )}
-
-              {form.modo === 'paciente' && opciones.tiposCita.length > 0 && (
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Tipo de cita
-                  <select
-                    value={form.tipoCitaId}
-                    onChange={(e) => {
-                      const tipo = opciones.tiposCita.find((t) => t.id === e.target.value)
-                      // La duración se sugiere según el tipo; se puede cambiar.
-                      cambiar({
-                        tipoCitaId: e.target.value,
-                        duracionMin: tipo?.duracionMin ?? form.duracionMin,
-                      })
-                    }}
-                    className={claseCampo}
-                  >
-                    {opciones.tiposCita.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              {opciones.profesionales.length > 1 && (
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Profesional
-                  <select
-                    value={form.profesionalId}
-                    onChange={(e) => cambiar({ profesionalId: e.target.value, horaTocada: false })}
-                    className={claseCampo}
-                  >
-                    {opciones.profesionales.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Fecha
-                  <input
-                    type="date"
-                    required
-                    value={form.fecha}
-                    onChange={(e) => cambiar({ fecha: e.target.value, horaTocada: false })}
-                    className={claseCampo}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Duración
-                  <select
-                    value={form.duracionMin}
-                    onChange={(e) => cambiar({ duracionMin: Number(e.target.value) })}
-                    className={claseCampo}
-                  >
-                    {duraciones.map((min) => (
-                      <option key={min} value={min}>
-                        {min < 60
-                          ? `${min} min`
-                          : `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              {/* Horarios libres (0004): tocar uno pone la hora y el lugar. */}
-              <section aria-labelledby={`${ids}-libres`} className="flex flex-col gap-2">
-                <h3 id={`${ids}-libres`} className="text-sm font-medium">
-                  Horarios libres
-                </h3>
-                {!tieneHorario ? (
-                  <p className="text-muted-foreground text-sm">
-                    {profesional?.nombre ?? 'La profesional'} no tiene horario de atención ese día.
-                    Puedes elegir la hora a mano.
-                  </p>
-                ) : horasLibres === null ? (
-                  <p className="text-muted-foreground text-sm">Buscando horarios libres…</p>
-                ) : horasLibres.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">
-                    No quedan horarios libres para una cita de esta duración ese día.
-                  </p>
-                ) : (
-                  horasLibres.map(([lugarId, horas]) => (
-                    <div key={lugarId} className="flex flex-col gap-1.5">
-                      <p className="text-muted-foreground text-sm">{nombreLugar(lugarId)}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {horas.map((h) => {
-                          const texto = formatearHora(h.inicio, ZONA)
-                          const elegida = lugarFinal === lugarId && horaFinal === texto
-                          return (
-                            <button
-                              key={texto}
-                              type="button"
-                              aria-pressed={elegida}
-                              onClick={() => cambiar({ hora: texto, lugarId, horaTocada: true })}
-                              className={cn(
-                                'h-11 rounded-sm border px-3 text-sm tabular-nums transition-colors duration-150',
-                                elegida
-                                  ? 'bg-primary text-primary-foreground border-primary'
-                                  : 'border-border bg-card hover:bg-muted',
-                              )}
-                            >
-                              {texto}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))
+                      >
+                        <UserPlusIcon weight="bold" />
+                        <span className="truncate">
+                          Agregar «{form.busqueda.trim()}» como paciente nuevo
+                        </span>
+                      </Button>
+                    )}
+                  </>
                 )}
-              </section>
 
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Hora
-                  <input
-                    type="time"
-                    required
-                    step={300}
-                    value={horaFinal}
-                    onChange={(e) =>
-                      cambiar({ hora: e.target.value, lugarId: lugarFinal, horaTocada: true })
-                    }
-                    className={claseCampo}
-                    aria-describedby={`${ids}-horario`}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Lugar
-                  <select
-                    value={lugarFinal}
-                    onChange={(e) =>
-                      cambiar({ lugarId: e.target.value, hora: horaFinal, horaTocada: true })
-                    }
-                    className={claseCampo}
-                  >
-                    {opciones.lugares.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <p id={`${ids}-horario`} className="text-muted-foreground -mt-3 text-sm tabular-nums">
-                De {horaFinal} a {sumarMinutos(horaFinal, form.duracionMin)}
-              </p>
+                {form.pacienteNuevo && (
+                  <label className="flex flex-col gap-1.5 text-sm font-medium">
+                    Teléfono (opcional)
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="off"
+                      placeholder="Para enviarle recordatorios por WhatsApp"
+                      value={form.pacienteNuevo.telefono}
+                      onChange={(e) =>
+                        cambiar({
+                          pacienteNuevo: form.pacienteNuevo && {
+                            ...form.pacienteNuevo,
+                            telefono: e.target.value,
+                          },
+                        })
+                      }
+                      className={claseCampo}
+                    />
+                  </label>
+                )}
+              </fieldset>
+            )}
 
+            {form.modo === 'paciente' && opciones.tiposCita.length > 0 && (
               <label className="flex flex-col gap-1.5 text-sm font-medium">
-                {form.modo === 'bloqueo' ? 'Motivo' : 'Nota (opcional)'}
-                <textarea
-                  rows={2}
-                  value={form.nota}
-                  placeholder={form.modo === 'bloqueo' ? 'Por ejemplo: trámite en el banco' : ''}
-                  onChange={(e) => cambiar({ nota: e.target.value })}
-                  className={cn(claseCampo, 'h-auto py-2')}
+                Tipo de cita
+                <select
+                  value={form.tipoCitaId}
+                  onChange={(e) => {
+                    const tipo = opciones.tiposCita.find((t) => t.id === e.target.value)
+                    // La duración se sugiere según el tipo; se puede cambiar.
+                    cambiar({
+                      tipoCitaId: e.target.value,
+                      duracionMin: tipo?.duracionMin ?? form.duracionMin,
+                    })
+                  }}
+                  className={claseCampo}
+                >
+                  {opciones.tiposCita.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {opciones.profesionales.length > 1 && (
+              <label className="flex flex-col gap-1.5 text-sm font-medium">
+                Profesional
+                <select
+                  value={form.profesionalId}
+                  onChange={(e) => cambiar({ profesionalId: e.target.value, horaTocada: false })}
+                  className={claseCampo}
+                >
+                  {opciones.profesionales.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1.5 text-sm font-medium">
+                Fecha
+                <input
+                  type="date"
+                  required
+                  value={form.fecha}
+                  onChange={(e) => cambiar({ fecha: e.target.value, horaTocada: false })}
+                  className={claseCampo}
                 />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium">
+                Duración
+                <select
+                  value={form.duracionMin}
+                  onChange={(e) => cambiar({ duracionMin: Number(e.target.value) })}
+                  className={claseCampo}
+                >
+                  {duraciones.map((min) => (
+                    <option key={min} value={min}>
+                      {min < 60
+                        ? `${min} min`
+                        : `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
 
-            <SheetFooter className="border-border bg-popover sticky bottom-0 border-t">
-              {/* Avisos que no bloquean: banda amarilla y "Agendar igual" (docs/diseno.md). */}
-              {avisos.length > 0 && !error && (
-                <div className="bg-warning-bg text-warning flex gap-2 rounded-lg px-4 py-3 text-sm">
-                  <WarningIcon weight="bold" className="mt-0.5 size-4 shrink-0" />
-                  <ul className="flex flex-col gap-1">
-                    {avisos.map((a, i) => (
-                      <li key={i}>{textoAviso(a)}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {error && (
-                <p
-                  role="alert"
-                  className="bg-destructive-bg text-destructive rounded-lg px-4 py-3 text-sm"
-                >
-                  {error}
+            {/* Horarios libres (0004): tocar uno pone la hora y el lugar. */}
+            <section aria-labelledby={`${ids}-libres`} className="flex flex-col gap-2">
+              <h3 id={`${ids}-libres`} className="text-sm font-medium">
+                Horarios libres
+              </h3>
+              {!tieneHorario ? (
+                <p className="text-muted-foreground text-sm">
+                  {profesional?.nombre ?? 'La profesional'} no tiene horario de atención ese día.
+                  Puedes elegir la hora a mano.
                 </p>
+              ) : horasLibres === null ? (
+                <p className="text-muted-foreground text-sm">Buscando horarios libres…</p>
+              ) : horasLibres.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  No quedan horarios libres para una cita de esta duración ese día.
+                </p>
+              ) : (
+                horasLibres.map(([lugarId, horas]) => (
+                  <div key={lugarId} className="flex flex-col gap-1.5">
+                    <p className="text-muted-foreground text-sm">{nombreLugar(lugarId)}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {horas.map((h) => {
+                        const texto = formatearHora(h.inicio, ZONA)
+                        const elegida = lugarFinal === lugarId && horaFinal === texto
+                        return (
+                          <button
+                            key={texto}
+                            type="button"
+                            aria-pressed={elegida}
+                            onClick={() => cambiar({ hora: texto, lugarId, horaTocada: true })}
+                            className={cn(
+                              'h-11 rounded-sm border px-3 text-sm tabular-nums transition-colors duration-150',
+                              elegida
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'border-border bg-card hover:bg-muted',
+                            )}
+                          >
+                            {texto}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))
               )}
-              <Button type="submit" size="lg" disabled={guardando}>
-                {guardando
-                  ? 'Guardando…'
-                  : form.modo === 'bloqueo'
-                    ? 'Guardar bloqueo'
-                    : avisos.length > 0
-                      ? 'Agendar igual'
-                      : 'Agendar'}
-              </Button>
-            </SheetFooter>
-          </form>
-        </SheetContent>
-      </Sheet>
-    </>
+            </section>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1.5 text-sm font-medium">
+                Hora
+                <input
+                  type="time"
+                  required
+                  step={300}
+                  value={horaFinal}
+                  onChange={(e) =>
+                    cambiar({ hora: e.target.value, lugarId: lugarFinal, horaTocada: true })
+                  }
+                  className={claseCampo}
+                  aria-describedby={`${ids}-horario`}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium">
+                Lugar
+                <select
+                  value={lugarFinal}
+                  onChange={(e) =>
+                    cambiar({ lugarId: e.target.value, hora: horaFinal, horaTocada: true })
+                  }
+                  className={claseCampo}
+                >
+                  {opciones.lugares.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <p id={`${ids}-horario`} className="text-muted-foreground -mt-3 text-sm tabular-nums">
+              De {horaFinal} a {sumarMinutos(horaFinal, form.duracionMin)}
+            </p>
+
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              {form.modo === 'bloqueo' ? 'Motivo' : 'Nota (opcional)'}
+              <textarea
+                rows={2}
+                value={form.nota}
+                placeholder={form.modo === 'bloqueo' ? 'Por ejemplo: trámite en el banco' : ''}
+                onChange={(e) => cambiar({ nota: e.target.value })}
+                className={cn(claseCampo, 'h-auto py-2')}
+              />
+            </label>
+          </div>
+
+          <SheetFooter className="border-border bg-popover sticky bottom-0 border-t">
+            {/* Avisos que no bloquean: banda amarilla y "Agendar igual" (docs/diseno.md). */}
+            {avisos.length > 0 && !error && (
+              <div className="bg-warning-bg text-warning flex gap-2 rounded-lg px-4 py-3 text-sm">
+                <WarningIcon weight="bold" className="mt-0.5 size-4 shrink-0" />
+                <ul className="flex flex-col gap-1">
+                  {avisos.map((a, i) => (
+                    <li key={i}>{textoAviso(a)}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {error && (
+              <p
+                role="alert"
+                className="bg-destructive-bg text-destructive rounded-lg px-4 py-3 text-sm"
+              >
+                {error}
+              </p>
+            )}
+            <Button type="submit" size="lg" disabled={guardando}>
+              {guardando
+                ? 'Guardando…'
+                : form.modo === 'bloqueo'
+                  ? 'Guardar bloqueo'
+                  : `${reagendar ? 'Reagendar' : 'Agendar'}${avisos.length > 0 ? ' igual' : ''}`}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
   )
 }

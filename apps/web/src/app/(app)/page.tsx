@@ -17,7 +17,7 @@ import { AgendarCita } from '@/components/agenda/agendar-cita'
 import { BloqueCita } from '@/components/agenda/bloque-cita'
 import { DetalleCita } from '@/components/agenda/detalle-cita'
 import { Button } from '@/components/ui/button'
-import { ZONA, citasDeLaSemana, type CitaAgenda } from '@/lib/agenda/datos'
+import { ZONA, citasDeLaSemana, enlacesDeReagenda, type CitaAgenda } from '@/lib/agenda/datos'
 import { opcionesParaAgendar } from '@/lib/agenda/opciones'
 import { cn } from '@/lib/utils'
 
@@ -46,6 +46,7 @@ async function Agenda({ parametros }: { parametros: PageProps<'/'>['searchParams
   // El detalle de una cita se abre con ?cita=<id>: el botón "atrás" lo cierra.
   const hrefCita = (id: string) => `/?fecha=${fecha}&cita=${id}`
   const seleccionada = citas.find((c) => c.id === citaElegida)
+  const enlaces = seleccionada ? await enlacesDeReagenda(seleccionada) : null
 
   return (
     <>
@@ -54,8 +55,14 @@ async function Agenda({ parametros }: { parametros: PageProps<'/'>['searchParams
       </Encabezado>
       <VistaDia citas={delDia(citas, fecha)} hrefCita={hrefCita} />
       <VistaSemana citas={citas} lunes={lunes} hoy={hoy} hrefCita={hrefCita} />
-      {seleccionada && (
-        <DetalleCita key={seleccionada.id} cita={seleccionada} urlCerrar={`/?fecha=${fecha}`} />
+      {seleccionada && enlaces && (
+        <DetalleCita
+          key={seleccionada.id}
+          cita={seleccionada}
+          enlaces={enlaces}
+          opciones={opciones}
+          urlCerrar={`/?fecha=${fecha}`}
+        />
       )}
     </>
   )

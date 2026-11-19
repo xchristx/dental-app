@@ -149,6 +149,9 @@ function ListaCitas({
                       {c.tipo ?? 'Cita'} · {c.lugar} · {c.profesional}
                     </p>
                   </div>
+                  {c.reagendada && (
+                    <span className="text-muted-foreground text-sm">Reagendada</span>
+                  )}
                   {c.estado === 'atendida' ? (
                     <span className="text-muted-foreground text-sm">Atendida</span>
                   ) : (

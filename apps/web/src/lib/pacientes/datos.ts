@@ -18,6 +18,8 @@ export interface CitaDelPaciente {
   tipo: string | null
   lugar: string
   profesional: string
+  /** Si se reagendó: la nueva cita es otra de esta misma lista (0012). */
+  reagendada: boolean
 }
 
 export interface FichaPaciente extends PacienteLista {
@@ -56,7 +58,7 @@ export async function fichaDePaciente(id: string): Promise<FichaPaciente | null>
     supabase
       .from('citas')
       .select(
-        `id, inicio, fin, estado, llegada_at,
+        `id, inicio, fin, estado, llegada_at, reagendada_desde,
          tipo:tipos_cita(nombre), lugar:lugares(nombre), profesional:profesionales(nombre)`,
       )
       .eq('paciente_id', id)
@@ -68,6 +70,8 @@ export async function fichaDePaciente(id: string): Promise<FichaPaciente | null>
   if (!paciente.data) return null
 
   const p = paciente.data
+  // Una cita reagendada y su reemplazo son del mismo paciente.
+  const reagendadas = new Set(citas.data.map((c) => c.reagendada_desde))
   return {
     id: p.id,
     nombre: p.nombre,
@@ -82,6 +86,7 @@ export async function fichaDePaciente(id: string): Promise<FichaPaciente | null>
       tipo: c.tipo?.nombre ?? null,
       lugar: c.lugar.nombre,
       profesional: c.profesional.nombre,
+      reagendada: reagendadas.has(c.id),
     })),
   }
 }

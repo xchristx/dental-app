@@ -18,6 +18,7 @@ export type Database = {
           organization_id: string
           paciente_id: string | null
           profesional_id: string
+          reagendada_desde: string | null
           recordatorio_enviado_at: string | null
           tipo_cita_id: string | null
           updated_at: string
@@ -37,6 +38,7 @@ export type Database = {
           organization_id: string
           paciente_id?: string | null
           profesional_id: string
+          reagendada_desde?: string | null
           recordatorio_enviado_at?: string | null
           tipo_cita_id?: string | null
           updated_at?: string
@@ -55,6 +57,7 @@ export type Database = {
           organization_id?: string
           paciente_id?: string | null
           profesional_id?: string
+          reagendada_desde?: string | null
           recordatorio_enviado_at?: string | null
           tipo_cita_id?: string | null
           updated_at?: string
@@ -93,6 +96,13 @@ export type Database = {
             columns: ['organization_id', 'tipo_cita_id']
             isOneToOne: false
             referencedRelation: 'tipos_cita'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'citas_reagendada_desde_fkey'
+            columns: ['organization_id', 'reagendada_desde']
+            isOneToOne: false
+            referencedRelation: 'citas'
             referencedColumns: ['organization_id', 'id']
           },
         ]
@@ -419,6 +429,20 @@ export type Database = {
     }
     Functions: {
       org_ids_del_usuario: { Args: Record<PropertyKey, never>; Returns: string[] }
+      reagendar_cita: {
+        Args: {
+          p_estado_original: string
+          p_fin: string
+          p_id: string
+          p_inicio: string
+          p_lugar: string
+          p_nota?: string
+          p_original: string
+          p_profesional: string
+          p_tipo_cita?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

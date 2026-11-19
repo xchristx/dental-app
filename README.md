@@ -4,7 +4,7 @@ App de gestión para consultorios odontológicos: agenda en varios lugares, hist
 
 Se construye con una dentista real que hoy lleva todo en papel.
 
-**Estado:** MVP 1 (agenda) completo: inicio de sesión, agenda (día en el celular, semana desde tablet), agendar con horarios libres y avisos, detalle de cita con estado, llegada y recordatorio por WhatsApp, pacientes y ajustes de lugares y horarios. Antes del primer paciente real faltan los preparativos de producción de la decisión 0011.
+**Estado:** MVP 1 (agenda) completo: inicio de sesión, agenda (día en el celular, semana desde tablet), agendar con horarios libres y avisos, detalle de cita con estado, llegada, recordatorio por WhatsApp y reagendar, pacientes y ajustes de lugares y horarios. Antes del primer paciente real faltan los preparativos de producción de la decisión 0011.
 
 **Demo:** <https://sifel.netlify.app> (datos inventados).
 
@@ -41,6 +41,7 @@ Tests: `pnpm test` (packages/core) y `pnpm db:test` (pgTAP).
   - [0009: Interfaz en celular y escritorio](docs/decisiones/0009-interfaz-en-celular-y-escritorio.md)
   - [0010: Hosting de la web en Netlify](docs/decisiones/0010-hosting-netlify.md)
   - [0011: Producción en el plan gratis de Supabase](docs/decisiones/0011-produccion-en-plan-gratis.md)
+  - [0012: Reagendar una cita](docs/decisiones/0012-reagendar.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack
