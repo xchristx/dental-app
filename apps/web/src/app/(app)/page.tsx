@@ -15,9 +15,9 @@ import {
 } from '@dental/core'
 import { AgendarCita } from '@/components/agenda/agendar-cita'
 import { BloqueCita } from '@/components/agenda/bloque-cita'
-import { DetalleCita } from '@/components/agenda/detalle-cita'
+import { DetalleSeleccionado } from '@/components/agenda/detalle-cita'
 import { Button } from '@/components/ui/button'
-import { ZONA, citasDeLaSemana, enlacesDeReagenda, type CitaAgenda } from '@/lib/agenda/datos'
+import { ZONA, citasDeLaSemana, enlacesDeLaSemana, type CitaAgenda } from '@/lib/agenda/datos'
 import { opcionesParaAgendar } from '@/lib/agenda/opciones'
 import { cn } from '@/lib/utils'
 
@@ -35,18 +35,18 @@ export default function AgendaPage({ searchParams }: PageProps<'/'>) {
 }
 
 async function Agenda({ parametros }: { parametros: PageProps<'/'>['searchParams'] }) {
-  const { fecha: valor, cita: citaElegida } = await parametros
+  const { fecha: valor } = await parametros
   // "Hoy" depende del momento del request, no del prerender.
   await connection()
   const hoy = fechaEnZona(new Date(), ZONA)
   const fecha = esFechaValida(valor) ? valor : hoy
   const lunes = lunesDeLaSemana(fecha)
   const [citas, opciones] = await Promise.all([citasDeLaSemana(lunes), opcionesParaAgendar()])
+  const enlaces = await enlacesDeLaSemana(citas)
 
-  // El detalle de una cita se abre con ?cita=<id>: el botón "atrás" lo cierra.
+  // El detalle de una cita se abre con ?cita=<id>, en el navegador y sin ir
+  // al servidor (DetalleSeleccionado). El botón "atrás" lo cierra.
   const hrefCita = (id: string) => `/?fecha=${fecha}&cita=${id}`
-  const seleccionada = citas.find((c) => c.id === citaElegida)
-  const enlaces = seleccionada ? await enlacesDeReagenda(seleccionada) : null
 
   return (
     <>
@@ -55,16 +55,7 @@ async function Agenda({ parametros }: { parametros: PageProps<'/'>['searchParams
       </Encabezado>
       <VistaDia citas={delDia(citas, fecha)} hrefCita={hrefCita} />
       <VistaSemana citas={citas} lunes={lunes} hoy={hoy} hrefCita={hrefCita} />
-      {seleccionada && enlaces && (
-        <DetalleCita
-          key={seleccionada.id}
-          cita={seleccionada}
-          citasDelDia={delDia(citas, fechaEnZona(seleccionada.inicio, ZONA))}
-          enlaces={enlaces}
-          opciones={opciones}
-          urlCerrar={`/?fecha=${fecha}`}
-        />
-      )}
+      <DetalleSeleccionado citas={citas} enlaces={enlaces} opciones={opciones} fecha={fecha} />
     </>
   )
 }
