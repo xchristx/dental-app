@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = { title: 'Pacientes · Agenda dental' }
+export const metadata: Metadata = { title: 'Pacientes' }
 
 // Página provisoria: la lista de pacientes llega con el MVP 1.
 export default function PacientesPage() {

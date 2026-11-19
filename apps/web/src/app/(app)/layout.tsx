@@ -9,7 +9,7 @@ export default function AppLayout({ children }: LayoutProps<'/'>) {
       <aside className="border-border bg-card sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-6 border-r px-3 py-6 lg:flex">
         <p className="flex items-center gap-2 px-3 font-medium">
           <ToothIcon weight="bold" className="size-5" />
-          Agenda dental
+          Sifel
         </p>
         <nav aria-label="Secciones">
           <NavegacionLateral />

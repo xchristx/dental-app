@@ -35,6 +35,7 @@ pnpm db:start   # Supabase local
   - [0008: Diseño e interfaz](docs/decisiones/0008-diseno-e-interfaz.md)
   - [0009: Interfaz en celular y escritorio](docs/decisiones/0009-interfaz-en-celular-y-escritorio.md)
   - [0010: Hosting de la web en Netlify](docs/decisiones/0010-hosting-netlify.md)
+  - [0011: Producción en el plan gratis de Supabase](docs/decisiones/0011-produccion-en-plan-gratis.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack
