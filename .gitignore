@@ -1,0 +1,29 @@
+# dependencias
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+dist/
+build/
+.turbo/
+.expo/
+android/
+ios/
+
+# entorno y secretos
+.env
+.env.*
+!.env.example
+google-services.json
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# sistema y editores
+.DS_Store
+Thumbs.db
+*.log
+coverage/
