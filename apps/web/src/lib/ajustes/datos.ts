@@ -21,12 +21,23 @@ export interface TramoAjustes {
   horaFin: string
 }
 
+export interface ProfesionalAjustes {
+  id: string
+  nombre: string
+  especialidad: string | null
+  margenTrasladoMin: number
+  /** Si tiene un usuario para entrar a la app (0007). */
+  tieneUsuario: boolean
+}
+
 export interface DatosAjustes {
   lugares: LugarAjustes[]
-  profesionales: { id: string; nombre: string; margenTrasladoMin: number }[]
+  profesionales: ProfesionalAjustes[]
   /** Tramos que valen hoy o más adelante. Los cerrados quedan como historia. */
   tramos: TramoAjustes[]
   profesionalPropia: string | null
+  /** La admin gestiona profesionales y horarios de todas; una socia, solo los suyos (0014). */
+  esAdmin: boolean
 }
 
 export async function datosDeAjustes(): Promise<DatosAjustes> {
@@ -34,7 +45,7 @@ export async function datosDeAjustes(): Promise<DatosAjustes> {
   const { data: sesion } = await supabase.auth.getClaims()
   const hoy = fechaEnZona(new Date(), ZONA)
 
-  const [lugares, profesionales, horarios, miembro] = await Promise.all([
+  const [lugares, profesionales, horarios, miembro, conUsuario] = await Promise.all([
     supabase
       .from('lugares')
       .select('id, nombre, color, controla_sillon, direccion')
@@ -42,7 +53,7 @@ export async function datosDeAjustes(): Promise<DatosAjustes> {
       .order('nombre'),
     supabase
       .from('profesionales')
-      .select('id, nombre, margen_traslado_min')
+      .select('id, nombre, especialidad, margen_traslado_min')
       .is('deleted_at', null)
       .order('nombre'),
     supabase
@@ -54,10 +65,11 @@ export async function datosDeAjustes(): Promise<DatosAjustes> {
       .order('hora_inicio'),
     supabase
       .from('miembros')
-      .select('profesional_id')
+      .select('profesional_id, rol')
       .eq('user_id', sesion?.claims.sub ?? '')
       .is('deleted_at', null)
       .maybeSingle(),
+    supabase.from('miembros').select('profesional_id').is('deleted_at', null),
   ])
 
   for (const r of [lugares, profesionales, horarios]) {
@@ -77,7 +89,9 @@ export async function datosDeAjustes(): Promise<DatosAjustes> {
     profesionales: (profesionales.data ?? []).map((p) => ({
       id: p.id,
       nombre: p.nombre,
+      especialidad: p.especialidad,
       margenTrasladoMin: p.margen_traslado_min,
+      tieneUsuario: (conUsuario.data ?? []).some((m) => m.profesional_id === p.id),
     })),
     tramos: (horarios.data ?? []).map((h) => ({
       id: h.id,
@@ -88,5 +102,6 @@ export async function datosDeAjustes(): Promise<DatosAjustes> {
       horaFin: h.hora_fin.slice(0, 5),
     })),
     profesionalPropia: miembro.data?.profesional_id ?? null,
+    esAdmin: miembro.data?.rol === 'admin',
   }
 }

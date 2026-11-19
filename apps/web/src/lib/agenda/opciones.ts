@@ -3,7 +3,12 @@ import type { Horario } from '@dental/core'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 
 export interface OpcionesAgendar {
-  profesionales: { id: string; nombre: string; margenTrasladoMin: number }[]
+  profesionales: {
+    id: string
+    nombre: string
+    especialidad: string | null
+    margenTrasladoMin: number
+  }[]
   lugares: { id: string; nombre: string; controlaSillon: boolean }[]
   tiposCita: { id: string; nombre: string; duracionMin: number }[]
   pacientes: { id: string; nombre: string; telefono: string | null }[]
@@ -21,7 +26,7 @@ export async function opcionesParaAgendar(): Promise<OpcionesAgendar> {
   const [profesionales, lugares, tipos, pacientes, horarios, miembro] = await Promise.all([
     supabase
       .from('profesionales')
-      .select('id, nombre, margen_traslado_min')
+      .select('id, nombre, especialidad, margen_traslado_min')
       .is('deleted_at', null)
       .order('nombre'),
     supabase
@@ -61,6 +66,7 @@ export async function opcionesParaAgendar(): Promise<OpcionesAgendar> {
     profesionales: (profesionales.data ?? []).map((p) => ({
       id: p.id,
       nombre: p.nombre,
+      especialidad: p.especialidad,
       margenTrasladoMin: p.margen_traslado_min,
     })),
     lugares: (lugares.data ?? []).map((l) => ({

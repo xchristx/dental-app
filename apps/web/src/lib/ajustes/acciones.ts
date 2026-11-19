@@ -3,6 +3,7 @@
 import { refresh } from 'next/cache'
 import {
   DatosLugar,
+  DatosProfesional,
   NuevosTramos,
   comoQuitarTramo,
   diasConSuperposicion,
@@ -189,6 +190,105 @@ export async function guardarMargenTraslado(
     return { ok: false, error: ERROR_GENERICO }
   }
   if (!data?.length) return { ok: false, error: 'No encontramos a esa profesional.' }
+
+  refresh()
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
+// Profesionales (0014)
+// ---------------------------------------------------------------------------
+
+/**
+ * Crea o edita una profesional: nombre y especialidad. Solo la admin crea;
+ * una socia puede editar sus propios datos. Los permisos los aplica RLS.
+ */
+export async function guardarProfesional(datos: unknown): Promise<ResultadoAjustes> {
+  const validacion = DatosProfesional.safeParse(datos)
+  if (!validacion.success) {
+    return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
+  }
+  const profesional = validacion.data
+  const supabase = await crearClienteServidor()
+  const campos = { nombre: profesional.nombre, especialidad: profesional.especialidad }
+
+  const editado = await supabase
+    .from('profesionales')
+    .update(campos)
+    .eq('id', profesional.id)
+    .is('deleted_at', null)
+    .select('id')
+  if (editado.error) {
+    registrar('editar-profesional', editado.error)
+    return { ok: false, error: ERROR_GENERICO }
+  }
+
+  if (!editado.data?.length) {
+    const organizacion = await organizacionDelUsuario(supabase)
+    if (!organizacion) return { ok: false, error: 'Tu usuario no tiene acceso a ninguna agenda.' }
+    const { error } = await supabase
+      .from('profesionales')
+      .insert({ id: profesional.id, organization_id: organizacion, ...campos })
+    if (error) {
+      // El id ya existe pero RLS no deja editarlo: es de otra profesional.
+      if (error.code === '42501' || error.code === '23505') {
+        return { ok: false, error: 'Solo la administradora puede agregar o editar profesionales.' }
+      }
+      registrar('crear-profesional', error)
+      return { ok: false, error: ERROR_GENERICO }
+    }
+  }
+
+  refresh()
+  return { ok: true }
+}
+
+/**
+ * Da de baja a una profesional (borrado suave). Postgres no lo permite si
+ * tiene usuario o citas pendientes; acá se cuenta cuántas para explicarlo.
+ */
+export async function darDeBajaProfesional(id: string): Promise<ResultadoAjustes> {
+  if (!ES_UUID.test(id)) return { ok: false, error: 'No encontramos a esa profesional.' }
+  const supabase = await crearClienteServidor()
+  const { data, error } = await supabase
+    .from('profesionales')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .is('deleted_at', null)
+    .select('id')
+
+  if (error) {
+    if (error.code === 'PR001') {
+      return {
+        ok: false,
+        error: 'Tiene un usuario para entrar a la app. Primero hay que quitarle el acceso.',
+      }
+    }
+    if (error.code === 'PR002') {
+      const { count } = await supabase
+        .from('citas')
+        .select('id', { count: 'exact', head: true })
+        .eq('profesional_id', id)
+        .is('deleted_at', null)
+        .in('estado', ['agendada', 'confirmada'])
+        .gt('fin', new Date().toISOString())
+      return {
+        ok: false,
+        error:
+          count === 1
+            ? 'Tiene una cita pendiente. Reagéndala o cancélala antes de darla de baja.'
+            : `Tiene ${count ?? 'varias'} citas pendientes. Reagéndalas o cancélalas antes de darla de baja.`,
+      }
+    }
+    if (error.code === '42501') {
+      return { ok: false, error: 'Solo la administradora puede dar de baja a una profesional.' }
+    }
+    registrar('baja-profesional', error)
+    return { ok: false, error: ERROR_GENERICO }
+  }
+  if (!data?.length) {
+    return { ok: false, error: 'Solo la administradora puede dar de baja a una profesional.' }
+  }
 
   refresh()
   return { ok: true }

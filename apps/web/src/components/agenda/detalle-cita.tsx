@@ -19,6 +19,7 @@ import {
   estadosSiguientes,
   impactoDeLlegada,
   mensajeRetraso,
+  nombreConEspecialidad,
   fechaEnZona,
   formatearDiaLargo,
   formatearHora,
@@ -234,7 +235,12 @@ export function DetalleCita({
               <Dato nombre="Estado">{NOMBRE_ESTADO[cita.estado]}</Dato>
               {!esBloqueo && <Dato nombre="Tipo">{cita.tipo ?? 'Sin tipo'}</Dato>}
               <Dato nombre="Lugar">{cita.lugar.nombre}</Dato>
-              <Dato nombre="Profesional">{cita.profesional}</Dato>
+              <Dato nombre="Profesional">
+                {nombreConEspecialidad({
+                  nombre: cita.profesional,
+                  especialidad: cita.especialidad,
+                })}
+              </Dato>
               {cita.estado === 'atendida' && cita.llegada && (
                 <Dato nombre="Llegada">
                   {formatearHora(cita.llegada, ZONA)} ·{' '}

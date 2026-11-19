@@ -2,12 +2,14 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { Horarios } from '@/components/ajustes/horarios'
 import { Lugares } from '@/components/ajustes/lugares'
+import { Profesionales } from '@/components/ajustes/profesionales'
 import { SesionUsuario } from '@/components/sesion-usuario'
 import { datosDeAjustes } from '@/lib/ajustes/datos'
 
 export const metadata: Metadata = { title: 'Ajustes' }
 
-// Lo que se carga una vez para que la agenda funcione: lugares y horarios (0004).
+// Lo que se carga una vez para que la agenda funcione: lugares, profesionales
+// y horarios (0004 y 0014).
 export default function AjustesPage() {
   return (
     <main className="flex w-full max-w-3xl flex-col gap-10 px-4 py-8 md:px-6 lg:px-8">
@@ -33,6 +35,11 @@ async function ContenidoAjustes() {
   return (
     <>
       <Lugares lugares={datos.lugares} />
+      <Profesionales
+        profesionales={datos.profesionales}
+        profesionalPropia={datos.profesionalPropia}
+        esAdmin={datos.esAdmin}
+      />
       <Horarios datos={datos} />
     </>
   )

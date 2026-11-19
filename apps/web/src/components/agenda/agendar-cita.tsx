@@ -15,6 +15,7 @@ import {
   huecosLibres,
   instanteLocal,
   lugarSugerido,
+  nombreConEspecialidad,
   tramosDelDia,
   type AvisoCita,
   type CitaOcupada,
@@ -561,7 +562,7 @@ export function FormularioCita({
                 >
                   {opciones.profesionales.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.nombre}
+                      {nombreConEspecialidad(p)}
                     </option>
                   ))}
                 </select>

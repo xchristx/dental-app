@@ -38,10 +38,18 @@ interface FormTramo {
 
 /** Horarios de atención por día y lugar (0004), y el tiempo de traslado. */
 export function Horarios({ datos }: { datos: DatosAjustes }) {
-  const { profesionales, lugares, tramos } = datos
-  const [profesionalId, setProfesionalId] = useState(
+  const { lugares, tramos } = datos
+  // Una socia solo carga sus propios horarios (0014).
+  const profesionales = datos.esAdmin
+    ? datos.profesionales
+    : datos.profesionales.filter((p) => p.id === datos.profesionalPropia)
+  const [elegida, setProfesionalId] = useState(
     datos.profesionalPropia ?? profesionales[0]?.id ?? '',
   )
+  // Si la elegida se dio de baja, se pasa a la primera de la lista.
+  const profesionalId = profesionales.some((p) => p.id === elegida)
+    ? elegida
+    : (profesionales[0]?.id ?? '')
   const [form, setForm] = useState<FormTramo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [errorLista, setErrorLista] = useState<string | null>(null)
