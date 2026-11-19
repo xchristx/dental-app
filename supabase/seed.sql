@@ -8,10 +8,36 @@
 insert into public.organizaciones (id, nombre) values
   ('10000000-0000-4000-8000-000000000001', 'Consultorio de demostración');
 
+-- Usuaria de la demo: la usa el botón "Entrar como demo". Su contraseña es
+-- pública a propósito; solo ve esta organización de datos inventados.
+-- Este seed nunca se aplica en producción.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change
+) values (
+  '00000000-0000-0000-0000-000000000000', '70000000-0000-4000-8000-000000000001',
+  'authenticated', 'authenticated', 'demo@ejemplo.test',
+  extensions.crypt('demo-sifel', extensions.gen_salt('bf')), now(),
+  '{"provider": "email", "providers": ["email"]}', '{}', now(), now(),
+  '', '', '', ''
+);
+
+insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+values (
+  gen_random_uuid(), '70000000-0000-4000-8000-000000000001', '70000000-0000-4000-8000-000000000001',
+  '{"sub": "70000000-0000-4000-8000-000000000001", "email": "demo@ejemplo.test", "email_verified": true}',
+  'email', now(), now(), now()
+);
+
 insert into public.profesionales (id, organization_id, nombre, especialidad) values
   ('20000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'Dra. Laura Méndez', 'Odontología general'),
   -- Socia sin usuario: existe como profesional para que sus citas cuenten en los choques (0002).
   ('20000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001', 'Dra. Rocío Paz', 'Ortodoncia');
+
+-- La usuaria demo entra como Laura.
+insert into public.miembros (organization_id, user_id, rol, profesional_id) values
+  ('10000000-0000-4000-8000-000000000001', '70000000-0000-4000-8000-000000000001', 'admin', '20000000-0000-4000-8000-000000000001');
 
 insert into public.lugares (id, organization_id, nombre, color, controla_sillon) values
   ('30000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'Consultorio', 'azul', true),

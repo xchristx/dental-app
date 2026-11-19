@@ -14,10 +14,15 @@ Requisitos: Node 24, pnpm (`corepack enable pnpm`), Docker y la CLI de Supabase.
 
 ```sh
 pnpm install
+pnpm db:start   # Supabase local, con datos inventados
+cp apps/web/.env.example apps/web/.env.local
+# Completar NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY con la de `supabase status`
 pnpm dev        # web en http://localhost:3000
-pnpm test       # tests de packages/core
-pnpm db:start   # Supabase local
 ```
+
+En local, "Entrar como demo" usa la usuaria `demo@ejemplo.test` del seed.
+
+Tests: `pnpm test` (packages/core) y `pnpm db:test` (pgTAP).
 
 ## Documentación
 
