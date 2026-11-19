@@ -1,12 +1,16 @@
 import 'server-only'
-import { EstadoCita, rangoDeLaSemana, type Fecha } from '@dental/core'
+import {
+  COLORES_LUGAR,
+  EstadoCita,
+  rangoDeLaSemana,
+  type ColorLugar,
+  type Fecha,
+} from '@dental/core'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { ZONA } from './zona'
 
 export { ZONA }
-
-export const COLORES_LUGAR = ['azul', 'verde', 'amarillo', 'morado', 'terracota', 'gris'] as const
-export type ColorLugar = (typeof COLORES_LUGAR)[number]
+export type { ColorLugar }
 
 export interface CitaAgenda {
   id: string
