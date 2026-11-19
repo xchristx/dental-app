@@ -3,15 +3,54 @@
 import { refresh } from 'next/cache'
 import {
   ESTADOS_QUE_OCUPAN,
+  EstadoCita,
   NuevaCita,
+  esFechaValida,
   formatearHora,
+  inicioDelDia,
   rangoDeLaCita,
+  sumarDias,
   type Fecha,
 } from '@dental/core'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
-import { ZONA } from './datos'
+import { ZONA } from './zona'
 
 export type ResultadoAgendar = { ok: true; fecha: Fecha } | { ok: false; error: string }
+
+/** Una cita del día, lista para mandar al navegador (fechas como texto ISO). */
+export interface CitaDelDia {
+  id: string
+  profesionalId: string
+  lugarId: string
+  inicio: string
+  fin: string
+  estado: EstadoCita
+}
+
+/**
+ * Citas de un día, de todas las profesionales, para calcular huecos libres y
+ * avisos en el formulario (0004). Se pide al cambiar la fecha.
+ */
+export async function ocupacionDelDia(fecha: string): Promise<CitaDelDia[]> {
+  if (!esFechaValida(fecha)) return []
+  const supabase = await crearClienteServidor()
+  const { data, error } = await supabase
+    .from('citas')
+    .select('id, profesional_id, lugar_id, inicio, fin, estado')
+    .is('deleted_at', null)
+    .lt('inicio', inicioDelDia(sumarDias(fecha, 1), ZONA).toISOString())
+    .gt('fin', inicioDelDia(fecha, ZONA).toISOString())
+  if (error) throw new Error(`No se pudieron leer las citas del día: ${error.message}`)
+
+  return data.map((c) => ({
+    id: c.id,
+    profesionalId: c.profesional_id,
+    lugarId: c.lugar_id,
+    inicio: c.inicio,
+    fin: c.fin,
+    estado: EstadoCita.parse(c.estado),
+  }))
+}
 
 const ERROR_GENERICO = 'No pudimos guardar la cita. Revisa tu conexión e inténtalo de nuevo.'
 
