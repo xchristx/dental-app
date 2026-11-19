@@ -18,6 +18,11 @@ export interface CitaAgenda {
   fin: Date
   estado: EstadoCita
   llegada: Date | null
+  profesionalId: string
+  lugarId: string
+  tipoCitaId: string | null
+  /** La cita de la que viene, si se reagendó (0012). */
+  reagendadaDesde: string | null
   /** null en los bloqueos. */
   paciente: string | null
   pacienteId: string | null
@@ -40,7 +45,8 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
     supabase
       .from('citas')
       .select(
-        `id, inicio, fin, estado, llegada_at, recordatorio_enviado_at, nota, profesional_id,
+        `id, inicio, fin, estado, llegada_at, recordatorio_enviado_at, nota,
+         profesional_id, lugar_id, tipo_cita_id, reagendada_desde,
          paciente:pacientes(id, nombre, telefono),
          tipo:tipos_cita(nombre),
          lugar:lugares(nombre, color),
@@ -62,6 +68,10 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
     fin: new Date(c.fin),
     estado: EstadoCita.parse(c.estado),
     llegada: c.llegada_at ? new Date(c.llegada_at) : null,
+    profesionalId: c.profesional_id,
+    lugarId: c.lugar_id,
+    tipoCitaId: c.tipo_cita_id,
+    reagendadaDesde: c.reagendada_desde,
     paciente: c.paciente?.nombre ?? null,
     pacienteId: c.paciente?.id ?? null,
     telefono: c.paciente?.telefono ?? null,
@@ -93,4 +103,33 @@ async function profesionalDelUsuario(): Promise<string | null> {
     .is('deleted_at', null)
     .maybeSingle()
   return data?.profesional_id ?? null
+}
+
+/** De qué cita viene y a cuál se pasó una cita reagendada (0012). */
+export interface EnlacesReagenda {
+  desde: { id: string; inicio: Date } | null
+  hacia: { id: string; inicio: Date } | null
+}
+
+export async function enlacesDeReagenda(
+  cita: Pick<CitaAgenda, 'id' | 'reagendadaDesde'>,
+): Promise<EnlacesReagenda> {
+  const supabase = await crearClienteServidor()
+  // Los dos id vienen de la base: son UUID, no texto de la usuaria.
+  const filtro = cita.reagendadaDesde
+    ? `reagendada_desde.eq.${cita.id},id.eq.${cita.reagendadaDesde}`
+    : `reagendada_desde.eq.${cita.id}`
+  const { data, error } = await supabase
+    .from('citas')
+    .select('id, inicio, reagendada_desde')
+    .is('deleted_at', null)
+    .or(filtro)
+  if (error) throw new Error(`No se pudo leer la cita reagendada: ${error.message}`)
+
+  const desde = data.find((c) => c.id === cita.reagendadaDesde)
+  const hacia = data.find((c) => c.reagendada_desde === cita.id)
+  return {
+    desde: desde ? { id: desde.id, inicio: new Date(desde.inicio) } : null,
+    hacia: hacia ? { id: hacia.id, inicio: new Date(hacia.inicio) } : null,
+  }
 }
