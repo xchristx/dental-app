@@ -12,6 +12,17 @@ export interface EstadoEntrar {
 
 const ERROR_CONEXION = 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.'
 
+// Deja en el log del servidor (Netlify → Logs → Functions) por qué falló.
+// Nunca se registran el correo ni la contraseña.
+function registrarError(
+  accion: string,
+  error: { name?: string; code?: string; status?: number; message: string },
+) {
+  console.error(
+    `[${accion}] ${error.name ?? 'Error'} código=${error.code ?? '-'} estado=${error.status ?? '-'}: ${error.message}`,
+  )
+}
+
 export async function entrarConCorreo(
   _anterior: EstadoEntrar,
   formData: FormData,
@@ -25,6 +36,7 @@ export async function entrarConCorreo(
   const supabase = await crearClienteServidor()
   const { error } = await supabase.auth.signInWithPassword({ email: correo, password: contrasena })
   if (error) {
+    if (error.code !== 'invalid_credentials') registrarError('entrar', error)
     return {
       error:
         error.code === 'invalid_credentials'
@@ -48,7 +60,10 @@ export async function entrarComoDemo(
 
   const supabase = await crearClienteServidor()
   const { error } = await supabase.auth.signInWithPassword({ email: correo, password: contrasena })
-  if (error) return { error: ERROR_CONEXION }
+  if (error) {
+    registrarError('entrar-demo', error)
+    return { error: ERROR_CONEXION }
+  }
 
   redirect(rutaInternaSegura(formData.get('siguiente')))
 }
