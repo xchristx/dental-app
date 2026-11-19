@@ -114,25 +114,36 @@ export interface EnlacesReagenda {
   hacia: { id: string; inicio: Date } | null
 }
 
-export async function enlacesDeReagenda(
-  cita: Pick<CitaAgenda, 'id' | 'reagendadaDesde'>,
-): Promise<EnlacesReagenda> {
+/**
+ * Los enlaces de reagenda de todas las citas de la semana, en una sola
+ * consulta. Así el detalle de una cita se abre sin ir al servidor.
+ */
+export async function enlacesDeLaSemana(
+  citas: Pick<CitaAgenda, 'id' | 'reagendadaDesde'>[],
+): Promise<Record<string, EnlacesReagenda>> {
+  if (citas.length === 0) return {}
+  // Los id vienen de la base: son UUID, no texto de la usuaria.
+  const origenes = citas.flatMap((c) => (c.reagendadaDesde ? [c.reagendadaDesde] : []))
+  const filtros = [`reagendada_desde.in.(${citas.map((c) => c.id).join(',')})`]
+  if (origenes.length > 0) filtros.push(`id.in.(${origenes.join(',')})`)
+
   const supabase = await crearClienteServidor()
-  // Los dos id vienen de la base: son UUID, no texto de la usuaria.
-  const filtro = cita.reagendadaDesde
-    ? `reagendada_desde.eq.${cita.id},id.eq.${cita.reagendadaDesde}`
-    : `reagendada_desde.eq.${cita.id}`
   const { data, error } = await supabase
     .from('citas')
     .select('id, inicio, reagendada_desde')
     .is('deleted_at', null)
-    .or(filtro)
-  if (error) throw new Error(`No se pudo leer la cita reagendada: ${error.message}`)
+    .or(filtros.join(','))
+  if (error) throw new Error(`No se pudieron leer las citas reagendadas: ${error.message}`)
 
-  const desde = data.find((c) => c.id === cita.reagendadaDesde)
-  const hacia = data.find((c) => c.reagendada_desde === cita.id)
-  return {
-    desde: desde ? { id: desde.id, inicio: new Date(desde.inicio) } : null,
-    hacia: hacia ? { id: hacia.id, inicio: new Date(hacia.inicio) } : null,
-  }
+  const enlace = (c: { id: string; inicio: string } | undefined) =>
+    c ? { id: c.id, inicio: new Date(c.inicio) } : null
+  return Object.fromEntries(
+    citas.map((c) => [
+      c.id,
+      {
+        desde: enlace(data.find((d) => d.id === c.reagendadaDesde)),
+        hacia: enlace(data.find((d) => d.reagendada_desde === c.id)),
+      },
+    ]),
+  )
 }

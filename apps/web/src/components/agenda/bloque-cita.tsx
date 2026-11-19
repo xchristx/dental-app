@@ -1,6 +1,8 @@
-import Link from 'next/link'
 import { calcularLlegada, formatearHora, formatearLlegada, type EstadoCita } from '@dental/core'
-import { ZONA, type CitaAgenda, type ColorLugar } from '@/lib/agenda/datos'
+import { EnlaceDetalle } from '@/components/agenda/enlace-detalle'
+import type { CitaAgenda } from '@/lib/agenda/datos'
+import { ZONA } from '@/lib/agenda/zona'
+import type { ColorLugar } from '@dental/core'
 import { cn } from '@/lib/utils'
 
 // Clases completas para que Tailwind las encuentre (docs/diseno.md, color por lugar).
@@ -71,12 +73,11 @@ export function BloqueCita({ cita, href }: { cita: CitaAgenda; href?: string }) 
 
   if (!href) return bloque
   return (
-    <Link
+    <EnlaceDetalle
       href={href}
-      scroll={false}
       className="focus-visible:ring-ring/40 block rounded-lg transition-transform duration-150 outline-none focus-visible:ring-3 active:scale-[0.98]"
     >
       {bloque}
-    </Link>
+    </EnlaceDetalle>
   )
 }

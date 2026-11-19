@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowCounterClockwiseIcon,
   CalendarPlusIcon,
@@ -60,6 +60,42 @@ const NOMBRE_ESTADO = {
   no_asistio: 'No asistió',
   cancelada: 'Cancelada',
 } as const
+
+const SIN_ENLACES: EnlacesReagenda = { desde: null, hacia: null }
+
+/**
+ * Muestra el detalle de la cita de `?cita=<id>`. Se lee en el navegador, con
+ * las citas de la semana que ya llegaron con la página: abrir y cerrar el
+ * detalle no va al servidor.
+ */
+export function DetalleSeleccionado({
+  citas,
+  enlaces,
+  opciones,
+  fecha,
+}: {
+  /** Las citas de la semana que se ve. */
+  citas: CitaAgenda[]
+  enlaces: Record<string, EnlacesReagenda>
+  opciones: OpcionesAgendar
+  /** El día de la agenda, para volver a él al cerrar. */
+  fecha: string
+}) {
+  const id = useSearchParams().get('cita')
+  const cita = citas.find((c) => c.id === id)
+  if (!cita) return null
+  const dia = fechaEnZona(cita.inicio, ZONA)
+  return (
+    <DetalleCita
+      key={cita.id}
+      cita={cita}
+      citasDelDia={citas.filter((c) => fechaEnZona(c.inicio, ZONA) === dia)}
+      enlaces={enlaces[cita.id] ?? SIN_ENLACES}
+      opciones={opciones}
+      urlCerrar={`/?fecha=${fecha}`}
+    />
+  )
+}
 
 /** Detalle de una cita: datos, estado (0005), recordatorio por WhatsApp y reagendar (0012). */
 export function DetalleCita({
@@ -181,7 +217,8 @@ export function DetalleCita({
       <Sheet
         open={!reagendando}
         onOpenChange={(abierto) => {
-          if (!abierto) router.replace(urlCerrar, { scroll: false })
+          // Cerrar tampoco va al servidor: solo cambia la URL (ver EnlaceDetalle).
+          if (!abierto) window.history.replaceState(null, '', urlCerrar)
         }}
       >
         <SheetContent aria-busy={pendiente}>
