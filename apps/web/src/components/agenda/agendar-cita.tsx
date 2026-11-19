@@ -1,9 +1,24 @@
 'use client'
 
-import { useId, useMemo, useState, useTransition } from 'react'
+import { useEffect, useId, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarPlusIcon, UserPlusIcon, XIcon } from '@phosphor-icons/react'
-import type { Fecha } from '@dental/core'
+import { CalendarPlusIcon, UserPlusIcon, WarningIcon, XIcon } from '@phosphor-icons/react'
+import {
+  avisosDeCita,
+  esFechaValida,
+  esHoraValida,
+  fechaEnZona,
+  formatearHora,
+  horasSugeridas,
+  huecosLibres,
+  instanteLocal,
+  lugarSugerido,
+  tramosDelDia,
+  type AvisoCita,
+  type CitaOcupada,
+  type Fecha,
+  type Hueco,
+} from '@dental/core'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -13,11 +28,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { agendarCita } from '@/lib/agenda/acciones'
+import { agendarCita, ocupacionDelDia } from '@/lib/agenda/acciones'
 import type { OpcionesAgendar } from '@/lib/agenda/opciones'
+import { ZONA } from '@/lib/agenda/zona'
 import { cn } from '@/lib/utils'
 
 const DURACIONES = [15, 30, 45, 60, 90, 120, 150, 180]
+
+/** Cuántos horarios libres se muestran por lugar. */
+const MAX_HORAS_POR_LUGAR = 8
 
 const claseCampo =
   'border-input bg-card h-11 w-full rounded-sm border px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/40'
@@ -35,23 +54,29 @@ interface Formulario {
   tipoCitaId: string
   fecha: Fecha
   hora: string
+  /** Si eligió la hora o el lugar; si no, se propone el primer horario libre. */
+  horaTocada: boolean
   duracionMin: number
   nota: string
 }
 
 function formularioInicial(opciones: OpcionesAgendar, fecha: Fecha): Formulario {
   const tipo = opciones.tiposCita[0]
+  const profesionalId = opciones.profesionalPropia ?? opciones.profesionales[0]?.id ?? ''
   return {
     id: crypto.randomUUID(),
     modo: 'paciente',
     pacienteId: null,
     pacienteNuevo: null,
     busqueda: '',
-    profesionalId: opciones.profesionalPropia ?? opciones.profesionales[0]?.id ?? '',
-    lugarId: opciones.lugares[0]?.id ?? '',
+    profesionalId,
+    // Donde atiende ese día según su horario (0004); si no tiene, el primero.
+    lugarId:
+      lugarSugerido(opciones.horarios, profesionalId, fecha, ZONA) ?? opciones.lugares[0]?.id ?? '',
     tipoCitaId: tipo?.id ?? '',
     fecha,
     hora: '10:00',
+    horaTocada: false,
     duracionMin: tipo?.duracionMin ?? 60,
     nota: '',
   }
@@ -104,6 +129,104 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
     ? DURACIONES
     : [...DURACIONES, form.duracionMin].sort((a, b) => a - b)
 
+  // Citas del día elegido (de todas las profesionales), para huecos y avisos.
+  const [ocupacion, setOcupacion] = useState<{ fecha: Fecha; citas: CitaOcupada[] } | null>(null)
+  useEffect(() => {
+    if (!abierto || !esFechaValida(form.fecha)) return
+    let vigente = true
+    const fechaPedida = form.fecha
+    ocupacionDelDia(fechaPedida)
+      .then((citas) => {
+        if (!vigente) return
+        setOcupacion({
+          fecha: fechaPedida,
+          citas: citas.map((c) => ({ ...c, inicio: new Date(c.inicio), fin: new Date(c.fin) })),
+        })
+      })
+      // Sin huecos sugeridos se puede agendar igual; Postgres sigue impidiendo los choques.
+      .catch(() => vigente && setOcupacion({ fecha: fechaPedida, citas: [] }))
+    return () => {
+      vigente = false
+    }
+  }, [abierto, form.fecha])
+
+  const citasDelDia = ocupacion?.fecha === form.fecha ? ocupacion.citas : null
+  const profesional = opciones.profesionales.find((p) => p.id === form.profesionalId)
+  const margenTrasladoMin = profesional?.margenTrasladoMin ?? 30
+  const nombreLugar = (id: string) =>
+    opciones.lugares.find((l) => l.id === id)?.nombre ?? 'otro lugar'
+
+  const tieneHorario = useMemo(
+    () =>
+      esFechaValida(form.fecha) &&
+      tramosDelDia(opciones.horarios, form.profesionalId, form.fecha, ZONA).length > 0,
+    [opciones.horarios, form.profesionalId, form.fecha],
+  )
+
+  const horasLibres = useMemo(() => {
+    if (!citasDelDia) return null
+    const esHoy = form.fecha === fechaEnZona(new Date(), ZONA)
+    const huecos = huecosLibres({
+      fecha: form.fecha,
+      zona: ZONA,
+      profesionalId: form.profesionalId,
+      margenTrasladoMin,
+      horarios: opciones.horarios,
+      lugares: opciones.lugares,
+      citas: citasDelDia,
+      desde: esHoy ? new Date() : undefined,
+    })
+    // Agrupadas por lugar, en el orden del día.
+    const porLugar = new Map<string, Hueco[]>()
+    for (const h of horasSugeridas(huecos, form.duracionMin)) {
+      const lista = porLugar.get(h.lugarId) ?? []
+      if (lista.length < MAX_HORAS_POR_LUGAR) porLugar.set(h.lugarId, [...lista, h])
+    }
+    return [...porLugar.entries()]
+  }, [citasDelDia, form.fecha, form.profesionalId, form.duracionMin, margenTrasladoMin, opciones])
+
+  // Mientras no elija, se propone el primer horario libre del día.
+  const primeraLibre = horasLibres
+    ?.flatMap(([, horas]) => horas)
+    .sort((a, b) => a.inicio.getTime() - b.inicio.getTime())[0]
+  const usarSugerida = !form.horaTocada && primeraLibre !== undefined
+  const horaFinal = usarSugerida ? formatearHora(primeraLibre.inicio, ZONA) : form.hora
+  const lugarFinal = usarSugerida ? primeraLibre.lugarId : form.lugarId
+
+  // Avisos que no bloquean (0004). En un bloqueo no aplican.
+  const avisos = useMemo(() => {
+    if (form.modo !== 'paciente' || !citasDelDia || !esHoraValida(horaFinal)) return []
+    const inicio = instanteLocal(form.fecha, horaFinal, ZONA)
+    return avisosDeCita(
+      {
+        profesionalId: form.profesionalId,
+        lugarId: lugarFinal,
+        inicio,
+        fin: new Date(inicio.getTime() + form.duracionMin * 60_000),
+      },
+      {
+        fecha: form.fecha,
+        zona: ZONA,
+        margenTrasladoMin,
+        horarios: opciones.horarios,
+        citas: citasDelDia,
+      },
+    )
+  }, [form, horaFinal, lugarFinal, citasDelDia, margenTrasladoMin, opciones.horarios])
+
+  function textoAviso(aviso: AvisoCita) {
+    if (aviso.tipo === 'fuera_de_horario') {
+      return `Está fuera del horario de atención en ${nombreLugar(lugarFinal)} ese día.`
+    }
+    const otro = nombreLugar(aviso.otroLugarId)
+    const cuando = aviso.posicion === 'antes' ? 'Justo antes' : 'Justo después'
+    const tiempo =
+      aviso.minutosLibres === 0
+        ? 'no queda tiempo para el traslado'
+        : `quedan ${aviso.minutosLibres} min para el traslado`
+    return `${cuando} hay una cita en ${otro}: ${tiempo} (el margen es de ${margenTrasladoMin} min).`
+  }
+
   function guardar(evento: React.FormEvent) {
     evento.preventDefault()
     setError(null)
@@ -126,10 +249,10 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
         id: form.id,
         paciente,
         profesionalId: form.profesionalId,
-        lugarId: form.lugarId,
+        lugarId: lugarFinal,
         tipoCitaId: form.modo === 'bloqueo' ? null : form.tipoCitaId || null,
         fecha: form.fecha,
-        hora: form.hora,
+        hora: horaFinal,
         duracionMin: form.duracionMin,
         nota: form.nota,
       })
@@ -317,75 +440,12 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
                 </label>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Fecha
-                  <input
-                    type="date"
-                    required
-                    value={form.fecha}
-                    onChange={(e) => cambiar({ fecha: e.target.value })}
-                    className={claseCampo}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5 text-sm font-medium">
-                  Hora
-                  <input
-                    type="time"
-                    required
-                    step={300}
-                    value={form.hora}
-                    onChange={(e) => cambiar({ hora: e.target.value })}
-                    className={claseCampo}
-                  />
-                </label>
-              </div>
-
-              <label className="flex flex-col gap-1.5 text-sm font-medium">
-                Duración
-                <select
-                  value={form.duracionMin}
-                  onChange={(e) => cambiar({ duracionMin: Number(e.target.value) })}
-                  className={claseCampo}
-                  aria-describedby={`${ids}-horario`}
-                >
-                  {duraciones.map((min) => (
-                    <option key={min} value={min}>
-                      {min < 60
-                        ? `${min} min`
-                        : `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`}
-                    </option>
-                  ))}
-                </select>
-                <span
-                  id={`${ids}-horario`}
-                  className="text-muted-foreground font-normal tabular-nums"
-                >
-                  De {form.hora} a {sumarMinutos(form.hora, form.duracionMin)}
-                </span>
-              </label>
-
-              <label className="flex flex-col gap-1.5 text-sm font-medium">
-                Lugar
-                <select
-                  value={form.lugarId}
-                  onChange={(e) => cambiar({ lugarId: e.target.value })}
-                  className={claseCampo}
-                >
-                  {opciones.lugares.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.nombre}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
               {opciones.profesionales.length > 1 && (
                 <label className="flex flex-col gap-1.5 text-sm font-medium">
                   Profesional
                   <select
                     value={form.profesionalId}
-                    onChange={(e) => cambiar({ profesionalId: e.target.value })}
+                    onChange={(e) => cambiar({ profesionalId: e.target.value, horaTocada: false })}
                     className={claseCampo}
                   >
                     {opciones.profesionales.map((p) => (
@@ -396,6 +456,118 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
                   </select>
                 </label>
               )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                  Fecha
+                  <input
+                    type="date"
+                    required
+                    value={form.fecha}
+                    onChange={(e) => cambiar({ fecha: e.target.value, horaTocada: false })}
+                    className={claseCampo}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                  Duración
+                  <select
+                    value={form.duracionMin}
+                    onChange={(e) => cambiar({ duracionMin: Number(e.target.value) })}
+                    className={claseCampo}
+                  >
+                    {duraciones.map((min) => (
+                      <option key={min} value={min}>
+                        {min < 60
+                          ? `${min} min`
+                          : `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {/* Horarios libres (0004): tocar uno pone la hora y el lugar. */}
+              <section aria-labelledby={`${ids}-libres`} className="flex flex-col gap-2">
+                <h3 id={`${ids}-libres`} className="text-sm font-medium">
+                  Horarios libres
+                </h3>
+                {!tieneHorario ? (
+                  <p className="text-muted-foreground text-sm">
+                    {profesional?.nombre ?? 'La profesional'} no tiene horario de atención ese día.
+                    Puedes elegir la hora a mano.
+                  </p>
+                ) : horasLibres === null ? (
+                  <p className="text-muted-foreground text-sm">Buscando horarios libres…</p>
+                ) : horasLibres.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    No quedan horarios libres para una cita de esta duración ese día.
+                  </p>
+                ) : (
+                  horasLibres.map(([lugarId, horas]) => (
+                    <div key={lugarId} className="flex flex-col gap-1.5">
+                      <p className="text-muted-foreground text-sm">{nombreLugar(lugarId)}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {horas.map((h) => {
+                          const texto = formatearHora(h.inicio, ZONA)
+                          const elegida = lugarFinal === lugarId && horaFinal === texto
+                          return (
+                            <button
+                              key={texto}
+                              type="button"
+                              aria-pressed={elegida}
+                              onClick={() => cambiar({ hora: texto, lugarId, horaTocada: true })}
+                              className={cn(
+                                'h-11 rounded-sm border px-3 text-sm tabular-nums transition-colors duration-150',
+                                elegida
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'border-border bg-card hover:bg-muted',
+                              )}
+                            >
+                              {texto}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </section>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                  Hora
+                  <input
+                    type="time"
+                    required
+                    step={300}
+                    value={horaFinal}
+                    onChange={(e) =>
+                      cambiar({ hora: e.target.value, lugarId: lugarFinal, horaTocada: true })
+                    }
+                    className={claseCampo}
+                    aria-describedby={`${ids}-horario`}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                  Lugar
+                  <select
+                    value={lugarFinal}
+                    onChange={(e) =>
+                      cambiar({ lugarId: e.target.value, hora: horaFinal, horaTocada: true })
+                    }
+                    className={claseCampo}
+                  >
+                    {opciones.lugares.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p id={`${ids}-horario`} className="text-muted-foreground -mt-3 text-sm tabular-nums">
+                De {horaFinal} a {sumarMinutos(horaFinal, form.duracionMin)}
+              </p>
 
               <label className="flex flex-col gap-1.5 text-sm font-medium">
                 {form.modo === 'bloqueo' ? 'Motivo' : 'Nota (opcional)'}
@@ -410,6 +582,17 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
             </div>
 
             <SheetFooter className="border-border bg-popover sticky bottom-0 border-t">
+              {/* Avisos que no bloquean: banda amarilla y "Agendar igual" (docs/diseno.md). */}
+              {avisos.length > 0 && !error && (
+                <div className="bg-warning-bg text-warning flex gap-2 rounded-lg px-4 py-3 text-sm">
+                  <WarningIcon weight="bold" className="mt-0.5 size-4 shrink-0" />
+                  <ul className="flex flex-col gap-1">
+                    {avisos.map((a, i) => (
+                      <li key={i}>{textoAviso(a)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {error && (
                 <p
                   role="alert"
@@ -419,7 +602,13 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
                 </p>
               )}
               <Button type="submit" size="lg" disabled={guardando}>
-                {guardando ? 'Guardando…' : form.modo === 'bloqueo' ? 'Guardar bloqueo' : 'Agendar'}
+                {guardando
+                  ? 'Guardando…'
+                  : form.modo === 'bloqueo'
+                    ? 'Guardar bloqueo'
+                    : avisos.length > 0
+                      ? 'Agendar igual'
+                      : 'Agendar'}
               </Button>
             </SheetFooter>
           </form>

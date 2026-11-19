@@ -1,9 +1,9 @@
 import 'server-only'
-import { EstadoCita, ZONA_LA_PAZ, rangoDeLaSemana, type Fecha } from '@dental/core'
+import { EstadoCita, rangoDeLaSemana, type Fecha } from '@dental/core'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { ZONA } from './zona'
 
-// Por ahora la zona es fija; la organización ya guarda la suya (zona_horaria).
-export const ZONA = ZONA_LA_PAZ
+export { ZONA }
 
 export const COLORES_LUGAR = ['azul', 'verde', 'amarillo', 'morado', 'terracota', 'gris'] as const
 export type ColorLugar = (typeof COLORES_LUGAR)[number]
