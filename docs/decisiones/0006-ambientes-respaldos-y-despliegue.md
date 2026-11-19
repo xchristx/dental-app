@@ -1,7 +1,7 @@
 # 0006: Ambientes, respaldos, despliegue y tests
 
 - **Fecha:** 2026-11-19
-- **Estado:** aceptada. La parte de "Despliegue" está reemplazada por la [0010](0010-hosting-netlify.md) (Netlify en lugar de Vercel).
+- **Estado:** aceptada. La parte de "Despliegue" está reemplazada por la [0010](0010-hosting-netlify.md) (Netlify en lugar de Vercel). La región de producción y el paso al plan Pro están reemplazados por la [0011](0011-produccion-en-plan-gratis.md) (plan gratis con respaldos propios).
 
 ## Contexto
 La app guarda historias clínicas reales y además es un portafolio que se muestra en público. Los datos reales y la demo no pueden compartir base de datos. Perder la base de datos de una dentista que dejó el papel sería grave.

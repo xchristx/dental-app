@@ -19,7 +19,10 @@ const newsreader = Newsreader({
 })
 
 export const metadata: Metadata = {
-  title: 'Agenda dental',
+  title: {
+    default: 'Sifel · Agenda dental',
+    template: '%s · Sifel',
+  },
   description: 'Agenda en varios lugares, historia clínica y pagos en cuotas.',
 }
 

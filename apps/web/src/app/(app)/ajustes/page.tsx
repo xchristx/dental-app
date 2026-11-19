@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = { title: 'Ajustes · Agenda dental' }
+export const metadata: Metadata = { title: 'Ajustes' }
 
 // Página provisoria: lugares y horarios de atención llegan con el MVP 1.
 export default function AjustesPage() {
