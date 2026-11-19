@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { CalendarPlusIcon, CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react/ssr'
+import { connection } from 'next/server'
+import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react/ssr'
 import {
   diaCorto,
   diasDeLaSemana,
@@ -12,9 +13,11 @@ import {
   sumarDias,
   type Fecha,
 } from '@dental/core'
+import { AgendarCita } from '@/components/agenda/agendar-cita'
 import { BloqueCita } from '@/components/agenda/bloque-cita'
 import { Button } from '@/components/ui/button'
 import { ZONA, citasDeLaSemana, type CitaAgenda } from '@/lib/agenda/datos'
+import { opcionesParaAgendar } from '@/lib/agenda/opciones'
 import { cn } from '@/lib/utils'
 
 // Agenda: día en el celular, semana desde tablet (decisión 0009).
@@ -26,28 +29,24 @@ export default function AgendaPage({ searchParams }: PageProps<'/'>) {
       <Suspense fallback={<EsqueletoAgenda />}>
         <Agenda parametros={searchParams} />
       </Suspense>
-
-      {/* Celular: "Agendar" fijo abajo, encima de la barra de navegación */}
-      <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] md:hidden">
-        <Button size="lg" className="w-full">
-          <CalendarPlusIcon weight="bold" />
-          Agendar
-        </Button>
-      </div>
     </main>
   )
 }
 
 async function Agenda({ parametros }: { parametros: PageProps<'/'>['searchParams'] }) {
   const { fecha: valor } = await parametros
+  // "Hoy" depende del momento del request, no del prerender.
+  await connection()
   const hoy = fechaEnZona(new Date(), ZONA)
   const fecha = esFechaValida(valor) ? valor : hoy
   const lunes = lunesDeLaSemana(fecha)
-  const citas = await citasDeLaSemana(lunes)
+  const [citas, opciones] = await Promise.all([citasDeLaSemana(lunes), opcionesParaAgendar()])
 
   return (
     <>
-      <Encabezado fecha={fecha} lunes={lunes} />
+      <Encabezado fecha={fecha} lunes={lunes}>
+        <AgendarCita opciones={opciones} fecha={fecha} />
+      </Encabezado>
       <VistaDia citas={delDia(citas, fecha)} />
       <VistaSemana citas={citas} lunes={lunes} hoy={hoy} />
     </>
@@ -58,7 +57,15 @@ function delDia(citas: CitaAgenda[], fecha: Fecha) {
   return citas.filter((c) => fechaEnZona(c.inicio, ZONA) === fecha)
 }
 
-function Encabezado({ fecha, lunes }: { fecha: Fecha; lunes: Fecha }) {
+function Encabezado({
+  fecha,
+  lunes,
+  children,
+}: {
+  fecha: Fecha
+  lunes: Fecha
+  children: React.ReactNode
+}) {
   // En el celular las flechas mueven un día; desde tablet, una semana.
   const flechas = [
     {
@@ -112,10 +119,8 @@ function Encabezado({ fecha, lunes }: { fecha: Fecha; lunes: Fecha }) {
             </Link>
           </Button>
         ))}
-        <Button className="ml-2 hidden md:inline-flex">
-          <CalendarPlusIcon weight="bold" />
-          Agendar
-        </Button>
+        {/* AgendarCita dibuja su botón aquí desde tablet y uno fijo abajo en el celular. */}
+        <div className="md:ml-2">{children}</div>
       </nav>
     </header>
   )

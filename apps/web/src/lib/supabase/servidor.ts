@@ -1,6 +1,7 @@
 import 'server-only'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { connection } from 'next/server'
 import { configSupabase } from './config'
 import type { Database } from './tipos-db'
 
@@ -12,6 +13,11 @@ export async function crearClienteServidor() {
   // Primero cookies(): con Cache Components marca que esto corre en cada
   // request, y así el build no necesita las variables de Supabase.
   const cookieStore = await cookies()
+  // Con partialPrefetching, el App Shell se arma con las cookies ya leídas,
+  // pero `auth.getClaims()` usa Date.now() para ver si el token venció, y
+  // Next no lo permite ahí. Los datos son de cada usuario (RLS): se espera
+  // un request real.
+  await connection()
   const { url, clavePublica } = configSupabase()
 
   return createServerClient<Database>(url, clavePublica, {
