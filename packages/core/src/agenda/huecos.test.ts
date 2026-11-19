@@ -177,6 +177,19 @@ describe('avisosDeCita', () => {
     expect(avisosDeCita(nueva, { ...contexto, citas: [] })).toEqual([])
   })
 
+  it('avisa si la hora ya pasó, sin impedirlo', () => {
+    const nueva = {
+      profesionalId: LAURA,
+      lugarId: CONSULTORIO,
+      inicio: hora('11:00'),
+      fin: hora('12:00'),
+    }
+    expect(avisosDeCita(nueva, { ...contexto, citas: [], ahora: hora('11:30') })).toEqual([
+      { tipo: 'en_el_pasado' },
+    ])
+    expect(avisosDeCita(nueva, { ...contexto, citas: [], ahora: hora('10:30') })).toEqual([])
+  })
+
   it('avisa si queda fuera del horario en ese lugar', () => {
     const nueva = {
       profesionalId: LAURA,

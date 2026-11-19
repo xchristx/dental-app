@@ -177,6 +177,7 @@ export function lugarSugerido(
 }
 
 export type AvisoCita =
+  | { tipo: 'en_el_pasado' }
   | { tipo: 'fuera_de_horario' }
   | {
       tipo: 'traslado'
@@ -188,8 +189,8 @@ export type AvisoCita =
     }
 
 /**
- * Avisos que no bloquean (0004): la cita queda fuera del horario en ese
- * lugar, o queda poco tiempo para trasladarse desde o hacia otro lugar.
+ * Avisos que no bloquean (0004 y 0013): la hora ya pasó, la cita queda fuera
+ * del horario en ese lugar, o queda poco tiempo para trasladarse desde o hacia otro lugar.
  */
 export function avisosDeCita(
   cita: { profesionalId: string; lugarId: string; inicio: Date; fin: Date },
@@ -201,9 +202,12 @@ export function avisosDeCita(
     /** Citas de ese día; si incluye la misma cita, se ignora por id. */
     citas: (CitaOcupada & { id?: string })[]
     idCita?: string
+    /** Para avisar si la hora ya pasó (0013): se permite, para anotar una cita que ya ocurrió. */
+    ahora?: Date
   },
 ): AvisoCita[] {
   const avisos: AvisoCita[] = []
+  if (contexto.ahora && cita.inicio < contexto.ahora) avisos.push({ tipo: 'en_el_pasado' })
 
   const dentroDeHorario = tramosDelDia(
     contexto.horarios,

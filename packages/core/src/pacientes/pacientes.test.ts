@@ -28,6 +28,16 @@ describe('DatosPaciente', () => {
     )
     expect(mensajes).toContain('Elige una fecha válida.')
   })
+
+  it('no acepta una fecha de nacimiento futura', () => {
+    const r = DatosPaciente.safeParse({
+      id: ID,
+      nombre: 'Ana',
+      telefono: '',
+      fechaNacimiento: '2999-01-01',
+    })
+    expect(r.error?.issues[0]?.message).toBe('La fecha de nacimiento no puede ser futura.')
+  })
 })
 
 describe('edad', () => {
