@@ -16,6 +16,8 @@ export interface CitaAgenda {
   id: string
   inicio: Date
   fin: Date
+  /** El fin acordado, si la cita se extendió por una llegada tarde (0013). */
+  finPrevisto: Date | null
   estado: EstadoCita
   llegada: Date | null
   profesionalId: string
@@ -46,7 +48,7 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
       .from('citas')
       .select(
         `id, inicio, fin, estado, llegada_at, recordatorio_enviado_at, nota,
-         profesional_id, lugar_id, tipo_cita_id, reagendada_desde,
+         fin_previsto, profesional_id, lugar_id, tipo_cita_id, reagendada_desde,
          paciente:pacientes(id, nombre, telefono),
          tipo:tipos_cita(nombre),
          lugar:lugares(nombre, color),
@@ -66,6 +68,7 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
     id: c.id,
     inicio: new Date(c.inicio),
     fin: new Date(c.fin),
+    finPrevisto: c.fin_previsto ? new Date(c.fin_previsto) : null,
     estado: EstadoCita.parse(c.estado),
     llegada: c.llegada_at ? new Date(c.llegada_at) : null,
     profesionalId: c.profesional_id,

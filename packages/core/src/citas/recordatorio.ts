@@ -47,3 +47,23 @@ export function enlaceWhatsApp(
   const numero = telefonoParaWhatsApp(telefono)
   return numero ? `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}` : null
 }
+
+/**
+ * Aviso al siguiente paciente cuando la cita anterior se atrasa (0013).
+ * Los minutos se redondean hacia arriba de a 5: "unos 10 minutos".
+ * "Hola, Jorge. Te escribo para avisarte que tu cita de hoy a las 11:15 va a
+ * empezar unos 10 minutos tarde. Disculpa la espera."
+ */
+export function mensajeRetraso(d: {
+  paciente: string
+  inicio: Date
+  minutos: number
+  zona: string
+}): string {
+  const primerNombre = d.paciente.trim().split(/\s+/)[0] ?? d.paciente
+  const minutos = Math.max(5, Math.ceil(d.minutos / 5) * 5)
+  return (
+    `Hola, ${primerNombre}. Te escribo para avisarte que tu cita de hoy a las ` +
+    `${formatearHora(d.inicio, d.zona)} va a empezar unos ${minutos} minutos tarde. Disculpa la espera.`
+  )
+}

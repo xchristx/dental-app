@@ -9,6 +9,7 @@ export type Database = {
           deleted_at: string | null
           estado: string
           fin: string
+          fin_previsto: string | null
           id: string
           inicio: string
           llegada_at: string | null
@@ -29,6 +30,7 @@ export type Database = {
           deleted_at?: string | null
           estado?: string
           fin: string
+          fin_previsto?: string | null
           id?: string
           inicio: string
           llegada_at?: string | null
@@ -48,6 +50,7 @@ export type Database = {
           deleted_at?: string | null
           estado?: string
           fin?: string
+          fin_previsto?: string | null
           id?: string
           inicio?: string
           llegada_at?: string | null

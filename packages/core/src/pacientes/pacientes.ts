@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { calcularLlegada, formatearDuracion, type Llegada } from '../citas/llegada'
 import { telefonoParaWhatsApp } from '../citas/recordatorio'
-import { esFechaValida, type Fecha } from '../fechas/fechas'
+import { ZONA_LA_PAZ, esFechaValida, fechaEnZona, type Fecha } from '../fechas/fechas'
 
 /** Ficha básica del paciente (MVP 1): nombre, celular y fecha de nacimiento. */
 export const DatosPaciente = z.object({
@@ -24,7 +24,12 @@ export const DatosPaciente = z.object({
     .string()
     .transform((v) => (v === '' ? null : v))
     .nullable()
-    .refine((v) => v === null || esFechaValida(v), 'Elige una fecha válida.'),
+    .refine((v) => v === null || esFechaValida(v), 'Elige una fecha válida.')
+    // Se compara con hoy en La Paz (0013).
+    .refine(
+      (v) => v === null || v <= fechaEnZona(new Date(), ZONA_LA_PAZ),
+      'La fecha de nacimiento no puede ser futura.',
+    ),
 })
 export type DatosPaciente = z.infer<typeof DatosPaciente>
 

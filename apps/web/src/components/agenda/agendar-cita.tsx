@@ -281,11 +281,11 @@ export function FormularioCita({
   const horaFinal = usarSugerida ? formatearHora(primeraLibre.inicio, ZONA) : form.hora
   const lugarFinal = usarSugerida ? primeraLibre.lugarId : form.lugarId
 
-  // Avisos que no bloquean (0004). En un bloqueo no aplican.
+  // Avisos que no bloquean (0004 y 0013). En un bloqueo no aplican.
   const avisos = useMemo(() => {
     if (form.modo !== 'paciente' || !citasDelDia || !esHoraValida(horaFinal)) return []
     const inicio = instanteLocal(form.fecha, horaFinal, ZONA)
-    return avisosDeCita(
+    const lista = avisosDeCita(
       {
         profesionalId: form.profesionalId,
         lugarId: lugarFinal,
@@ -298,11 +298,17 @@ export function FormularioCita({
         margenTrasladoMin,
         horarios: opciones.horarios,
         citas: citasDelDia,
+        ahora: new Date(),
       },
     )
-  }, [form, horaFinal, lugarFinal, citasDelDia, margenTrasladoMin, opciones.horarios])
+    // Al reagendar, una hora pasada no es un aviso sino un error (se valida al guardar).
+    return reagendar ? lista.filter((a) => a.tipo !== 'en_el_pasado') : lista
+  }, [form, horaFinal, lugarFinal, citasDelDia, margenTrasladoMin, opciones.horarios, reagendar])
 
   function textoAviso(aviso: AvisoCita) {
+    if (aviso.tipo === 'en_el_pasado') {
+      return 'Esa hora ya pasó. Puedes agendarla igual para anotar una cita que ya ocurrió.'
+    }
     if (aviso.tipo === 'fuera_de_horario') {
       return `Está fuera del horario de atención en ${nombreLugar(lugarFinal)} ese día.`
     }
@@ -320,6 +326,10 @@ export function FormularioCita({
     setError(null)
 
     if (reagendar) {
+      if (esHoraValida(horaFinal) && instanteLocal(form.fecha, horaFinal, ZONA) <= new Date()) {
+        setError('Elige un horario que todavía no haya pasado.')
+        return
+      }
       iniciarGuardado(async () => {
         const resultado = await reagendarCita({
           citaOriginalId: reagendar.citaId,

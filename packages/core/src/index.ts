@@ -1,5 +1,6 @@
 export * from './citas/estados'
 export * from './citas/llegada'
+export * from './citas/llegada-tarde'
 export * from './seguridad/ruta-interna'
 export * from './fechas/fechas'
 export * from './citas/nueva-cita'

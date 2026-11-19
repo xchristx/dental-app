@@ -9,6 +9,7 @@ import {
   CheckIcon,
   ProhibitIcon,
   UserCheckIcon,
+  WarningIcon,
   WhatsappLogoIcon,
 } from '@phosphor-icons/react'
 import {
@@ -16,11 +17,14 @@ import {
   enlaceWhatsApp,
   estadoAlReagendar,
   estadosSiguientes,
+  impactoDeLlegada,
+  mensajeRetraso,
   fechaEnZona,
   formatearDiaLargo,
   formatearHora,
   formatearLlegada,
   mensajeRecordatorio,
+  puedeEnviarRecordatorio,
   puedeReagendar,
 } from '@dental/core'
 import { FormularioCita, type DatosReagendar } from '@/components/agenda/agendar-cita'
@@ -36,6 +40,7 @@ import {
 import {
   cambiarEstadoCita,
   corregirLlegada,
+  extenderCita,
   guardarTelefono,
   marcarRecordatorioEnviado,
   type ResultadoCita,
@@ -59,11 +64,14 @@ const NOMBRE_ESTADO = {
 /** Detalle de una cita: datos, estado (0005), recordatorio por WhatsApp y reagendar (0012). */
 export function DetalleCita({
   cita,
+  citasDelDia,
   enlaces,
   opciones,
   urlCerrar,
 }: {
   cita: CitaAgenda
+  /** Las citas del mismo día, para ver a quién atrasa una llegada tarde (0013). */
+  citasDelDia: CitaAgenda[]
   enlaces: EnlacesReagenda
   opciones: OpcionesAgendar
   urlCerrar: string
@@ -74,19 +82,28 @@ export function DetalleCita({
   const [pendiente, iniciar] = useTransition()
   const [confirmarCancelacion, setConfirmarCancelacion] = useState(false)
   const [telefono, setTelefono] = useState(cita.telefono ?? '')
-  const [horaLlegada, setHoraLlegada] = useState(
-    cita.llegada ? formatearHora(cita.llegada, ZONA) : '',
-  )
+  // El campo muestra la llegada guardada, también justo después de tocar "Llegó".
+  const llegadaGuardada = cita.llegada ? formatearHora(cita.llegada, ZONA) : ''
+  const [horaLlegada, setHoraLlegada] = useState(llegadaGuardada)
+  const [llegadaPrevia, setLlegadaPrevia] = useState(llegadaGuardada)
+  if (llegadaPrevia !== llegadaGuardada) {
+    setLlegadaPrevia(llegadaGuardada)
+    setHoraLlegada(llegadaGuardada)
+  }
 
   const esBloqueo = cita.paciente === null
   // Una cita ya reagendada queda como historial: los cambios se hacen en la nueva.
   const reagendada = enlaces.hacia !== null
-  const siguientes = reagendada ? [] : estadosSiguientes(cita.estado, esBloqueo)
+  // Los botones dependen de la hora (0013): por ejemplo, "No asistió" recién desde la hora de la cita.
+  const ahora = new Date()
+  const siguientes = reagendada
+    ? []
+    : estadosSiguientes(cita.estado, esBloqueo, { inicio: cita.inicio, ahora, zona: ZONA })
   const sePuedeReagendar = puedeReagendar({ estado: cita.estado, esBloqueo }, reagendada)
   const yaNoOcupa = cita.estado === 'no_asistio' || cita.estado === 'cancelada'
   const fecha = fechaEnZona(cita.inicio, ZONA)
   const horario = `${formatearHora(cita.inicio, ZONA)} – ${formatearHora(cita.fin, ZONA)}`
-  const puedeRecordar = !esBloqueo && (cita.estado === 'agendada' || cita.estado === 'confirmada')
+  const puedeRecordar = !esBloqueo && puedeEnviarRecordatorio(cita.estado, cita.inicio, ahora)
   const enlace =
     puedeRecordar && cita.paciente
       ? enlaceWhatsApp(
@@ -121,7 +138,10 @@ export function DetalleCita({
       profesionalId: cita.profesionalId,
       lugarId: cita.lugarId,
       tipoCitaId: cita.tipoCitaId,
-      duracionMin: Math.round((cita.fin.getTime() - cita.inicio.getTime()) / 60_000),
+      // Si se extendió por una llegada tarde, cuenta la duración acordada.
+      duracionMin: Math.round(
+        ((cita.finPrevisto ?? cita.fin).getTime() - cita.inicio.getTime()) / 60_000,
+      ),
       nota: cita.nota,
       inicio: cita.inicio,
       quedaComo: estadoAlReagendar(cita, new Date()),
@@ -129,7 +149,7 @@ export function DetalleCita({
   }
 
   // Empieza en el día de la cita, o en hoy si ese día ya pasó.
-  const hoy = fechaEnZona(new Date(), ZONA)
+  const hoy = fechaEnZona(ahora, ZONA)
   const fechaParaReagendar = fecha < hoy ? hoy : fecha
   const botonReagendar = sePuedeReagendar && (
     <Button
@@ -184,7 +204,12 @@ export function DetalleCita({
                   {formatearLlegada(calcularLlegada(cita.inicio, cita.llegada))}
                 </Dato>
               )}
-              {!esBloqueo && (
+              {cita.finPrevisto && (
+                <Dato nombre="Fin acordado">
+                  {formatearHora(cita.finPrevisto, ZONA)} · se extendió por la llegada tarde
+                </Dato>
+              )}
+              {!esBloqueo && (puedeRecordar || cita.recordatorioEnviado) && (
                 <Dato nombre="Recordatorio">
                   {cita.recordatorioEnviado
                     ? `Enviado el ${formatearDiaLargo(fechaEnZona(cita.recordatorioEnviado, ZONA)).toLowerCase()} a las ${formatearHora(cita.recordatorioEnviado, ZONA)}`
@@ -204,13 +229,26 @@ export function DetalleCita({
               )}
             </dl>
 
+            {/* Llegó tarde: qué pasa si se atiende completa (0013). */}
+            {!reagendada && (
+              <AvisoLlegadaTarde
+                cita={cita}
+                citasDelDia={citasDelDia}
+                opciones={opciones}
+                ahora={ahora}
+                pendiente={pendiente}
+                onExtender={() => ejecutar(() => extenderCita(cita.id))}
+              />
+            )}
+
             {/* Si no vino o se canceló, lo siguiente es reagendar. */}
             {yaNoOcupa && botonReagendar}
 
             {/* Lo más frecuente primero: "Llegó" (0005). */}
             {(siguientes.includes('atendida') ||
               siguientes.includes('confirmada') ||
-              siguientes.includes('no_asistio')) && (
+              siguientes.includes('no_asistio') ||
+              (!yaNoOcupa && botonReagendar)) && (
               <div className="flex flex-col gap-2">
                 {siguientes.includes('atendida') && (
                   <Button size="lg" disabled={pendiente} onClick={() => cambiarA('atendida')}>
@@ -218,27 +256,29 @@ export function DetalleCita({
                     Llegó
                   </Button>
                 )}
-                <div className="grid grid-cols-2 gap-2">
-                  {siguientes.includes('confirmada') && (
-                    <Button
-                      variant="outline"
-                      disabled={pendiente}
-                      onClick={() => cambiarA('confirmada')}
-                    >
-                      <CheckIcon weight="bold" />
-                      Confirmó
-                    </Button>
-                  )}
-                  {siguientes.includes('no_asistio') && (
-                    <Button
-                      variant="outline"
-                      disabled={pendiente}
-                      onClick={() => cambiarA('no_asistio')}
-                    >
-                      No asistió
-                    </Button>
-                  )}
-                </div>
+                {(siguientes.includes('confirmada') || siguientes.includes('no_asistio')) && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {siguientes.includes('confirmada') && (
+                      <Button
+                        variant="outline"
+                        disabled={pendiente}
+                        onClick={() => cambiarA('confirmada')}
+                      >
+                        <CheckIcon weight="bold" />
+                        Confirmó
+                      </Button>
+                    )}
+                    {siguientes.includes('no_asistio') && (
+                      <Button
+                        variant="outline"
+                        disabled={pendiente}
+                        onClick={() => cambiarA('no_asistio')}
+                      >
+                        No asistió
+                      </Button>
+                    )}
+                  </div>
+                )}
                 {botonReagendar}
               </div>
             )}
@@ -411,5 +451,111 @@ function Dato({ nombre, children }: { nombre: string; children: React.ReactNode 
       <dt className="text-muted-foreground shrink-0">{nombre}</dt>
       <dd className="text-right">{children}</dd>
     </div>
+  )
+}
+
+/**
+ * Si llegó tarde, a qué hora termina la cita atendida completa y a quién
+ * atrasa (0013). La decisión clínica (acortar o atender completo) es de ella:
+ * la app solo muestra el efecto y ofrece extender la cita o avisar al
+ * siguiente paciente.
+ */
+function AvisoLlegadaTarde({
+  cita,
+  citasDelDia,
+  opciones,
+  ahora,
+  pendiente,
+  onExtender,
+}: {
+  cita: CitaAgenda
+  citasDelDia: CitaAgenda[]
+  opciones: OpcionesAgendar
+  ahora: Date
+  pendiente: boolean
+  onExtender: () => void
+}) {
+  const [descartado, setDescartado] = useState(false)
+  const impacto = impactoDeLlegada(cita, {
+    citas: citasDelDia,
+    controlaSillon: (id) => opciones.lugares.find((l) => l.id === id)?.controlaSillon ?? false,
+    margenTrasladoMin:
+      opciones.profesionales.find((p) => p.id === cita.profesionalId)?.margenTrasladoMin ?? 30,
+  })
+  // Pasada la hora en que terminaría, ya no hay nada que decidir.
+  if (descartado || impacto.tipo === 'sin_impacto' || !cita.llegada) return null
+  if (ahora >= impacto.finCompleto) return null
+
+  const termina = formatearHora(impacto.finCompleto, ZONA)
+  const siguiente =
+    impacto.tipo === 'atrasa_siguiente'
+      ? citasDelDia.find((c) => c.id === impacto.siguienteId)
+      : undefined
+
+  let textoSiguiente = 'Después no tienes otra cita que se atrase.'
+  let enlace: string | null = null
+  if (impacto.tipo === 'atrasa_siguiente' && siguiente) {
+    const hora = formatearHora(siguiente.inicio, ZONA)
+    const minutos = `unos ${impacto.minutosRetraso} min tarde`
+    const traslado =
+      siguiente.profesionalId === cita.profesionalId && siguiente.lugarId !== cita.lugarId
+        ? ', contando el traslado'
+        : ''
+    if (!siguiente.paciente) {
+      textoSiguiente = `Tu bloqueo «${siguiente.nota ?? 'Bloqueo'}» de las ${hora} empezaría ${minutos}${traslado}.`
+    } else {
+      const conQuien =
+        siguiente.profesionalId !== cita.profesionalId ? ` con ${siguiente.profesional}` : ''
+      textoSiguiente = `La cita de ${siguiente.paciente}${conQuien} a las ${hora} empezaría ${minutos}${traslado}.`
+      enlace = enlaceWhatsApp(
+        siguiente.telefono,
+        mensajeRetraso({
+          paciente: siguiente.paciente,
+          inicio: siguiente.inicio,
+          minutos: impacto.minutosRetraso,
+          zona: ZONA,
+        }),
+      )
+    }
+  }
+  const primerNombre = siguiente?.paciente?.split(' ')[0]
+
+  return (
+    <section
+      aria-label="Llegada tarde"
+      className="bg-warning-bg text-warning flex flex-col gap-3 rounded-lg px-4 py-3 text-sm"
+    >
+      <div className="flex gap-2">
+        <WarningIcon weight="bold" className="mt-0.5 size-4 shrink-0" />
+        <div className="flex flex-col gap-1">
+          <p className="font-medium">
+            {formatearLlegada(calcularLlegada(cita.inicio, cita.llegada))}.
+          </p>
+          <p>Si la atiendes completa, terminas a las {termina}.</p>
+          <p>{textoSiguiente}</p>
+          {siguiente?.paciente && !enlace && (
+            <p>{primerNombre} no tiene celular guardado para avisarle.</p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        {impacto.tipo === 'se_puede_extender' && (
+          <Button variant="outline" disabled={pendiente} onClick={onExtender}>
+            Extender hasta las {termina}
+          </Button>
+        )}
+        {enlace && (
+          <Button asChild variant="outline">
+            <a href={enlace} target="_blank" rel="noopener noreferrer">
+              <WhatsappLogoIcon weight="bold" />
+              Avisar a {primerNombre}
+            </a>
+          </Button>
+        )}
+        <Button variant="ghost" disabled={pendiente} onClick={() => setDescartado(true)}>
+          Mantener el horario
+        </Button>
+      </div>
+    </section>
   )
 }

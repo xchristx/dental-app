@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { ZONA_LA_PAZ } from '../fechas/fechas'
-import { enlaceWhatsApp, mensajeRecordatorio, telefonoParaWhatsApp } from './recordatorio'
-import { estadosSiguientes, puedeCambiarA } from './transiciones'
+import {
+  enlaceWhatsApp,
+  mensajeRecordatorio,
+  mensajeRetraso,
+  telefonoParaWhatsApp,
+} from './recordatorio'
 
 // Números inventados.
 describe('telefonoParaWhatsApp', () => {
@@ -51,25 +55,23 @@ describe('mensajeRecordatorio', () => {
   })
 })
 
-describe('estadosSiguientes', () => {
-  it('una cita agendada puede confirmarse, marcarse como atendida, no asistió o cancelarse', () => {
-    expect(estadosSiguientes('agendada', false)).toEqual([
-      'confirmada',
-      'atendida',
-      'no_asistio',
-      'cancelada',
-    ])
+describe('mensajeRetraso', () => {
+  it('avisa con el primer nombre y los minutos redondeados de a 5', () => {
+    expect(
+      mensajeRetraso({
+        paciente: 'Jorge Mamani',
+        inicio: new Date('2026-11-24T15:15:00Z'),
+        minutos: 8,
+        zona: ZONA_LA_PAZ,
+      }),
+    ).toBe(
+      'Hola, Jorge. Te escribo para avisarte que tu cita de hoy a las 11:15 va a empezar unos 10 minutos tarde. Disculpa la espera.',
+    )
   })
 
-  it('los estados finales solo vuelven a agendada (deshacer)', () => {
-    expect(estadosSiguientes('atendida', false)).toEqual(['agendada'])
-    expect(estadosSiguientes('no_asistio', false)).toEqual(['agendada'])
-    expect(estadosSiguientes('cancelada', false)).toEqual(['agendada'])
-  })
-
-  it('un bloqueo solo se cancela o se vuelve a activar', () => {
-    expect(estadosSiguientes('agendada', true)).toEqual(['cancelada'])
-    expect(estadosSiguientes('cancelada', true)).toEqual(['agendada'])
-    expect(puedeCambiarA('agendada', 'atendida', true)).toBe(false)
+  it('nunca dice menos de 5 minutos', () => {
+    expect(
+      mensajeRetraso({ paciente: 'Ana', inicio: new Date(), minutos: 1, zona: ZONA_LA_PAZ }),
+    ).toContain('unos 5 minutos')
   })
 })

@@ -59,6 +59,7 @@ async function Agenda({ parametros }: { parametros: PageProps<'/'>['searchParams
         <DetalleCita
           key={seleccionada.id}
           cita={seleccionada}
+          citasDelDia={delDia(citas, fechaEnZona(seleccionada.inicio, ZONA))}
           enlaces={enlaces}
           opciones={opciones}
           urlCerrar={`/?fecha=${fecha}`}

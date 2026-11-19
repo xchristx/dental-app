@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(18);
 
 -- Datos inventados
 insert into public.organizaciones (id, nombre) values
@@ -178,6 +178,30 @@ select throws_ok(
       'c0000000-0000-4000-8000-000000000001', 0, '10:00', '13:00') $$,
   '23514', null,
   'El día de la semana va de 1 (lunes) a 7 (domingo)'
+);
+
+-- Extender una cita (0013): el fin nuevo también respeta los choques.
+-- Dos citas seguidas de A el miércoles 25: 10:00 a 11:00 y 11:00 a 12:00.
+insert into public.citas (id, organization_id, profesional_id, lugar_id, paciente_id, inicio, fin) values
+  ('e0000000-0000-4000-8000-000000000011', 'a0000000-0000-4000-8000-000000000001',
+   'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002',
+   'd0000000-0000-4000-8000-000000000001', '2026-11-25 10:00-04', '2026-11-25 11:00-04'),
+  ('e0000000-0000-4000-8000-000000000012', 'a0000000-0000-4000-8000-000000000001',
+   'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000002',
+   'd0000000-0000-4000-8000-000000000001', '2026-11-25 11:00-04', '2026-11-25 12:00-04');
+
+select throws_ok(
+  $$ update public.citas set fin = '2026-11-25 11:30-04', fin_previsto = '2026-11-25 11:00-04'
+     where id = 'e0000000-0000-4000-8000-000000000011' $$,
+  '23P01', null,
+  'Extender una cita no puede pisar la siguiente'
+);
+
+select throws_ok(
+  $$ update public.citas set fin_previsto = '2026-11-25 12:00-04'
+     where id = 'e0000000-0000-4000-8000-000000000011' $$,
+  '23514', null,
+  'El fin acordado no puede ser posterior al fin'
 );
 
 select * from finish();

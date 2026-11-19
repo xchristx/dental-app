@@ -12,8 +12,11 @@ import {
   fechaEnZona,
   formatearHora,
   inicioDelDia,
+  finSiSeAtiendeCompleta,
   instanteLocal,
+  motivoPorHora,
   puedeCambiarA,
+  puedeEnviarRecordatorio,
   rangoDeLaCita,
   sumarDias,
   telefonoParaWhatsApp,
@@ -214,7 +217,9 @@ async function leerCita(supabase: Supabase, id: string) {
   if (!ES_UUID.test(id)) return null
   const { data } = await supabase
     .from('citas')
-    .select('id, estado, paciente_id, profesional_id, lugar_id, inicio, fin, llegada_at')
+    .select(
+      'id, estado, paciente_id, profesional_id, lugar_id, inicio, fin, fin_previsto, llegada_at',
+    )
     .eq('id', id)
     .is('deleted_at', null)
     .maybeSingle()
@@ -233,7 +238,11 @@ export async function cambiarEstadoCita(id: string, estado: string): Promise<Res
   if (!cita) return NO_ENCONTRADA
 
   const actual = EstadoCita.parse(cita.estado)
-  if (!puedeCambiarA(actual, nuevo.data, cita.paciente_id === null)) {
+  const momento = { inicio: new Date(cita.inicio), ahora: new Date(), zona: ZONA }
+  // Las reglas de tiempo (0013): por ejemplo, no se marca "No asistió" antes de la hora.
+  const motivo = motivoPorHora(nuevo.data, momento)
+  if (motivo) return { ok: false, error: motivo }
+  if (!puedeCambiarA(actual, nuevo.data, cita.paciente_id === null, momento)) {
     return { ok: false, error: 'La cita ya cambió. Recarga la página.' }
   }
   // Reactivar una cita que ya se reagendó dejaría al paciente con dos citas (0012).
@@ -251,9 +260,16 @@ export async function cambiarEstadoCita(id: string, estado: string): Promise<Res
         ? null
         : cita.llegada_at
 
+  // Deshacer "Llegó" también deshace la extensión por llegada tarde (0013).
+  const fin = nuevo.data === 'agendada' && cita.fin_previsto ? cita.fin_previsto : cita.fin
   const { error } = await supabase
     .from('citas')
-    .update({ estado: nuevo.data, llegada_at: llegada })
+    .update({
+      estado: nuevo.data,
+      llegada_at: llegada,
+      fin,
+      fin_previsto: fin === cita.fin ? cita.fin_previsto : null,
+    })
     .eq('id', id)
 
   if (error) {
@@ -284,6 +300,9 @@ export async function corregirLlegada(id: string, hora: string): Promise<Resulta
   if (cita.estado !== 'atendida') return { ok: false, error: 'Primero marca que llegó.' }
 
   const llegada = instanteLocal(fechaEnZona(new Date(cita.inicio), ZONA), hora, ZONA)
+  if (llegada > new Date()) {
+    return { ok: false, error: 'La hora de llegada no puede ser más tarde que ahora.' }
+  }
   const { error } = await supabase
     .from('citas')
     .update({ llegada_at: llegada.toISOString() })
@@ -296,11 +315,64 @@ export async function corregirLlegada(id: string, hora: string): Promise<Resulta
   return { ok: true }
 }
 
+/**
+ * Extiende una cita a la que el paciente llegó tarde, para que dure lo
+ * acordado desde que llegó (0013). El fin se calcula aquí, así que repetir el
+ * pedido no la alarga otra vez. Si pisa otra cita, Postgres lo impide.
+ */
+export async function extenderCita(id: string): Promise<ResultadoCita> {
+  const supabase = await crearClienteServidor()
+  const cita = await leerCita(supabase, id)
+  if (!cita) return NO_ENCONTRADA
+  if (cita.estado !== 'atendida' || !cita.llegada_at) {
+    return { ok: false, error: 'Primero marca que llegó.' }
+  }
+
+  const inicio = new Date(cita.inicio)
+  const fin = new Date(cita.fin)
+  const finPrevisto = cita.fin_previsto ? new Date(cita.fin_previsto) : null
+  const finCompleto = finSiSeAtiendeCompleta({
+    inicio,
+    fin,
+    finPrevisto,
+    llegada: new Date(cita.llegada_at),
+  })
+  if (finCompleto <= fin) {
+    refresh()
+    return { ok: true }
+  }
+
+  const { error } = await supabase
+    .from('citas')
+    .update({ fin: finCompleto.toISOString(), fin_previsto: (finPrevisto ?? fin).toISOString() })
+    .eq('id', id)
+  if (error) {
+    if (error.code === '23P01') {
+      const mensaje = await describirChoque(
+        supabase,
+        error.message,
+        { profesionalId: cita.profesional_id, lugarId: cita.lugar_id },
+        fin,
+        finCompleto,
+        cita.id,
+      )
+      return { ok: false, error: `No se puede extender: ${mensaje}` }
+    }
+    console.error(`[extender] código=${error.code}: ${error.message}`)
+    return { ok: false, error: ERROR_GENERICO }
+  }
+  refresh()
+  return { ok: true }
+}
+
 /** Marca que se envió el recordatorio por WhatsApp (0005). */
 export async function marcarRecordatorioEnviado(id: string): Promise<ResultadoCita> {
   const supabase = await crearClienteServidor()
   const cita = await leerCita(supabase, id)
   if (!cita) return NO_ENCONTRADA
+  if (!puedeEnviarRecordatorio(EstadoCita.parse(cita.estado), new Date(cita.inicio), new Date())) {
+    return { ok: false, error: 'Esta cita ya empezó o no está activa.' }
+  }
   const { error } = await supabase
     .from('citas')
     .update({ recordatorio_enviado_at: new Date().toISOString() })
@@ -376,6 +448,10 @@ export async function reagendarCita(datos: unknown): Promise<ResultadoReagendar>
     new Date(),
   )
   const { inicio, fin } = rangoDeLaCita(nueva, ZONA)
+  // Reagendar a una hora que ya pasó no tiene sentido (0013).
+  if (inicio <= new Date()) {
+    return { ok: false, error: 'Elige un horario que todavía no haya pasado.' }
+  }
 
   const { error } = await supabase.rpc('reagendar_cita', {
     p_original: nueva.citaOriginalId,

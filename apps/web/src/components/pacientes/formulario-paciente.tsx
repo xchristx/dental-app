@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { PencilSimpleIcon, UserPlusIcon } from '@phosphor-icons/react'
+import { fechaEnZona } from '@dental/core'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/sheet'
 import { guardarPaciente } from '@/lib/pacientes/acciones'
 import type { PacienteLista } from '@/lib/pacientes/datos'
+import { ZONA } from '@/lib/agenda/zona'
 
 const claseCampo =
   'border-input bg-card h-11 w-full rounded-sm border px-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/40'
@@ -119,6 +121,8 @@ export function FormularioPaciente({ paciente }: { paciente?: PacienteLista }) {
                   Fecha de nacimiento (opcional)
                   <input
                     type="date"
+                    // No puede ser futura (0013).
+                    max={fechaEnZona(new Date(), ZONA)}
                     value={form.fechaNacimiento}
                     onChange={(e) => cambiar({ fechaNacimiento: e.target.value })}
                     className={claseCampo}
