@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CalendarPlusIcon, UserPlusIcon, WarningIcon, XIcon } from '@phosphor-icons/react'
 import {
   avisosDeCita,
+  coincideBusqueda,
   esFechaValida,
   esHoraValida,
   fechaEnZona,
@@ -82,15 +83,6 @@ function formularioInicial(opciones: OpcionesAgendar, fecha: Fecha): Formulario 
   }
 }
 
-// Para buscar "Lucia" y encontrar "Lucía".
-function normalizar(texto: string) {
-  return texto
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .trim()
-}
-
 function sumarMinutos(hora: string, minutos: number) {
   const [h = 0, m = 0] = hora.split(':').map(Number)
   const total = (h * 60 + m + minutos) % (24 * 60)
@@ -119,9 +111,9 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
   }
 
   const coincidencias = useMemo(() => {
-    const buscado = normalizar(form.busqueda)
-    if (buscado.length < 2) return []
-    return opciones.pacientes.filter((p) => normalizar(p.nombre).includes(buscado)).slice(0, 6)
+    // "lucia" encuentra a Lucía; "ana per", a Ana Pérez.
+    if (form.busqueda.trim().length < 2) return []
+    return opciones.pacientes.filter((p) => coincideBusqueda(p.nombre, form.busqueda)).slice(0, 6)
   }, [form.busqueda, opciones.pacientes])
 
   const pacienteElegido = opciones.pacientes.find((p) => p.id === form.pacienteId)

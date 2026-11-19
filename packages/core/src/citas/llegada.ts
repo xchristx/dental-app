@@ -18,7 +18,8 @@ export function calcularLlegada(
   return minutos > 0 ? { tipo: 'tarde', minutos } : { tipo: 'temprano', minutos: -minutos }
 }
 
-function formatearDuracion(minutos: number): string {
+/** "25 min", "1 h", "1 h 10 min". */
+export function formatearDuracion(minutos: number): string {
   const horas = Math.floor(minutos / 60)
   const resto = minutos % 60
   if (horas === 0) return `${resto} min`
