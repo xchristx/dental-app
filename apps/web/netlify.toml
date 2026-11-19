@@ -1,0 +1,7 @@
+# Despliegue en Netlify (decisión 0010).
+# En el panel: base directory vacío (raíz del repo) y package directory `apps/web`.
+# Las rutas de este archivo son relativas al base directory, es decir, a la raíz.
+
+[build]
+  command = "pnpm turbo run build --filter=@dental/web"
+  publish = "apps/web/.next"

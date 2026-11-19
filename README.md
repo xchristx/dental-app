@@ -31,11 +31,13 @@ pnpm db:start   # Supabase local
   - [0006: Ambientes, respaldos, despliegue y tests](docs/decisiones/0006-ambientes-respaldos-y-despliegue.md)
   - [0007: Autenticación y membresías](docs/decisiones/0007-autenticacion.md)
   - [0008: Diseño e interfaz](docs/decisiones/0008-diseno-e-interfaz.md)
+  - [0009: Interfaz en celular y escritorio](docs/decisiones/0009-interfaz-en-celular-y-escritorio.md)
+  - [0010: Hosting de la web en Netlify](docs/decisiones/0010-hosting-netlify.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack
 
-TypeScript · pnpm + Turborepo · Next.js · Tailwind v4 + shadcn/ui · Phosphor · Supabase (Postgres) · Zod · Vitest + pgTAP · Vercel · Expo + PowerSync (fase 2)
+TypeScript · pnpm + Turborepo · Next.js · Tailwind v4 + shadcn/ui · Phosphor · Supabase (Postgres) · Zod · Vitest + pgTAP · Netlify · Expo + PowerSync (fase 2)
 
 ## Estructura
 
