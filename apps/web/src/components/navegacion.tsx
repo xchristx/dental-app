@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { CalendarDotsIcon, GearSixIcon, UsersIcon } from '@phosphor-icons/react'
@@ -12,14 +13,27 @@ const secciones = [
   { href: '/ajustes', texto: 'Ajustes', Icono: GearSixIcon },
 ] as const
 
-function estaActiva(pathname: string, href: string) {
+function estaActiva(pathname: string | null, href: string) {
+  if (pathname === null) return false
   return href === '/' ? pathname === '/' : pathname.startsWith(href)
 }
 
-/** Barra lateral de escritorio (desde `lg`). */
-export function NavegacionLateral() {
-  const pathname = usePathname()
+// En rutas dinámicas (/pacientes/[id]) la URL se conoce recién en el request:
+// con Cache Components, leerla va dentro de <Suspense>. Mientras tanto se
+// dibuja la misma navegación sin marcar la sección activa.
+function ConRutaActual({ Lista }: { Lista: (p: { pathname: string | null }) => React.ReactNode }) {
+  return (
+    <Suspense fallback={<Lista pathname={null} />}>
+      <LeerRuta Lista={Lista} />
+    </Suspense>
+  )
+}
 
+function LeerRuta({ Lista }: { Lista: (p: { pathname: string | null }) => React.ReactNode }) {
+  return <Lista pathname={usePathname()} />
+}
+
+function ListaLateral({ pathname }: { pathname: string | null }) {
   return (
     <ul className="flex flex-col gap-1">
       {secciones.map(({ href, texto, Icono }) => {
@@ -46,10 +60,7 @@ export function NavegacionLateral() {
   )
 }
 
-/** Barra inferior de celular y tablet (hasta `lg`). */
-export function NavegacionInferior() {
-  const pathname = usePathname()
-
+function ListaInferior({ pathname }: { pathname: string | null }) {
   return (
     <ul className="grid grid-cols-3">
       {secciones.map(({ href, texto, Icono }) => {
@@ -72,4 +83,14 @@ export function NavegacionInferior() {
       })}
     </ul>
   )
+}
+
+/** Barra lateral de escritorio (desde `lg`). */
+export function NavegacionLateral() {
+  return <ConRutaActual Lista={ListaLateral} />
+}
+
+/** Barra inferior de celular y tablet (hasta `lg`). */
+export function NavegacionInferior() {
+  return <ConRutaActual Lista={ListaInferior} />
 }
