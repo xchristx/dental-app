@@ -28,3 +28,17 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+
+  db:
+    name: Base de datos (migraciones y pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.0.0
+
+      # Levanta solo Postgres, aplica las migraciones y carga seed.sql.
+      - run: supabase db start
+      - run: supabase test db
