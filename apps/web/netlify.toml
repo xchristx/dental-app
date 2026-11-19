@@ -5,3 +5,14 @@
 [build]
   command = "pnpm turbo run build --filter=@dental/web"
   publish = "apps/web/.next"
+
+# Netlify frena el build si encuentra el valor de una variable de entorno en
+# el repo o en el resultado. Estas cuatro son públicas a propósito:
+# - NEXT_PUBLIC_*: van al navegador; la clave "publishable" es pública por
+#   diseño y los datos los protege RLS.
+# - DEMO_*: la cuenta del botón "Entrar como demo", que también está en
+#   supabase/seed.sql.
+# Las demás variables se siguen revisando. Nunca agregar aquí una clave secreta
+# (por ejemplo, la service role de Supabase).
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,DEMO_EMAIL,DEMO_PASSWORD"
