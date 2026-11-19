@@ -8,6 +8,7 @@
 App de gestión para una dentista real en Bolivia, que también sirve como portafolio del autor. Antes de proponer cambios, leer:
 - `docs/descubrimiento.md`: cómo trabaja ella, su ficha en papel y su planilla de pagos.
 - `docs/alcance.md`: las etapas (MVP 1 agenda → MVP 2 historia clínica → MVP 3 pagos).
+- `docs/diseno.md`: tokens, tipografía y componentes. No se escriben colores sueltos fuera de los tokens.
 - `docs/decisiones/`: las decisiones tomadas. Si algo cambia una decisión, se escribe una decisión nueva; no se edita en silencio la anterior.
 
 ## Reglas del modelo de datos
@@ -16,7 +17,8 @@ App de gestión para una dentista real en Bolivia, que también sirve como porta
 - Pagos de solo agregar. El saldo se calcula, nunca se guarda.
 - Montos como enteros en centavos (`bigint`) más la moneda (`BOB`).
 - Fechas en `timestamptz`, mostradas en `America/La_Paz`.
-- Los choques de agenda se impiden en Postgres con restricciones de exclusión, según la profesional y según el lugar con `controla_sillon`.
+- Los choques de agenda se impiden en Postgres con restricciones de exclusión, según la profesional y según el lugar con `controla_sillon`. Solo cuentan las citas `agendada`, `confirmada` y `atendida`.
+- Los horarios de atención se guardan como `time` local (es la única excepción a `timestamptz`).
 - Los códigos del odontograma salen de un catálogo editable, nunca se escriben fijos en el código.
 
 ## Privacidad

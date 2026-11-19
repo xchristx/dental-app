@@ -14,9 +14,15 @@ Se construye con una dentista real que hoy lleva todo en papel.
   - [0001: Stack](docs/decisiones/0001-stack.md)
   - [0002: Lugares y sillones](docs/decisiones/0002-lugares-y-sillones.md)
   - [0003: Preparado para funcionar sin conexión](docs/decisiones/0003-preparado-para-offline.md)
+  - [0004: Horarios, huecos libres y traslados](docs/decisiones/0004-horarios-y-huecos-libres.md)
+  - [0005: Estados de la cita y hora de llegada](docs/decisiones/0005-estados-de-cita.md)
+  - [0006: Ambientes, respaldos, despliegue y tests](docs/decisiones/0006-ambientes-respaldos-y-despliegue.md)
+  - [0007: Autenticación y membresías](docs/decisiones/0007-autenticacion.md)
+  - [0008: Diseño e interfaz](docs/decisiones/0008-diseno-e-interfaz.md)
+- [Guía de diseño](docs/diseno.md)
 
 ## Stack
-TypeScript · pnpm + Turborepo · Next.js · Tailwind + shadcn/ui · Supabase (Postgres) · Zod · Expo + PowerSync (fase 2)
+TypeScript · pnpm + Turborepo · Next.js · Tailwind v4 + shadcn/ui · Phosphor · Supabase (Postgres) · Zod · Vitest + pgTAP · Vercel · Expo + PowerSync (fase 2)
 
 ## Estructura (planificada)
 ```

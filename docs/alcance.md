@@ -12,7 +12,9 @@ Prioridad: resolver primero lo que más le complica a la dentista, que es **la a
   - Un consultorio de un solo sillón no puede tener dos citas al mismo tiempo.
 - Ficha básica del paciente: nombre, teléfono, fecha de nacimiento.
 - Botón **"Enviar recordatorio"**: abre WhatsApp (link `wa.me`) con el mensaje ya escrito.
-- Estado de cada cita: confirmada, llegó tarde, no asistió.
+- **Horarios de atención** por lugar, que se cargan una vez (decisión 0004).
+- Aviso de traslado cuando dos citas seguidas son en lugares distintos (decisión 0004).
+- Estado de cada cita y **hora real de llegada** (decisión 0005).
 
 ## MVP 2: Historia clínica
 - Anamnesis: antecedentes personales y familiares, alergias, medicamentos.
