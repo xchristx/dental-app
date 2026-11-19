@@ -15,6 +15,7 @@ import {
 } from '@dental/core'
 import { AgendarCita } from '@/components/agenda/agendar-cita'
 import { BloqueCita } from '@/components/agenda/bloque-cita'
+import { DetalleCita } from '@/components/agenda/detalle-cita'
 import { Button } from '@/components/ui/button'
 import { ZONA, citasDeLaSemana, type CitaAgenda } from '@/lib/agenda/datos'
 import { opcionesParaAgendar } from '@/lib/agenda/opciones'
@@ -34,7 +35,7 @@ export default function AgendaPage({ searchParams }: PageProps<'/'>) {
 }
 
 async function Agenda({ parametros }: { parametros: PageProps<'/'>['searchParams'] }) {
-  const { fecha: valor } = await parametros
+  const { fecha: valor, cita: citaElegida } = await parametros
   // "Hoy" depende del momento del request, no del prerender.
   await connection()
   const hoy = fechaEnZona(new Date(), ZONA)
@@ -42,13 +43,20 @@ async function Agenda({ parametros }: { parametros: PageProps<'/'>['searchParams
   const lunes = lunesDeLaSemana(fecha)
   const [citas, opciones] = await Promise.all([citasDeLaSemana(lunes), opcionesParaAgendar()])
 
+  // El detalle de una cita se abre con ?cita=<id>: el botón "atrás" lo cierra.
+  const hrefCita = (id: string) => `/?fecha=${fecha}&cita=${id}`
+  const seleccionada = citas.find((c) => c.id === citaElegida)
+
   return (
     <>
       <Encabezado fecha={fecha} lunes={lunes}>
         <AgendarCita opciones={opciones} fecha={fecha} />
       </Encabezado>
-      <VistaDia citas={delDia(citas, fecha)} />
-      <VistaSemana citas={citas} lunes={lunes} hoy={hoy} />
+      <VistaDia citas={delDia(citas, fecha)} hrefCita={hrefCita} />
+      <VistaSemana citas={citas} lunes={lunes} hoy={hoy} hrefCita={hrefCita} />
+      {seleccionada && (
+        <DetalleCita key={seleccionada.id} cita={seleccionada} urlCerrar={`/?fecha=${fecha}`} />
+      )}
     </>
   )
 }
@@ -126,7 +134,7 @@ function Encabezado({
   )
 }
 
-function VistaDia({ citas }: { citas: CitaAgenda[] }) {
+function VistaDia({ citas, hrefCita }: { citas: CitaAgenda[]; hrefCita: (id: string) => string }) {
   if (citas.length === 0) {
     return <p className="text-muted-foreground md:hidden">No tienes citas este día.</p>
   }
@@ -134,14 +142,24 @@ function VistaDia({ citas }: { citas: CitaAgenda[] }) {
     <ol className="flex flex-col gap-3 md:hidden">
       {citas.map((cita) => (
         <li key={cita.id}>
-          <BloqueCita cita={cita} />
+          <BloqueCita cita={cita} href={hrefCita(cita.id)} />
         </li>
       ))}
     </ol>
   )
 }
 
-function VistaSemana({ citas, lunes, hoy }: { citas: CitaAgenda[]; lunes: Fecha; hoy: Fecha }) {
+function VistaSemana({
+  citas,
+  lunes,
+  hoy,
+  hrefCita,
+}: {
+  citas: CitaAgenda[]
+  lunes: Fecha
+  hoy: Fecha
+  hrefCita: (id: string) => string
+}) {
   return (
     <div className="hidden flex-1 grid-cols-7 gap-2 md:grid xl:gap-3">
       {diasDeLaSemana(lunes).map((dia) => {
@@ -170,7 +188,7 @@ function VistaSemana({ citas, lunes, hoy }: { citas: CitaAgenda[]; lunes: Fecha;
               <ol className="flex flex-col gap-2">
                 {citasDelDia.map((cita) => (
                   <li key={cita.id}>
-                    <BloqueCita cita={cita} />
+                    <BloqueCita cita={cita} href={hrefCita(cita.id)} />
                   </li>
                 ))}
               </ol>

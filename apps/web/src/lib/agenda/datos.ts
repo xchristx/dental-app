@@ -16,11 +16,15 @@ export interface CitaAgenda {
   llegada: Date | null
   /** null en los bloqueos. */
   paciente: string | null
+  pacienteId: string | null
+  telefono: string | null
   tipo: string | null
   nota: string | null
   lugar: { nombre: string; color: ColorLugar }
+  profesional: string
   /** Solo si la cita es de otra profesional (por ejemplo, una socia en tu consultorio). */
   otraProfesional: string | null
+  recordatorioEnviado: Date | null
 }
 
 /** Todas las citas que tocan la semana, de todas las profesionales de la organización. */
@@ -32,8 +36,8 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
     supabase
       .from('citas')
       .select(
-        `id, inicio, fin, estado, llegada_at, nota, profesional_id,
-         paciente:pacientes(nombre),
+        `id, inicio, fin, estado, llegada_at, recordatorio_enviado_at, nota, profesional_id,
+         paciente:pacientes(id, nombre, telefono),
          tipo:tipos_cita(nombre),
          lugar:lugares(nombre, color),
          profesional:profesionales(nombre)`,
@@ -55,6 +59,8 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
     estado: EstadoCita.parse(c.estado),
     llegada: c.llegada_at ? new Date(c.llegada_at) : null,
     paciente: c.paciente?.nombre ?? null,
+    pacienteId: c.paciente?.id ?? null,
+    telefono: c.paciente?.telefono ?? null,
     tipo: c.tipo?.nombre ?? null,
     nota: c.nota,
     lugar: {
@@ -63,7 +69,9 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
         ? (c.lugar.color as ColorLugar)
         : 'gris',
     },
+    profesional: c.profesional.nombre,
     otraProfesional: c.profesional_id !== propia ? c.profesional.nombre : null,
+    recordatorioEnviado: c.recordatorio_enviado_at ? new Date(c.recordatorio_enviado_at) : null,
   }))
 }
 

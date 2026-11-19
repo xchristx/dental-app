@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { calcularLlegada, formatearHora, formatearLlegada, type EstadoCita } from '@dental/core'
 import { ZONA, type CitaAgenda, type ColorLugar } from '@/lib/agenda/datos'
 import { cn } from '@/lib/utils'
@@ -19,20 +20,21 @@ const estiloLugar: Record<ColorLugar, { bloque: string; texto: string }> = {
 }
 
 // `atendida` no lleva badge (se muestra la llegada) y `cancelada` se ve tachada.
-const badges: Partial<Record<EstadoCita, { texto: string; clase: string }>> = {
+export const badges: Partial<Record<EstadoCita, { texto: string; clase: string }>> = {
   agendada: { texto: 'Agendada', clase: 'bg-card text-muted-foreground' },
   confirmada: { texto: 'Confirmada', clase: 'bg-lugar-verde text-lugar-verde-fg' },
   no_asistio: { texto: 'No asistió', clase: 'bg-destructive-bg text-destructive' },
   cancelada: { texto: 'Cancelada', clase: 'bg-card text-muted-foreground' },
 }
 
-export function BloqueCita({ cita }: { cita: CitaAgenda }) {
+/** Bloque de una cita en la agenda. Con `href`, abre su detalle. */
+export function BloqueCita({ cita, href }: { cita: CitaAgenda; href?: string }) {
   const estilo = estiloLugar[cita.lugar.color]
   const badge = badges[cita.estado]
   const esBloqueo = cita.paciente === null
   const cancelada = cita.estado === 'cancelada'
 
-  return (
+  const bloque = (
     <article
       className={cn(
         'rounded-lg border-l-[3px] p-3 md:p-2 xl:p-3',
@@ -65,5 +67,16 @@ export function BloqueCita({ cita }: { cita: CitaAgenda }) {
         </p>
       )}
     </article>
+  )
+
+  if (!href) return bloque
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      className="focus-visible:ring-ring/40 block rounded-lg transition-transform duration-150 outline-none focus-visible:ring-3 active:scale-[0.98]"
+    >
+      {bloque}
+    </Link>
   )
 }

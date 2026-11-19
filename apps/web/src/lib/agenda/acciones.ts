@@ -6,10 +6,15 @@ import {
   EstadoCita,
   NuevaCita,
   esFechaValida,
+  esHoraValida,
+  fechaEnZona,
   formatearHora,
   inicioDelDia,
+  instanteLocal,
+  puedeCambiarA,
   rangoDeLaCita,
   sumarDias,
+  telefonoParaWhatsApp,
   type Fecha,
 } from '@dental/core'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
@@ -140,7 +145,7 @@ async function organizacionDelUsuario(supabase: Supabase): Promise<string | null
 async function describirChoque(
   supabase: Supabase,
   mensaje: string,
-  cita: NuevaCita,
+  cita: Pick<NuevaCita, 'profesionalId' | 'lugarId'>,
   inicio: Date,
   fin: Date,
 ): Promise<string> {
@@ -186,4 +191,140 @@ async function profesionalDelUsuario(supabase: Supabase): Promise<string | null>
     .is('deleted_at', null)
     .maybeSingle()
   return data?.profesional_id ?? null
+}
+
+// ---------------------------------------------------------------------------
+// Detalle de una cita: estado, llegada, recordatorio y teléfono (0005)
+// ---------------------------------------------------------------------------
+
+export type ResultadoCita = { ok: true } | { ok: false; error: string }
+
+const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const NO_ENCONTRADA: ResultadoCita = {
+  ok: false,
+  error: 'No encontramos esa cita. Recarga la página.',
+}
+
+async function leerCita(supabase: Supabase, id: string) {
+  if (!ES_UUID.test(id)) return null
+  const { data } = await supabase
+    .from('citas')
+    .select('id, estado, paciente_id, profesional_id, lugar_id, inicio, fin, llegada_at')
+    .eq('id', id)
+    .is('deleted_at', null)
+    .maybeSingle()
+  return data
+}
+
+/**
+ * Cambia el estado de una cita. "Llegó" (atendida) guarda la hora actual;
+ * volver a agendada borra la llegada. Reactivar una cita puede chocar con otra.
+ */
+export async function cambiarEstadoCita(id: string, estado: string): Promise<ResultadoCita> {
+  const nuevo = EstadoCita.safeParse(estado)
+  if (!nuevo.success) return { ok: false, error: 'Estado no válido.' }
+  const supabase = await crearClienteServidor()
+  const cita = await leerCita(supabase, id)
+  if (!cita) return NO_ENCONTRADA
+
+  const actual = EstadoCita.parse(cita.estado)
+  if (!puedeCambiarA(actual, nuevo.data, cita.paciente_id === null)) {
+    return { ok: false, error: 'La cita ya cambió. Recarga la página.' }
+  }
+
+  const llegada =
+    nuevo.data === 'atendida'
+      ? (cita.llegada_at ?? new Date().toISOString())
+      : nuevo.data === 'agendada'
+        ? null
+        : cita.llegada_at
+
+  const { error } = await supabase
+    .from('citas')
+    .update({ estado: nuevo.data, llegada_at: llegada })
+    .eq('id', id)
+
+  if (error) {
+    if (error.code === '23P01') {
+      const mensaje = await describirChoque(
+        supabase,
+        error.message,
+        { profesionalId: cita.profesional_id, lugarId: cita.lugar_id },
+        new Date(cita.inicio),
+        new Date(cita.fin),
+      )
+      return { ok: false, error: `No se puede volver a agendar: ${mensaje}` }
+    }
+    console.error(`[estado] código=${error.code}: ${error.message}`)
+    return { ok: false, error: ERROR_GENERICO }
+  }
+
+  refresh()
+  return { ok: true }
+}
+
+/** Corrige la hora real de llegada ("HH:MM", hora local del día de la cita). */
+export async function corregirLlegada(id: string, hora: string): Promise<ResultadoCita> {
+  if (!esHoraValida(hora)) return { ok: false, error: 'Elige una hora válida.' }
+  const supabase = await crearClienteServidor()
+  const cita = await leerCita(supabase, id)
+  if (!cita) return NO_ENCONTRADA
+  if (cita.estado !== 'atendida') return { ok: false, error: 'Primero marca que llegó.' }
+
+  const llegada = instanteLocal(fechaEnZona(new Date(cita.inicio), ZONA), hora, ZONA)
+  const { error } = await supabase
+    .from('citas')
+    .update({ llegada_at: llegada.toISOString() })
+    .eq('id', id)
+  if (error) {
+    console.error(`[llegada] código=${error.code}: ${error.message}`)
+    return { ok: false, error: ERROR_GENERICO }
+  }
+  refresh()
+  return { ok: true }
+}
+
+/** Marca que se envió el recordatorio por WhatsApp (0005). */
+export async function marcarRecordatorioEnviado(id: string): Promise<ResultadoCita> {
+  const supabase = await crearClienteServidor()
+  const cita = await leerCita(supabase, id)
+  if (!cita) return NO_ENCONTRADA
+  const { error } = await supabase
+    .from('citas')
+    .update({ recordatorio_enviado_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) {
+    console.error(`[recordatorio] código=${error.code}: ${error.message}`)
+    return { ok: false, error: ERROR_GENERICO }
+  }
+  refresh()
+  return { ok: true }
+}
+
+/** Guarda el teléfono de un paciente, para poder enviarle recordatorios. */
+export async function guardarTelefono(
+  pacienteId: string,
+  telefono: string,
+): Promise<ResultadoCita> {
+  if (!ES_UUID.test(pacienteId)) return NO_ENCONTRADA
+  const limpio = telefono.trim()
+  if (!telefonoParaWhatsApp(limpio)) {
+    return {
+      ok: false,
+      error: 'Ese número no parece un celular. Escríbelo con 8 dígitos, por ejemplo 71234567.',
+    }
+  }
+  const supabase = await crearClienteServidor()
+  const { data, error } = await supabase
+    .from('pacientes')
+    .update({ telefono: limpio })
+    .eq('id', pacienteId)
+    .select('id')
+  if (error) {
+    console.error(`[telefono] código=${error.code}: ${error.message}`)
+    return { ok: false, error: ERROR_GENERICO }
+  }
+  if (!data?.length) return NO_ENCONTRADA
+  refresh()
+  return { ok: true }
 }
