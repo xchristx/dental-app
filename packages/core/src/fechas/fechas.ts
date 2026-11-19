@@ -70,14 +70,28 @@ function desfaseMinutos(instante: Date, zona: string): number {
   return Math.round((comoSiFueraUtc - Math.floor(instante.getTime() / 1000) * 1000) / 60_000)
 }
 
-/** Instante en que empieza el día (00:00 local) en la zona. */
-export function inicioDelDia(fecha: Fecha, zona: string): Date {
-  const medianocheUtc = Date.parse(`${fecha}T00:00:00Z`)
-  const desfase = desfaseMinutos(new Date(medianocheUtc), zona)
-  const instante = new Date(medianocheUtc - desfase * 60_000)
+/** Hora local "HH:MM" en 24 horas. */
+export type Hora = string
+
+const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/
+
+export function esHoraValida(valor: unknown): valor is Hora {
+  return typeof valor === 'string' && FORMATO_HORA.test(valor)
+}
+
+/** Instante que corresponde a esa fecha y hora local en la zona. */
+export function instanteLocal(fecha: Fecha, hora: Hora, zona: string): Date {
+  const comoSiFueraUtc = Date.parse(`${fecha}T${hora}:00Z`)
+  const desfase = desfaseMinutos(new Date(comoSiFueraUtc), zona)
+  const instante = new Date(comoSiFueraUtc - desfase * 60_000)
   // Si ese día cambia el horario (zonas con horario de verano), se corrige.
   const desfaseReal = desfaseMinutos(instante, zona)
-  return desfaseReal === desfase ? instante : new Date(medianocheUtc - desfaseReal * 60_000)
+  return desfaseReal === desfase ? instante : new Date(comoSiFueraUtc - desfaseReal * 60_000)
+}
+
+/** Instante en que empieza el día (00:00 local) en la zona. */
+export function inicioDelDia(fecha: Fecha, zona: string): Date {
+  return instanteLocal(fecha, '00:00', zona)
 }
 
 /** Rango [desde, hasta) de instantes que cubre la semana del lunes dado. */
