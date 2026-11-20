@@ -33,6 +33,8 @@ export interface CitaAgenda {
   nota: string | null
   lugar: { nombre: string; color: ColorLugar }
   profesional: string
+  /** Especialidad de la profesional, si la tiene (0014). */
+  especialidad: string | null
   /** Solo si la cita es de otra profesional (por ejemplo, una socia en tu consultorio). */
   otraProfesional: string | null
   recordatorioEnviado: Date | null
@@ -52,7 +54,7 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
          paciente:pacientes(id, nombre, telefono),
          tipo:tipos_cita(nombre),
          lugar:lugares(nombre, color),
-         profesional:profesionales(nombre)`,
+         profesional:profesionales(nombre, especialidad)`,
       )
       .is('deleted_at', null)
       // Se superpone con la semana: empieza antes de que termine y termina después de que empiece.
@@ -87,6 +89,7 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
         : 'gris',
     },
     profesional: c.profesional.nombre,
+    especialidad: c.profesional.especialidad,
     otraProfesional: c.profesional_id !== propia ? c.profesional.nombre : null,
     recordatorioEnviado: c.recordatorio_enviado_at ? new Date(c.recordatorio_enviado_at) : null,
   }))
