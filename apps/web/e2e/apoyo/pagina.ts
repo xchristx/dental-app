@@ -80,7 +80,11 @@ export const alerta = (h: Locator) => h.locator('[role=alert]')
 export const principal = (page: Page) => page.locator('main').filter({ visible: true })
 
 /** Título de la agenda: el día en el celular, la semana desde tablet. */
-export const tituloAgenda = (page: Page) => page.locator('h1 span').filter({ visible: true })
+export const tituloAgenda = (page: Page) =>
+  page.locator('h1 button > span').filter({ visible: true })
+
+/** El campo de fecha oculto que abre el calendario del título. */
+export const calendarioAgenda = (page: Page) => page.locator('h1 input[type=date]')
 
 /** Abre el detalle de la cita que muestra ese texto en la agenda o en la ficha. */
 export async function abrirCita(page: Page, texto: string) {
@@ -96,3 +100,12 @@ export const citasVisibles = (page: Page, dia?: string) =>
     .filter({ visible: true })
 
 export const cerrarHoja = (page: Page) => page.keyboard.press('Escape')
+
+/** Pedidos al servidor (documentos, fetch y XHR) desde que se llama. */
+export function contarPedidos(page: Page) {
+  const pedidos: string[] = []
+  page.on('request', (r) => {
+    if (['document', 'fetch', 'xhr'].includes(r.resourceType())) pedidos.push(r.url())
+  })
+  return pedidos
+}

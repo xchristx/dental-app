@@ -1,8 +1,9 @@
 'use client'
 
+import { useId, useRef } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { CaretDownIcon, CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react'
 import {
   diaCorto,
   diasDeLaSemana,
@@ -145,8 +146,7 @@ function Encabezado({
   return (
     <header className="flex flex-wrap items-center justify-between gap-3">
       <h1 className="font-heading text-3xl leading-[1.1] tracking-[-0.02em]">
-        <span className="md:hidden">{formatearDiaLargo(fecha)}</span>
-        <span className="hidden md:inline">{formatearRangoSemana(lunes)}</span>
+        <ElegirFecha fecha={fecha} lunes={lunes} hoy={hoy} />
       </h1>
 
       <nav aria-label="Cambiar de fecha" className="flex items-center gap-2">
@@ -195,6 +195,87 @@ function Encabezado({
         <div className="md:ml-2">{children}</div>
       </nav>
     </header>
+  )
+}
+
+/**
+ * El título de la agenda abre el calendario del sistema para ir a cualquier
+ * día sin tocar las flechas una y otra vez. En Android es el selector de fecha
+ * que ella ya conoce, con meses y años. Desde tablet, el día elegido lleva a
+ * su semana.
+ */
+function ElegirFecha({ fecha, lunes, hoy }: { fecha: Fecha; lunes: Fecha; hoy: Fecha }) {
+  const router = useRouter()
+  const entrada = useRef<HTMLInputElement>(null)
+  const idAyuda = useId()
+
+  function abrir() {
+    const el = entrada.current
+    if (!el) return
+    try {
+      el.showPicker()
+    } catch {
+      // Sin showPicker, o si el navegador lo rechaza: el clic también lo abre en el celular.
+      el.click()
+    }
+  }
+
+  function ir(destino: string) {
+    if (!esFechaValida(destino) || destino === fecha) return
+    // "Hoy" va sin fecha en la URL, como al entrar.
+    const href = urlAgenda({ fecha: destino === hoy ? undefined : destino })
+    if (esDeLaSemana(destino, lunes)) window.history.pushState(null, '', href)
+    else router.push(href)
+  }
+
+  return (
+    <span className="relative inline-block">
+      {/* py-1.5 lleva el área de toque a 44px. */}
+      <button
+        type="button"
+        onClick={abrir}
+        aria-describedby={idAyuda}
+        className="hover:bg-muted focus-visible:ring-ring/40 -mx-1.5 inline-block rounded-sm px-1.5 py-1.5 text-left transition-colors duration-150 outline-none focus-visible:ring-3"
+      >
+        <span className="md:hidden">
+          <ConFlecha texto={formatearDiaLargo(fecha)} />
+        </span>
+        <span className="hidden md:inline">
+          <ConFlecha texto={formatearRangoSemana(lunes)} />
+        </span>
+      </button>
+      <span id={idAyuda} className="sr-only">
+        Abre el calendario para ir a otra fecha.
+      </span>
+      {/* El calendario nativo sale de aquí. El botón es el único control: este
+          campo no recibe foco ni lo anuncian los lectores de pantalla. */}
+      <input
+        ref={entrada}
+        type="date"
+        value={fecha}
+        onChange={(e) => ir(e.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 left-0 size-px opacity-0"
+      />
+    </span>
+  )
+}
+
+/** La flecha va pegada a la última palabra: si el título corta, bajan juntas. */
+function ConFlecha({ texto }: { texto: string }) {
+  const corte = texto.lastIndexOf(' ') + 1
+  return (
+    <>
+      {texto.slice(0, corte)}
+      <span className="whitespace-nowrap">
+        {texto.slice(corte)}
+        <CaretDownIcon
+          weight="bold"
+          className="text-muted-foreground ml-2 inline-block size-5 align-middle"
+        />
+      </span>
+    </>
   )
 }
 
