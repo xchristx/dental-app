@@ -31,7 +31,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { agendarCita, ocupacionDelDia, reagendarCita } from '@/lib/agenda/acciones'
+import {
+  agendarCita,
+  ocupacionDelDia,
+  pacientesParaAgendar,
+  reagendarCita,
+  type PacienteParaAgendar,
+} from '@/lib/agenda/acciones'
 import type { OpcionesAgendar } from '@/lib/agenda/opciones'
 import { ZONA } from '@/lib/agenda/zona'
 import { cn } from '@/lib/utils'
@@ -194,6 +200,22 @@ export function FormularioCita({
   const [guardando, iniciarGuardado] = useTransition()
   const ids = useId()
 
+  // La lista de pacientes se pide al abrir el formulario: no viaja con cada
+  // semana de la agenda. Al reagendar no hace falta (el paciente es el mismo).
+  const [pacientes, setPacientes] = useState<PacienteParaAgendar[] | null>(null)
+  const [sinPacientes, setSinPacientes] = useState(false)
+  useEffect(() => {
+    if (!abierto || reagendar || pacientes) return
+    let vigente = true
+    pacientesParaAgendar()
+      .then((lista) => vigente && setPacientes(lista))
+      // Sin la lista se puede agendar igual a un paciente nuevo.
+      .catch(() => vigente && setSinPacientes(true))
+    return () => {
+      vigente = false
+    }
+  }, [abierto, reagendar, pacientes])
+
   // Al cambiar algo, el aviso anterior ya no aplica.
   const cambiar = (cambios: Partial<Formulario>) => {
     setError(null)
@@ -203,10 +225,10 @@ export function FormularioCita({
   const coincidencias = useMemo(() => {
     // "lucia" encuentra a Lucía; "ana per", a Ana Pérez.
     if (form.busqueda.trim().length < 2) return []
-    return opciones.pacientes.filter((p) => coincideBusqueda(p.nombre, form.busqueda)).slice(0, 6)
-  }, [form.busqueda, opciones.pacientes])
+    return (pacientes ?? []).filter((p) => coincideBusqueda(p.nombre, form.busqueda)).slice(0, 6)
+  }, [form.busqueda, pacientes])
 
-  const pacienteElegido = opciones.pacientes.find((p) => p.id === form.pacienteId)
+  const pacienteElegido = pacientes?.find((p) => p.id === form.pacienteId)
   const duraciones = DURACIONES.includes(form.duracionMin)
     ? DURACIONES
     : [...DURACIONES, form.duracionMin].sort((a, b) => a - b)
@@ -479,7 +501,14 @@ export function FormularioCita({
                         ))}
                       </ul>
                     )}
-                    {form.busqueda.trim().length >= 2 && (
+                    {form.busqueda.trim().length >= 2 && pacientes === null && (
+                      <p className="text-muted-foreground text-sm" role="status">
+                        {sinPacientes
+                          ? 'No pudimos cargar la lista de pacientes. Puedes agregarlo como nuevo.'
+                          : 'Buscando pacientes…'}
+                      </p>
+                    )}
+                    {form.busqueda.trim().length >= 2 && (pacientes !== null || sinPacientes) && (
                       <Button
                         type="button"
                         variant="outline"
