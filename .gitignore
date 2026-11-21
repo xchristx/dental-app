@@ -27,3 +27,7 @@ supabase/.temp/
 Thumbs.db
 *.log
 coverage/
+
+# pruebas de punta a punta
+playwright-report/
+test-results/
