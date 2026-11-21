@@ -492,3 +492,27 @@ export async function reagendarCita(datos: unknown): Promise<ResultadoReagendar>
   refresh()
   return { ok: true, fecha: nueva.fecha, id: nueva.id }
 }
+
+// ---------------------------------------------------------------------------
+// Pacientes para el formulario de "Agendar"
+// ---------------------------------------------------------------------------
+
+export interface PacienteParaAgendar {
+  id: string
+  nombre: string
+}
+
+/**
+ * La lista de pacientes para buscar al agendar. Se pide al abrir el
+ * formulario y no con cada semana de la agenda: es la lista que más crece.
+ */
+export async function pacientesParaAgendar(): Promise<PacienteParaAgendar[]> {
+  const supabase = await crearClienteServidor()
+  const { data, error } = await supabase
+    .from('pacientes')
+    .select('id, nombre')
+    .is('deleted_at', null)
+    .order('nombre')
+  if (error) throw new Error(`No se pudieron leer los pacientes: ${error.message}`)
+  return data
+}

@@ -11,19 +11,23 @@ export interface OpcionesAgendar {
   }[]
   lugares: { id: string; nombre: string; controlaSillon: boolean }[]
   tiposCita: { id: string; nombre: string; duracionMin: number }[]
-  pacientes: { id: string; nombre: string; telefono: string | null }[]
   /** Horarios de atención de todas las profesionales (0004). */
   horarios: Horario[]
   /** Profesional de la usuaria que entró, para elegirla por defecto. */
   profesionalPropia: string | null
 }
 
-/** Lo que necesita el formulario de "Agendar". RLS deja ver solo la organización propia. */
+/**
+ * Lo que necesita el formulario de "Agendar" y el detalle de una cita. RLS
+ * deja ver solo la organización propia. La lista de pacientes no va aquí: se
+ * pide al abrir "Agendar" (pacientesParaAgendar), para no mandarla con cada
+ * semana de la agenda.
+ */
 export async function opcionesParaAgendar(): Promise<OpcionesAgendar> {
   const supabase = await crearClienteServidor()
   const { data: sesion } = await supabase.auth.getClaims()
 
-  const [profesionales, lugares, tipos, pacientes, horarios, miembro] = await Promise.all([
+  const [profesionales, lugares, tipos, horarios, miembro] = await Promise.all([
     supabase
       .from('profesionales')
       .select('id, nombre, especialidad, margen_traslado_min')
@@ -40,11 +44,6 @@ export async function opcionesParaAgendar(): Promise<OpcionesAgendar> {
       .is('deleted_at', null)
       .order('nombre'),
     supabase
-      .from('pacientes')
-      .select('id, nombre, telefono')
-      .is('deleted_at', null)
-      .order('nombre'),
-    supabase
       .from('horarios')
       .select(
         'profesional_id, lugar_id, dia_semana, hora_inicio, hora_fin, vigente_desde, vigente_hasta',
@@ -58,7 +57,7 @@ export async function opcionesParaAgendar(): Promise<OpcionesAgendar> {
       .maybeSingle(),
   ])
 
-  for (const r of [profesionales, lugares, tipos, pacientes, horarios]) {
+  for (const r of [profesionales, lugares, tipos, horarios]) {
     if (r.error) throw new Error(`No se pudieron leer los datos para agendar: ${r.error.message}`)
   }
 
@@ -79,7 +78,6 @@ export async function opcionesParaAgendar(): Promise<OpcionesAgendar> {
       nombre: t.nombre,
       duracionMin: t.duracion_min,
     })),
-    pacientes: pacientes.data ?? [],
     horarios: (horarios.data ?? []).map((h) => ({
       profesionalId: h.profesional_id,
       lugarId: h.lugar_id,
