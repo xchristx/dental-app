@@ -6,7 +6,7 @@ Se construye con una dentista real que hoy lleva todo en papel.
 
 **Estado:** MVP 1 (agenda) completo: inicio de sesión, agenda (día en el celular, semana desde tablet), agendar con horarios libres y avisos, detalle de cita con estado, llegada, recordatorio por WhatsApp, reagendar y aviso de llegada tarde, pacientes y ajustes de lugares, profesionales y horarios. Antes del primer paciente real faltan los preparativos de producción de la decisión 0011.
 
-**Demo:** <https://sifel.netlify.app> (datos inventados).
+**Demo:** <https://sifel.netlify.app> (datos inventados, se reinicia cada día). En Android se puede instalar desde el menú del navegador: "Instalar app" o "Agregar a la pantalla de inicio".
 
 ## Desarrollo
 
@@ -44,6 +44,7 @@ Tests: `pnpm test` (packages/core) y `pnpm db:test` (pgTAP).
   - [0012: Reagendar una cita](docs/decisiones/0012-reagendar.md)
   - [0013: Reglas de tiempo de una cita y llegada tarde](docs/decisiones/0013-reglas-de-tiempo-y-llegada-tarde.md)
   - [0014: Gestión de profesionales y permisos por rol](docs/decisiones/0014-gestion-de-profesionales.md)
+  - [0015: La demo se reinicia cada día](docs/decisiones/0015-demo-se-reinicia-cada-dia.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack

@@ -1,0 +1,58 @@
+name: Reiniciar la demo
+
+# La demo (sifel.netlify.app) se reinicia cada día con las migraciones y el
+# seed: datos inventados en la semana actual (decisión 0015). Así nunca queda
+# vacía, se borra lo que cambien las visitas y el proyecto gratis de Supabase
+# no se pausa por inactividad.
+#
+# Solo toca el proyecto dental-app-demo. Nunca producción: el paso de
+# comprobación corta si el secreto apunta a otro proyecto.
+
+on:
+  schedule:
+    # 08:00 UTC = 04:00 en La Paz (UTC-4, sin horario de verano).
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: reiniciar-demo
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reiniciar:
+    name: Reiniciar con migraciones y seed
+    runs-on: ubuntu-latest
+    env:
+      # Cadena de conexión del "Session pooler" de dental-app-demo (los runners
+      # de GitHub no tienen IPv6, que es lo que usa la conexión directa).
+      DEMO_DB_URL: ${{ secrets.DEMO_DB_URL }}
+      PROYECTO_DEMO: gakkdxmjydidvwsgvevx
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar que el secreto es de la demo
+        run: |
+          if [ -z "$DEMO_DB_URL" ]; then
+            echo "::error::Falta el secreto DEMO_DB_URL."
+            exit 1
+          fi
+          case "$DEMO_DB_URL" in
+            *"$PROYECTO_DEMO"*) echo "Apunta al proyecto de la demo." ;;
+            *) echo "::error::DEMO_DB_URL no es del proyecto dental-app-demo. No se reinicia nada."; exit 1 ;;
+          esac
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.0.0
+
+      - name: Reiniciar
+        run: supabase db reset --remote="$DEMO_DB_URL" --yes
+
+      - name: Comprobar que la demo responde
+        run: |
+          estado=$(curl -s -o /dev/null -w '%{http_code}' https://sifel.netlify.app/entrar)
+          echo "sifel.netlify.app/entrar respondió $estado"
+          [ "$estado" = "200" ]
