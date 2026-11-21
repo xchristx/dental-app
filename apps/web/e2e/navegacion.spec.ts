@@ -1,12 +1,13 @@
 // Cambiar de día dentro de la semana no va al servidor; cambiar de semana sí.
 // La lista de pacientes se pide al abrir "Agendar". Solo lee datos.
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { reiniciarBase } from './apoyo/base'
 import { dia, diaLargo, hoy } from './apoyo/fechas'
 import {
   CELULAR,
   buscarPaciente,
   citasVisibles,
+  contarPedidos,
   control,
   entrarComoDemo,
   hoja,
@@ -14,15 +15,6 @@ import {
 } from './apoyo/pagina'
 
 test.beforeAll(reiniciarBase)
-
-/** Pedidos al servidor (documentos, fetch y XHR) desde que se llama. */
-function contarPedidos(page: Page) {
-  const pedidos: string[] = []
-  page.on('request', (r) => {
-    if (['document', 'fetch', 'xhr'].includes(r.resourceType())) pedidos.push(r.url())
-  })
-  return pedidos
-}
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize(CELULAR)

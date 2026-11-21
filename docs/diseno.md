@@ -109,6 +109,7 @@ Se cargan con `next/font`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
 
 ### Celular: vista de día
 - Encabezado: la fecha en Newsreader ("Martes 24 de noviembre"), con flechas para el día anterior y el siguiente y un botón "Hoy".
+- Tocar la fecha abre el calendario del sistema (`<input type="date">` con `showPicker()`) para ir a cualquier día de una vez. En Android es el selector que ella ya conoce. Una flecha hacia abajo junto a la fecha indica que se puede tocar.
 - Línea de tiempo vertical de 10 a 21 h, según su horario. Una línea marca la hora actual.
 - Los tramos de horario se ven con el fondo del lugar muy suave y el nombre del lugar arriba. Las horas fuera de horario se ven en gris rayado.
 - Cada cita es un bloque con:
@@ -121,7 +122,7 @@ Se cargan con `next/font`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
 - Botón principal fijo abajo: "Agendar".
 
 ### Tablet y laptop: vista de semana
-- Encabezado: el rango de la semana en Newsreader ("23 – 29 de noviembre"), con flechas, "Hoy" y el botón "Agendar".
+- Encabezado: el rango de la semana en Newsreader ("23 – 29 de noviembre"), con flechas, "Hoy" y el botón "Agendar". Tocar el rango abre el mismo calendario y lleva a la semana del día elegido.
 - Siete columnas, con los mismos bloques de la vista de día. La columna de hoy se marca en el encabezado.
 - Al tocar una cita o un hueco, se abre el panel lateral derecho y la semana sigue a la vista.
 - Atajos de teclado en escritorio: `N` nueva cita, `T` hoy, `←` y `→` para cambiar de semana, `/` buscar paciente.
