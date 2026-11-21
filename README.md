@@ -22,7 +22,9 @@ pnpm dev        # web en http://localhost:3000
 
 En local, "Entrar como demo" usa la usuaria `demo@ejemplo.test` del seed.
 
-Tests: `pnpm test` (packages/core) y `pnpm db:test` (pgTAP).
+Tests: `pnpm test` (packages/core), `pnpm db:test` (pgTAP) y `pnpm test:e2e` (Playwright, de punta a punta).
+
+Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome instalado. Compilan la web y la levantan en el puerto 3100, o usan el servidor que ya esté en ese puerto (por ejemplo, `pnpm --filter @dental/web dev --port 3100`). Cada archivo de `apps/web/e2e/` reinicia la base local con el seed, así que no corren contra otra base. Las fechas se calculan desde hoy: el resultado no depende del día en que se corren.
 
 ## Documentación
 
@@ -49,7 +51,7 @@ Tests: `pnpm test` (packages/core) y `pnpm db:test` (pgTAP).
 
 ## Stack
 
-TypeScript · pnpm + Turborepo · Next.js · Tailwind v4 + shadcn/ui · Phosphor · Supabase (Postgres) · Zod · Vitest + pgTAP · Netlify · Expo + PowerSync (fase 2)
+TypeScript · pnpm + Turborepo · Next.js · Tailwind v4 + shadcn/ui · Phosphor · Supabase (Postgres) · Zod · Vitest + pgTAP + Playwright · Netlify · Expo + PowerSync (fase 2)
 
 ## Estructura
 

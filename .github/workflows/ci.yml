@@ -44,3 +44,50 @@ jobs:
       # Levanta solo Postgres, aplica las migraciones y carga seed.sql.
       - run: supabase db start
       - run: supabase test db
+
+  e2e:
+    name: De punta a punta (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.0.0
+
+      - run: pnpm install --frozen-lockfile
+
+      # La web usa la base, la autenticación y la API REST. Lo demás no hace falta.
+      - run: supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      # Las mismas variables que apps/web/.env.example, con la clave del Supabase local.
+      - name: Variables de la web
+        run: |
+          eval "$(supabase status -o env)"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "NEXT_PUBLIC_ES_DEMO=true"
+            echo "DEMO_EMAIL=demo@ejemplo.test"
+            echo "DEMO_PASSWORD=demo-sifel"
+            echo "NEXT_PUBLIC_GOOGLE_HABILITADO=false"
+          } > apps/web/.env.local
+
+      # Compila la web, la levanta y corre las pruebas con el Chrome del runner.
+      - run: pnpm test:e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-playwright
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
