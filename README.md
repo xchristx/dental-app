@@ -52,6 +52,7 @@ Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome inst
   - [0018: Historia clínica, primera parte: anamnesis y evolución](docs/decisiones/0018-anamnesis-y-evolucion.md)
   - [0019: Derivaciones](docs/decisiones/0019-derivaciones.md)
   - [0020: Odontograma con las normas generales](docs/decisiones/0020-odontograma.md)
+  - [0021: Tratar o anular un hallazgo, y el plan de tratamiento](docs/decisiones/0021-tratar-o-anular-hallazgos.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack

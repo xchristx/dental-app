@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRightIcon } from '@phosphor-icons/react'
-import { calcularIndices } from '@dental/core'
+import { calcularIndices, estadoOdontograma } from '@dental/core'
 import { Enlace } from '@/components/enlace'
 import { buttonVariants } from '@/components/ui/button'
 import { consultaOdontograma } from '@/lib/odontograma/datos'
@@ -9,10 +9,10 @@ import { consultaOdontograma } from '@/lib/odontograma/datos'
 export function ResumenOdontograma({ pacienteId }: { pacienteId: string }) {
   const odontograma = useQuery(consultaOdontograma(pacienteId))
   const datos = odontograma.data
-  const tipoDe = new Map(datos?.codigos.map((c) => [c.id, c.tipo]))
-  const aTratar =
-    datos?.registros.filter((r) => r.codigoId && tipoDe.get(r.codigoId) === 'hallazgo').length ?? 0
-  const indices = datos && calcularIndices(datos.registros, datos.codigos)
+  // Lo pendiente es el plan de tratamiento; lo tratado ya no cuenta (0021).
+  const estado = datos && estadoOdontograma(datos.registros, datos.codigos)
+  const aTratar = estado?.pendientes.length ?? 0
+  const indices = datos && estado && calcularIndices(estado.vigentes, datos.codigos)
 
   return (
     <section aria-labelledby="titulo-odontograma" className="flex flex-col gap-2">

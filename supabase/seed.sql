@@ -212,3 +212,21 @@ from (values
 ) as r(paciente, codigo, pieza, caras, grado, nota, hace)
 join public.odontograma_codigos c
   on c.organization_id = '10000000-0000-4000-8000-000000000001' and c.abreviatura = r.codigo;
+
+-- Tratar un hallazgo (0021): la obturación de Camila en 36 trató una caries
+-- que se había registrado en la primera consulta.
+insert into public.odontograma_registros (
+  id, organization_id, paciente_id, codigo_id, pieza, caras, grado, fecha, autor_id
+)
+select
+  '80000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001',
+  '50000000-0000-4000-8000-000000000001', c.id, 36, '{O,M}', 2,
+  (now() at time zone 'America/La_Paz')::date - 90, '70000000-0000-4000-8000-000000000001'
+from public.odontograma_codigos c
+where c.organization_id = '10000000-0000-4000-8000-000000000001' and c.abreviatura = 'C';
+
+update public.odontograma_registros r
+set resuelve_id = '80000000-0000-4000-8000-000000000001'
+from public.odontograma_codigos c
+where c.id = r.codigo_id and c.abreviatura = 'Obt'
+  and r.paciente_id = '50000000-0000-4000-8000-000000000001' and r.pieza = 36;

@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { esSuperior, type Cara, type RegistroOdontograma } from '@dental/core'
 import type { Codigo } from '@/lib/odontograma/datos'
 import { cn } from '@/lib/utils'
@@ -59,23 +60,46 @@ export function Diente({
     .filter((x): x is { r: RegistroOdontograma; c: Codigo } => x.c !== undefined)
     .sort((a, b) => (a.c.tipo === b.c.tipo ? 0 : a.c.tipo === 'realizado' ? -1 : 1))
 
-  const pintadas = new Map<Region, string>()
+  const pintadas = new Map<Region, Codigo['tipo']>()
   for (const { r, c } of ordenados) {
     if (c.simbolo !== 'superficie') continue
-    for (const cara of r.caras ?? []) pintadas.set(regionDe(cara, pieza), COLOR[c.tipo].relleno)
+    for (const cara of r.caras ?? []) pintadas.set(regionDe(cara, pieza), c.tipo)
   }
+
+  // Los hallazgos van con rayas, no solo en rojo: así no se distinguen solo
+  // por el color (0021). El id tiene que ser único en la página.
+  const rayas = `rayas-${useId().replace(/[^\w-]/g, '')}`
 
   return (
     <svg viewBox="0 0 40 40" aria-hidden="true" className={cn('block', className)}>
-      {(Object.keys(REGIONES) as Region[]).map((region) => (
-        <polygon
-          key={region}
-          points={REGIONES[region]}
-          className={cn('stroke-foreground', pintadas.get(region) ?? 'fill-card')}
-          strokeWidth={1}
-          strokeLinejoin="round"
-        />
-      ))}
+      <defs>
+        <pattern
+          id={rayas}
+          width={4}
+          height={4}
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(45)"
+        >
+          <rect width={4} height={4} className="fill-odontograma-rojo" />
+          <line x1={0} y1={0} x2={0} y2={4} className="stroke-card" strokeWidth={1.5} />
+        </pattern>
+      </defs>
+      {(Object.keys(REGIONES) as Region[]).map((region) => {
+        const tipo = pintadas.get(region)
+        return (
+          <polygon
+            key={region}
+            points={REGIONES[region]}
+            className={cn(
+              'stroke-foreground',
+              tipo === 'realizado' ? COLOR.realizado.relleno : !tipo && 'fill-card',
+            )}
+            fill={tipo === 'hallazgo' ? `url(#${rayas})` : undefined}
+            strokeWidth={1}
+            strokeLinejoin="round"
+          />
+        )
+      })}
       {ordenados.map(({ r, c }) => {
         const trazo = cn(COLOR[c.tipo].trazo, 'fill-none')
         switch (c.simbolo) {

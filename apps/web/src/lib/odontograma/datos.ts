@@ -51,7 +51,7 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
       .order('abreviatura'),
     supabase
       .from('odontograma_registros')
-      .select('id, pieza, codigo_id, caras, grado, nota, fecha')
+      .select('id, pieza, codigo_id, resuelve_id, caras, grado, nota, fecha')
       .eq('paciente_id', pacienteId)
       .is('deleted_at', null)
       .order('fecha', { ascending: false })
@@ -82,6 +82,7 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
       id: r.id,
       pieza: r.pieza,
       codigoId: r.codigo_id,
+      resuelveId: r.resuelve_id,
       caras: r.caras?.filter(esCara) ?? null,
       grado: r.grado,
       nota: r.nota,
