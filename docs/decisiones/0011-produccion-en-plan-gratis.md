@@ -1,7 +1,7 @@
 # 0011: Producción en el plan gratis de Supabase
 
 - **Fecha:** 2026-11-19
-- **Estado:** aceptada
+- **Estado:** aceptada. La región y la organización aparte para producción las reemplaza la [0016](0016-region-de-supabase.md).
 - **Reemplaza:**
   - De la 0001, la región: "el servidor va en São Paulo".
   - De la 0006, que producción pasa al plan Pro antes del primer paciente real.
