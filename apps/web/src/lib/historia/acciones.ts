@@ -1,4 +1,4 @@
-import { DatosAnamnesis, DatosEvolucion } from '@dental/core'
+import { DatosAnamnesis, DatosDerivacion, DatosEvolucion } from '@dental/core'
 import { refrescar } from '@/lib/consultas'
 import { supabase } from '@/lib/supabase/cliente'
 
@@ -12,6 +12,8 @@ const MENSAJES: Record<string, string> = {
   EV002: 'Una evolución solo se corrige el mismo día. Agrega una nueva para aclararla.',
   EV003: 'La fecha no puede ser futura.',
   EV004: 'La cita es de otro paciente.',
+  // derivaciones_reglas (0019).
+  DR001: 'La fecha no puede ser futura.',
 }
 
 function fallo(accion: string, error: { code?: string; message: string }): ResultadoHistoria {
@@ -86,6 +88,54 @@ export async function borrarEvolucion(id: string): Promise<ResultadoHistoria> {
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return fallo('evolucion:borrar', error)
+  refrescar()
+  return { ok: true }
+}
+
+/** Anota una derivación nueva o corrige una existente (0019). */
+export async function guardarDerivacion(
+  datos: unknown,
+  organizacionId: string,
+  esNueva: boolean,
+): Promise<ResultadoHistoria> {
+  const validacion = DatosDerivacion.safeParse(datos)
+  if (!validacion.success) {
+    return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
+  }
+  const d = validacion.data
+  const campos = {
+    sentido: d.sentido,
+    profesional_id: d.profesionalId,
+    contacto: d.contacto,
+    motivo: d.motivo,
+    fecha: d.fecha,
+  }
+
+  if (esNueva) {
+    const { error } = await supabase.from('derivaciones').insert({
+      id: d.id,
+      organization_id: organizacionId,
+      paciente_id: d.pacienteId,
+      ...campos,
+    })
+    if (error && !(error.code === '23505' && error.message.includes('derivaciones_pkey'))) {
+      return fallo('derivacion:crear', error)
+    }
+  } else {
+    const { error } = await supabase.from('derivaciones').update(campos).eq('id', d.id)
+    if (error) return fallo('derivacion:editar', error)
+  }
+  refrescar()
+  return { ok: true }
+}
+
+/** Borrado suave (0003). */
+export async function borrarDerivacion(id: string): Promise<ResultadoHistoria> {
+  const { error } = await supabase
+    .from('derivaciones')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) return fallo('derivacion:borrar', error)
   refrescar()
   return { ok: true }
 }

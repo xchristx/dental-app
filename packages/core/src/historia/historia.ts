@@ -76,3 +76,35 @@ export function evolucionEditable(
 export function formatearFechaNumerica(fecha: Fecha): string {
   return fecha.split('-').reverse().join('/')
 }
+
+/** Derivación recibida ("Derivado por") o enviada ("Derivado a") (0019). */
+export const DatosDerivacion = z
+  .object({
+    id: z.uuid(),
+    pacienteId: z.uuid(),
+    sentido: z.enum(['recibida', 'enviada']),
+    profesionalId: z.uuid().nullable(),
+    contacto: z
+      .string()
+      .trim()
+      .max(200, 'Máximo 200 caracteres.')
+      .transform((v) => (v === '' ? null : v))
+      .nullable(),
+    motivo: z
+      .string()
+      .trim()
+      .max(2000, 'Máximo 2000 caracteres.')
+      .transform((v) => (v === '' ? null : v))
+      .nullable(),
+    fecha: z
+      .string()
+      .refine(esFechaValida, 'Elige una fecha válida.')
+      .refine((v) => v <= fechaEnZona(new Date(), ZONA_LA_PAZ), 'La fecha no puede ser futura.'),
+  })
+  .refine((d) => d.profesionalId !== null || d.contacto !== null, {
+    message: 'Elige una profesional o escribe a quién.',
+    path: ['contacto'],
+  })
+  // Con profesional, el nombre de afuera sobra.
+  .transform((d) => (d.profesionalId ? { ...d, contacto: null } : d))
+export type DatosDerivacion = z.infer<typeof DatosDerivacion>
