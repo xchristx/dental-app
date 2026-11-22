@@ -321,6 +321,86 @@ export type Database = {
           },
         ]
       }
+      examen_bucal: {
+        Row: {
+          autor_id: string | null
+          cepilla_lengua: boolean | null
+          created_at: string
+          deleted_at: string | null
+          halitosis: boolean | null
+          id: string
+          materia_alba: boolean | null
+          observaciones: string | null
+          oclusion: string | null
+          organization_id: string
+          paciente_id: string
+          placa_bacteriana: boolean | null
+          profesional_id: string | null
+          tartaro: boolean | null
+          updated_at: string
+          usa_mondadientes: boolean | null
+        }
+        ComputedFields: never
+        Insert: {
+          autor_id?: string | null
+          cepilla_lengua?: boolean | null
+          created_at?: string
+          deleted_at?: string | null
+          halitosis?: boolean | null
+          id?: string
+          materia_alba?: boolean | null
+          observaciones?: string | null
+          oclusion?: string | null
+          organization_id: string
+          paciente_id: string
+          placa_bacteriana?: boolean | null
+          profesional_id?: string | null
+          tartaro?: boolean | null
+          updated_at?: string
+          usa_mondadientes?: boolean | null
+        }
+        Update: {
+          autor_id?: string | null
+          cepilla_lengua?: boolean | null
+          created_at?: string
+          deleted_at?: string | null
+          halitosis?: boolean | null
+          id?: string
+          materia_alba?: boolean | null
+          observaciones?: string | null
+          oclusion?: string | null
+          organization_id?: string
+          paciente_id?: string
+          placa_bacteriana?: boolean | null
+          profesional_id?: string | null
+          tartaro?: boolean | null
+          updated_at?: string
+          usa_mondadientes?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'examen_bucal_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'examen_bucal_organization_id_paciente_id_fkey'
+            columns: ['organization_id', 'paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'examen_bucal_organization_id_profesional_id_fkey'
+            columns: ['organization_id', 'profesional_id']
+            isOneToOne: false
+            referencedRelation: 'profesionales'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
       horarios: {
         Row: {
           created_at: string

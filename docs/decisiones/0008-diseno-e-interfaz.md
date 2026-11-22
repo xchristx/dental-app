@@ -5,6 +5,7 @@
 - **Complementa:** 0001. Mantiene Tailwind y shadcn/ui, y define cómo se usan.
 
 ## Contexto
+
 La app se usa sobre todo en un celular Android, entre paciente y paciente y con poco tiempo. Además es un portafolio, así que no debería verse como una plantilla genérica de shadcn.
 
 La pregunta era si alcanza con Tailwind solo, sin shadcn/ui.
@@ -12,6 +13,7 @@ La pregunta era si alcanza con Tailwind solo, sin shadcn/ui.
 ## Decisión
 
 ### Tailwind y shadcn/ui, no Tailwind solo
+
 - **Tailwind v4** para todos los estilos, con los tokens de diseño definidos una sola vez en `@theme`.
 - **shadcn/ui** solo para los componentes con comportamiento difícil: diálogo, hoja inferior (sheet), select, combobox para buscar pacientes, popover, selector de fecha y toast.
 - Por qué no Tailwind solo:
@@ -20,6 +22,7 @@ La pregunta era si alcanza con Tailwind solo, sin shadcn/ui.
 - Los componentes simples (botón, tarjeta, badge, input) se hacen con Tailwind directamente.
 
 ### Estilo
+
 - Base: la skill `minimalist-ui`, adaptada a una herramienta de trabajo. El detalle está en [`docs/diseno.md`](../diseno.md).
 - Monocromático cálido. **El color solo se usa cuando significa algo**: el lugar de la cita, el estado, un choque.
 - Tipografía **Geist Sans**, con números tabulares para las horas. **Newsreader** solo para el título de la fecha en la agenda.
@@ -27,16 +30,20 @@ La pregunta era si alcanza con Tailwind solo, sin shadcn/ui.
 - Solo modo claro en el MVP 1. Los tokens permiten agregar el modo oscuro después.
 
 ### Lo que no se toma de la skill
+
 Hay partes de `minimalist-ui` pensadas para landing pages que no sirven en una agenda:
+
 - Animaciones al hacer scroll y apariciones escalonadas.
 - Espacios verticales enormes.
 - Fondos decorativos con imágenes o degradados.
 - Gris secundario `#787774`, que no llega al contraste AA. Se usa uno más oscuro.
 
 ### Agenda
+
 - Componente propio, sin FullCalendar ni librerías parecidas: estilizarlas cuesta más que hacer la vista.
 - En el celular, vista de **día** como línea de tiempo vertical. Desde tablet, vista de **semana**.
 
 ## Consecuencias
+
 - Los tokens son la única fuente de colores, espacios y radios. No se escriben colores sueltos en los componentes.
 - En la fase 2, la app Expo puede reutilizar los mismos tokens con NativeWind.

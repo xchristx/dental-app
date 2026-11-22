@@ -1,4 +1,9 @@
-import { DatosCodigoOdontograma, DatosRegistroOdontograma, DatosRxOdontograma } from '@dental/core'
+import {
+  DatosCodigoOdontograma,
+  DatosExamenBucal,
+  DatosRegistroOdontograma,
+  DatosRxOdontograma,
+} from '@dental/core'
 import { refrescar } from '@/lib/consultas'
 import { supabase } from '@/lib/supabase/cliente'
 
@@ -107,6 +112,37 @@ export async function anularRx(id: string): Promise<ResultadoOdontograma> {
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return fallo('anular-rx', error)
+  refrescar()
+  return { ok: true }
+}
+
+/** Guarda una versión nueva del examen bucal; la anterior no se borra (0024). */
+export async function guardarExamenBucal(
+  datos: unknown,
+  organizacionId: string,
+): Promise<ResultadoOdontograma> {
+  const validacion = DatosExamenBucal.safeParse(datos)
+  if (!validacion.success) {
+    return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
+  }
+  const e = validacion.data
+  const { error } = await supabase.from('examen_bucal').insert({
+    id: e.id,
+    organization_id: organizacionId,
+    paciente_id: e.pacienteId,
+    usa_mondadientes: e.usaMondadientes,
+    cepilla_lengua: e.cepillaLengua,
+    tartaro: e.tartaro,
+    halitosis: e.halitosis,
+    placa_bacteriana: e.placaBacteriana,
+    materia_alba: e.materiaAlba,
+    oclusion: e.oclusion,
+    observaciones: e.observaciones,
+  })
+  // Reintento de algo que ya se guardó: no es un error.
+  if (error && !(error.code === '23505' && error.message.includes('examen_bucal_pkey'))) {
+    return fallo('examen', error)
+  }
   refrescar()
   return { ok: true }
 }

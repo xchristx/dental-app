@@ -43,9 +43,7 @@ test('en el odontograma inicial la caries de 36 estaba pendiente, solo para mira
   // La Rx de ese día ya estaba tomada (0023).
   await expect(pieza(36)).toHaveAccessibleName(`Pieza 36: C II-OM (caries), Rx del ${inicial()}`)
   await expect(pieza(36)).toBeDisabled()
-  await expect(principal(page).getByRole('heading', { level: 2 })).toContainText(
-    `Pendiente al ${inicial()}`,
-  )
+  await expect(principal(page).locator('#titulo-plan')).toContainText(`Pendiente al ${inicial()}`)
   // Sin botones: no se trata algo en el pasado.
   await expect.poll(plan).toEqual(['25 C I-P Caries', '36 C II-OM Caries'])
   await expect(page.getByRole('button', { name: 'Pincel' })).toHaveCount(0)

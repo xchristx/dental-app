@@ -4,11 +4,13 @@
 - **Estado:** aceptada
 
 ## Contexto
+
 El alcance listaba "confirmada, llegó tarde, no asistió", y la decisión 0002 habla de citas "canceladas". Falta definir la lista completa.
 
 Uno de sus dos problemas principales es que los pacientes llegan mucho antes o mucho después. Con un estado "llegó tarde" se pierde cuánto tarde llegaron, y no se puede ver quién llega tarde siempre.
 
 ## Decisión
+
 - Estados (`estado`):
   - `agendada`: estado inicial.
   - `confirmada`: el paciente respondió el recordatorio.
@@ -24,5 +26,6 @@ Uno de sus dos problemas principales es que los pacientes llegan mucho antes o m
 - Un bloqueo (cita sin paciente) solo usa `agendada` y `cancelada`.
 
 ## Consecuencias
+
 - La condición de las restricciones de exclusión es `deleted_at IS NULL AND estado IN ('agendada', 'confirmada', 'atendida')`.
 - Más adelante se puede mostrar en la ficha del paciente "suele llegar 20 min tarde", o sugerirle a ella que lo cite antes.

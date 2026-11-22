@@ -16,6 +16,7 @@ import {
   type RegistroOdontograma,
 } from '@dental/core'
 import { Diente } from '@/components/odontograma/diente'
+import { SeccionExamenBucal } from '@/components/odontograma/examen-bucal'
 import { HojaPieza, type AperturaPieza } from '@/components/odontograma/hoja-pieza'
 import { usePincel } from '@/components/odontograma/pincel'
 import { Enlace } from '@/components/enlace'
@@ -76,7 +77,7 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
     setApertura({ piezas, tratarId })
   const codigos = new Map(datos.codigos.map((c) => [c.id, c]))
   // Ver la boca en un día anterior: solo para mirar. null es hoy.
-  const fechas = fechasDelOdontograma([...datos.registros, ...datos.rx])
+  const fechas = fechasDelOdontograma([...datos.registros, ...datos.rx, ...datos.examenes])
   const [dia, setDia] = useState<string | null>(null)
   const ultimo = fechas.at(-1)
   const pasado = dia !== null && ultimo !== undefined && dia < ultimo ? dia : null
@@ -185,6 +186,13 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
         codigos={codigos}
         dia={pasado}
         onTratar={pasado ? undefined : (r) => abrir([r.pieza], r.id)}
+      />
+
+      <SeccionExamenBucal
+        pacienteId={pacienteId}
+        organizacionId={datos.organizacionId}
+        examenes={datos.examenes}
+        dia={pasado}
       />
 
       <HojaPieza
