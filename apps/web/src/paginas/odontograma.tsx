@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import { CaretLeftIcon, CheckIcon } from '@phosphor-icons/react'
@@ -8,6 +8,9 @@ import {
   calcularIndices,
   esSuperior,
   estadoOdontograma,
+  fechasDelOdontograma,
+  formatearFechaNumerica,
+  registrosAlDia,
   textoRegistro,
   type RegistroOdontograma,
 } from '@dental/core'
@@ -71,8 +74,14 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
   const abrir = (piezas: number[], tratarId: string | null = null) =>
     setApertura({ piezas, tratarId })
   const codigos = new Map(datos.codigos.map((c) => [c.id, c]))
+  // Ver la boca en un día anterior: solo para mirar. null es hoy.
+  const fechas = fechasDelOdontograma(datos.registros)
+  const [dia, setDia] = useState<string | null>(null)
+  const ultimo = fechas.at(-1)
+  const pasado = dia !== null && ultimo !== undefined && dia < ultimo ? dia : null
+  const registros = pasado ? registrosAlDia(datos.registros, pasado) : datos.registros
   // Los hallazgos ya tratados no se dibujan ni cuentan: queda lo realizado (0021).
-  const { vigentes, pendientes } = estadoOdontograma(datos.registros, datos.codigos)
+  const { vigentes, pendientes } = estadoOdontograma(registros, datos.codigos)
   const indices = calcularIndices(vigentes, datos.codigos)
   const porPieza = new Map<number, RegistroOdontograma[]>()
   for (const r of vigentes) porPieza.set(r.pieza, [...(porPieza.get(r.pieza) ?? []), r])
@@ -120,7 +129,7 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
               </Button>
             ))}
           </div>
-          {pincel.boton}
+          {!pasado && pincel.boton}
         </div>
         <p className="flex gap-4 text-sm">
           <span className="flex items-center gap-1.5">
@@ -138,19 +147,25 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
         </p>
       </div>
 
-      {pincel.barra}
+      {fechas.length > 1 && <LineaDeTiempo fechas={fechas} dia={pasado} onCambiar={setDia} />}
+
+      {!pasado && pincel.barra}
 
       {vista === 'grafico' ? (
         <Grafico
           porPieza={porPieza}
           codigos={codigos}
-          onElegir={(p) => (pincel.activo ? pincel.tocar(p) : abrir([p]))}
+          onElegir={pasado ? undefined : (p) => (pincel.activo ? pincel.tocar(p) : abrir([p]))}
         />
       ) : (
-        <Tabla porPieza={porPieza} codigos={codigos} onElegir={(piezas) => abrir(piezas)} />
+        <Tabla
+          porPieza={porPieza}
+          codigos={codigos}
+          onElegir={pasado ? undefined : (piezas) => abrir(piezas)}
+        />
       )}
 
-      {!pincel.activo && (
+      {!pincel.activo && !pasado && (
         <p className="text-muted-foreground text-sm">
           Toca una pieza para ver lo registrado o agregar algo. Con el pincel, eliges qué marcar una
           vez y tocas varias piezas seguidas.
@@ -160,7 +175,8 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
       <PlanDeTratamiento
         pendientes={pendientes}
         codigos={codigos}
-        onTratar={(r) => abrir([r.pieza], r.id)}
+        dia={pasado}
+        onTratar={pasado ? undefined : (r) => abrir([r.pieza], r.id)}
       />
 
       <HojaPieza
@@ -180,16 +196,19 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
 function PlanDeTratamiento({
   pendientes,
   codigos,
+  dia,
   onTratar,
 }: {
   pendientes: RegistroOdontograma[]
   codigos: Map<string, Codigo>
-  onTratar: (hallazgo: RegistroOdontograma) => void
+  /** Un día anterior: lo que estaba pendiente entonces, sin botones. */
+  dia: string | null
+  onTratar?: (hallazgo: RegistroOdontograma) => void
 }) {
   return (
     <section aria-labelledby="titulo-plan" className="flex flex-col gap-2">
       <h2 id="titulo-plan" className="text-lg font-medium">
-        Plan de tratamiento
+        {dia ? `Pendiente al ${formatearFechaNumerica(dia)}` : 'Plan de tratamiento'}
       </h2>
       {pendientes.length === 0 ? (
         <p className="text-muted-foreground text-sm">No hay hallazgos pendientes.</p>
@@ -206,21 +225,84 @@ function PlanDeTratamiento({
                   <span className="text-odontograma-rojo font-medium">{texto}</span> {c.nombre}
                   {r.nota && <span className="text-muted-foreground"> · {r.nota}</span>}
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  aria-label={`Marcar ${texto} de la pieza ${r.pieza} como tratado`}
-                  onClick={() => onTratar(r)}
-                >
-                  <CheckIcon weight="bold" />
-                  Tratar
-                </Button>
+                {onTratar && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={`Marcar ${texto} de la pieza ${r.pieza} como tratado`}
+                    onClick={() => onTratar(r)}
+                  >
+                    <CheckIcon weight="bold" />
+                    Tratar
+                  </Button>
+                )}
               </li>
             )
           })}
         </ul>
       )}
     </section>
+  )
+}
+
+/**
+ * Ver la boca en un día con registros, del odontograma inicial a hoy. Un
+ * control de rango nativo: funciona con el dedo, el mouse y las flechas.
+ */
+function LineaDeTiempo({
+  fechas,
+  dia,
+  onCambiar,
+}: {
+  fechas: string[]
+  /** El día elegido, o null si es hoy. */
+  dia: string | null
+  onCambiar: (dia: string | null) => void
+}) {
+  const indice = dia ? fechas.indexOf(dia) : fechas.length - 1
+  const etiqueta = (i: number) => {
+    const fecha = formatearFechaNumerica(fechas[i] ?? '')
+    if (i === fechas.length - 1) return `Hoy (último registro, ${fecha})`
+    return i === 0 ? `${fecha} (inicial)` : fecha
+  }
+  const id = useId()
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1 text-sm font-medium">
+        <span className="flex flex-wrap justify-between gap-2">
+          <label htmlFor={id}>Ver la boca al</label>
+          {/* El lector de pantalla lo lee en aria-valuetext. */}
+          <span className="tabular-nums" aria-hidden="true">
+            {etiqueta(indice)}
+          </span>
+        </span>
+        <input
+          id={id}
+          type="range"
+          min={0}
+          max={fechas.length - 1}
+          step={1}
+          value={indice}
+          aria-valuetext={etiqueta(indice)}
+          onChange={(e) => {
+            const i = Number(e.target.value)
+            onCambiar(i === fechas.length - 1 ? null : (fechas[i] ?? null))
+          }}
+          className="accent-primary h-10 w-full cursor-pointer"
+        />
+      </div>
+      {dia && (
+        <p className="bg-muted flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-sm">
+          <span>
+            Así estaba el {formatearFechaNumerica(dia)}. Solo para mirar: los cambios se hacen en el
+            de hoy.
+          </span>
+          <Button variant="ghost" size="sm" onClick={() => onCambiar(null)}>
+            Volver a hoy
+          </Button>
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -245,7 +327,7 @@ function Grafico({
 }: {
   porPieza: Map<number, RegistroOdontograma[]>
   codigos: Map<string, Codigo>
-  onElegir: (pieza: number) => void
+  onElegir?: (pieza: number) => void
 }) {
   const fila = (lista: readonly number[], temporal: boolean) => {
     const mitades = [lista.slice(0, lista.length / 2), lista.slice(lista.length / 2)]
@@ -299,7 +381,7 @@ function BotonDiente({
   pieza: number
   registros: RegistroOdontograma[]
   codigos: Map<string, Codigo>
-  onElegir: (pieza: number) => void
+  onElegir?: (pieza: number) => void
 }) {
   const superior = esSuperior(pieza)
   // Los códigos que se dibujan como texto van escritos debajo o encima del diente.
@@ -325,9 +407,10 @@ function BotonDiente({
   return (
     <button
       type="button"
-      onClick={() => onElegir(pieza)}
+      onClick={() => onElegir?.(pieza)}
+      disabled={!onElegir}
       aria-label={descripcion(pieza, registros, codigos)}
-      className="hover:bg-muted focus-visible:ring-ring/40 flex min-w-0 flex-col items-center gap-0.5 rounded-sm py-0.5 outline-none focus-visible:ring-3"
+      className="hover:bg-muted disabled:hover:bg-transparent focus-visible:ring-ring/40 flex min-w-0 flex-col items-center gap-0.5 rounded-sm py-0.5 outline-none focus-visible:ring-3"
     >
       {superior ? numero : etiquetas}
       <Diente pieza={pieza} registros={registros} codigos={codigos} className="w-full max-w-10" />
@@ -343,7 +426,7 @@ function Tabla({
 }: {
   porPieza: Map<number, RegistroOdontograma[]>
   codigos: Map<string, Codigo>
-  onElegir: (piezas: number[]) => void
+  onElegir?: (piezas: number[]) => void
 }) {
   // Los textos de una columna (hallazgos o realizados) de las piezas de la fila.
   const columna = (piezas: number[], tipo: 'hallazgo' | 'realizado') =>
@@ -386,8 +469,9 @@ function Tabla({
             <li key={permanente}>
               <button
                 type="button"
-                onClick={() => onElegir(piezas)}
-                className="hover:bg-muted focus-visible:ring-ring/40 grid min-h-11 w-full grid-cols-[4.5rem_1fr_1fr] items-center gap-3 px-3 py-1.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-inset"
+                onClick={() => onElegir?.(piezas)}
+                disabled={!onElegir}
+                className="hover:bg-muted disabled:hover:bg-transparent focus-visible:ring-ring/40 grid min-h-11 w-full grid-cols-[4.5rem_1fr_1fr] items-center gap-3 px-3 py-1.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-inset"
               >
                 <span className="tabular-nums">
                   <span className="font-medium">{permanente}</span>
