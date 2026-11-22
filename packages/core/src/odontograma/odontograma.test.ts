@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ARCADAS,
+  DatosCodigoOdontograma,
   DatosRegistroOdontograma,
   FILAS_ODONTOGRAMA,
   calcularIndices,
@@ -202,6 +203,33 @@ describe('la boca en una fecha', () => {
     const despues = estadoOdontograma(registrosAlDia(registros, '2026-03-10'), codigos)
     expect(despues.pendientes).toEqual([])
     expect(despues.vigentes.map((x) => x.id)).toEqual(['obt'])
+  })
+})
+
+describe('DatosCodigoOdontograma', () => {
+  const base = {
+    id: '5a0e1c2d-3b4f-4a5b-8c6d-7e8f9a0b1c2d',
+    abreviatura: ' Car ',
+    nombre: 'Caries',
+    tipo: 'hallazgo',
+    simbolo: 'superficie',
+    porCaras: true,
+    usaGrado: true,
+    indice: 'cariado',
+  }
+
+  it('limpia los espacios y acepta un código completo', () => {
+    expect(DatosCodigoOdontograma.safeParse(base).data?.abreviatura).toBe('Car')
+  })
+
+  it('pide abreviatura corta y caras para pintar las caras', () => {
+    const error = (cambios: object) =>
+      DatosCodigoOdontograma.safeParse({ ...base, ...cambios }).error?.issues[0]?.message
+    expect(error({ abreviatura: '  ' })).toBe('Escribe la abreviatura.')
+    expect(error({ abreviatura: 'Demasiado' })).toBe('La abreviatura tiene hasta 8 caracteres.')
+    expect(error({ porCaras: false })).toBe(
+      'Para pintar las caras, el código tiene que ir por caras.',
+    )
   })
 })
 
