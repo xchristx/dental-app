@@ -1,7 +1,7 @@
 # 0001: Stack y estructura del proyecto
 
 - **Fecha:** 2026-11-19
-- **Estado:** aceptada. La región (São Paulo) está reemplazada por la [0011](0011-produccion-en-plan-gratis.md).
+- **Estado:** aceptada. La región (São Paulo) está reemplazada por la [0011](0011-produccion-en-plan-gratis.md). Next.js está reemplazado por Vite, con la web como SPA, en la [0017](0017-spa-con-vite.md).
 
 ## Contexto
 Queremos una app que sirva de portafolio y que use una dentista real. Ella usa el celular más que la laptop, y su celular es Android. Más adelante queremos una app Android que funcione sin conexión.

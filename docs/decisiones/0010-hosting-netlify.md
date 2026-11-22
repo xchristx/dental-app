@@ -1,7 +1,7 @@
 # 0010: Hosting de la web en Netlify
 
 - **Fecha:** 2026-11-19
-- **Estado:** aceptada
+- **Estado:** aceptada. La web sigue en Netlify, pero desde la [0017](0017-spa-con-vite.md) es un sitio estático: ya no usa el adaptador de Next ni funciones de servidor.
 - **Reemplaza:** la parte de "Despliegue" de la 0006, que elegía Vercel. El resto de la 0006 sigue vigente.
 
 ## Contexto
