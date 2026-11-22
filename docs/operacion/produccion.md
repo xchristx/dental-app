@@ -4,7 +4,23 @@ Cómo se arma producción (decisiones [0030](../decisiones/0030-produccion.md) y
 
 > Nada de lo que se completa en esta guía (contraseñas, claves, correos, nombres) va al repositorio, porque es público.
 
-En la guía, `<sitio>` es el nombre del sitio de producción en Netlify (por ejemplo `sifel-consultorio`) y `<ref>` es la referencia del proyecto de Supabase (sale en su URL). Elige el nombre del sitio antes de empezar: se usa desde el paso 3.
+En la guía, `<ref>` es la referencia del proyecto de Supabase (sale en su URL). Producción va en `sifel.netlify.app` y la demo en `sifel-demo.netlify.app` (0030).
+
+## 0. Mover la demo a sifel-demo.netlify.app
+
+Haz los pasos 1 y 2 seguidos. Los nombres de Netlify son únicos entre todos sus usuarios: apenas se libera `sifel`, otra persona podría tomarlo.
+
+1. En Netlify, abre el sitio actual (`sifel`) y ve a **Site configuration → General → Site details → Change site name**. Ponle `sifel-demo`. La demo sigue funcionando igual, con sus variables y publicando `main`, pero en la dirección nueva. La vieja deja de responder.
+2. Reserva `sifel` con un sitio provisorio:
+   - En **Add new site → Deploy manually**, arrastra la carpeta `docs/operacion/provisorio/`, que tiene una sola página que dice "Pronto".
+   - En el sitio nuevo, **Change site name** → `sifel`.
+   - En el paso 8 se le conecta el repositorio.
+3. En Supabase, en el proyecto de la demo (`dental-app-demo-sa`), entra a **Authentication → URL Configuration**:
+   - **Site URL:** `https://sifel-demo.netlify.app`
+   - **Redirect URLs:** `https://sifel-demo.netlify.app/**`
+4. Cambia los enlaces a la demo que tengas afuera (portafolio, CV, mensajes).
+
+El workflow "Reiniciar la demo" ya comprueba `sifel-demo.netlify.app`. Hasta que se mergee este cambio, su último paso va a fallar: el reinicio se hace igual, y solo falla la comprobación final.
 
 ## 1. Las claves de los respaldos
 
@@ -25,8 +41,8 @@ Cada uno (el autor y la dentista) tiene su par de claves de [age](https://age-en
    - Apaga **Allow new users to sign up**. Es obligatorio: sin esto, cualquiera con una cuenta de Google podría crear un usuario.
    - Deja apagado **Allow anonymous sign-ins**.
 3. En **Authentication → URL Configuration**:
-   - **Site URL:** `https://<sitio>.netlify.app`
-   - **Redirect URLs:** `https://<sitio>.netlify.app/**`
+   - **Site URL:** `https://sifel.netlify.app`
+   - **Redirect URLs:** `https://sifel.netlify.app/**`
 4. En **Storage → S3 Configuration**, crea una **access key**. Se muestra una sola vez: guarda el *Access key ID* y el *Secret access key* para el paso 5.
 
 ## 3. Google: el cliente OAuth
@@ -38,7 +54,7 @@ En [Google Cloud Console](https://console.cloud.google.com), con tu cuenta:
    - **Branding:** nombre de la app `Sifel` y tu correo de soporte.
    - **Audience:** External. Después, **Publish app** para que quede *In production*. Con solo los permisos básicos (email y perfil) no pide verificación.
    - **Clients → Create client → Web application:**
-     - **Authorized JavaScript origins:** `https://<sitio>.netlify.app`
+     - **Authorized JavaScript origins:** `https://sifel.netlify.app`
      - **Authorized redirect URIs:** `https://<ref>.supabase.co/auth/v1/callback`
 3. Copia el **Client ID** y el **Client secret**.
 4. En Supabase, **Authentication → Sign In / Providers → Google**: actívalo y pega los dos valores.
@@ -95,17 +111,19 @@ Revisa que en Drive haya aparecido `sifel-respaldos/base/`.
 
 ## 8. Netlify: el sitio de producción
 
-1. **Add new site → Import an existing project**, con el mismo repositorio y el nombre `<sitio>`.
-2. **Build settings:** los mismos que el sitio de la demo (copia el comando y el directorio base). Directorio de publicación: `apps/web/dist`.
-3. **Production branch:** `produccion`. La demo sigue publicando `main`.
-4. **Environment variables:**
+Se usa el sitio `sifel` que se reservó en el paso 0.
+
+1. **Primero las variables,** para que el primer build ya las tenga: se incrustan al compilar. En **Site configuration → Environment variables** carga:
    - `VITE_SUPABASE_URL=https://<ref>.supabase.co`
    - `VITE_SUPABASE_PUBLISHABLE_KEY=` la clave *publishable*
    - `VITE_ES_DEMO=false`
    - `VITE_GOOGLE_HABILITADO=true`
 
    Sin `VITE_DEMO_EMAIL` ni `VITE_DEMO_PASSWORD`.
-5. Publica de nuevo después de cargar las variables, porque se incrustan al compilar. Revisa que la pantalla de entrada no diga "Demo" y que tenga el botón de Google.
+2. En **Site configuration → Build & deploy → Continuous deployment → Link repository**, conecta el mismo repositorio de GitHub.
+   - **Branch to deploy:** `produccion`, que la creó el paso 6. La demo sigue publicando `main`.
+   - **Build settings:** los mismos que el sitio `sifel-demo` (copia el comando y el directorio base). Directorio de publicación: `apps/web/dist`.
+3. Cuando termine el build, abre <https://sifel.netlify.app>. La pantalla de entrada no tiene que decir "Demo" y tiene que mostrar el botón de Google.
 
 ## 9. Comprobar antes del primer paciente
 
