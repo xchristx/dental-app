@@ -75,7 +75,10 @@ test('registrar un pago propone la cuota sugerida y numera el recibo', async () 
   await expect(alerta(h)).toHaveText('Elige cómo pagó.')
   await h.getByLabel('Efectivo').check()
   await control(h, 'Guardar pago').click()
-  await expect(h).toBeHidden()
+  // Guardado, se abre su recibo para mandarlo (0028).
+  await expect(hoja(page).getByRole('heading', { name: 'Recibo N.º 0006' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(hoja(page)).toBeHidden()
 
   await expect.poll(() => resumen('Ortodoncia')).toMatchObject({ Saldo: 'Bs 3.800' })
   const ultima = (await planilla('Ortodoncia')).at(-1)

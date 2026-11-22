@@ -59,6 +59,7 @@ Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome inst
   - [0025: Editar la nota de un registro del odontograma](docs/decisiones/0025-editar-la-nota-de-un-registro.md)
   - [0026: Presupuestos y libro de pagos](docs/decisiones/0026-presupuestos-y-libro-de-pagos.md)
   - [0027: Archivos de pacientes (radiografías y fotos)](docs/decisiones/0027-archivos-de-pacientes.md)
+  - [0028: Recibo por WhatsApp, sin firma](docs/decisiones/0028-recibo-por-whatsapp.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack

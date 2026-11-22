@@ -90,6 +90,7 @@ No es un dibujo: es una **tabla con una fila por pieza dental**.
 
 - Formas de pago: efectivo, QR o transferencia.
 - No entrega recibos, pero le parecería bien agregarlos.
+- **Confirmado (2026-11-22):** en vez de la firma del paciente, alcanza con mandarle el recibo por WhatsApp.
 - No trabaja con seguros.
 - **Planilla de cuotas**, en el reverso de la historia:
   - Al principio se le explica al paciente el costo total y se registra.

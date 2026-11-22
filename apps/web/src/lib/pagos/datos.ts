@@ -1,6 +1,11 @@
 import { FORMAS_PAGO, type MovimientoPago } from '@dental/core'
 import { supabase } from '@/lib/supabase/cliente'
 
+export interface Movimiento extends MovimientoPago {
+  /** Quién lo registró: va en el recibo (0028). */
+  profesional: string | null
+}
+
 export interface Presupuesto {
   id: string
   descripcion: string
@@ -10,11 +15,14 @@ export interface Presupuesto {
   fecha: string
   profesional: string | null
   /** En el orden en que se cargaron. */
-  movimientos: MovimientoPago[]
+  movimientos: Movimiento[]
 }
 
 export interface PagosDelPaciente {
   organizacionId: string
+  /** Nombre del consultorio, para el recibo. */
+  consultorio: string
+  paciente: { nombre: string; telefono: string | null }
   /** Del más nuevo al más viejo. */
   presupuestos: Presupuesto[]
 }
@@ -29,14 +37,18 @@ export function consultaPagos(pacienteId: string) {
 
 async function pagosDePaciente(pacienteId: string): Promise<PagosDelPaciente | null> {
   const [paciente, presupuestos] = await Promise.all([
-    supabase.from('pacientes').select('organization_id').eq('id', pacienteId).maybeSingle(),
+    supabase
+      .from('pacientes')
+      .select('organization_id, nombre, telefono, organizacion:organizaciones(nombre)')
+      .eq('id', pacienteId)
+      .maybeSingle(),
     supabase
       .from('presupuestos')
       .select(
         `id, descripcion, total_centavos, cuota_inicial_centavos, cuota_sugerida_centavos, fecha,
          profesional:profesionales(nombre),
          movimientos:movimientos_pago(id, tipo, monto_centavos, forma_pago, motivo, fecha,
-           numero_recibo, created_at)`,
+           numero_recibo, created_at, profesional:profesionales(nombre))`,
       )
       .eq('paciente_id', pacienteId)
       .is('deleted_at', null)
@@ -51,6 +63,8 @@ async function pagosDePaciente(pacienteId: string): Promise<PagosDelPaciente | n
 
   return {
     organizacionId: paciente.data.organization_id,
+    consultorio: paciente.data.organizacion?.nombre ?? 'Consultorio',
+    paciente: { nombre: paciente.data.nombre, telefono: paciente.data.telefono },
     presupuestos: presupuestos.data.map((p) => ({
       id: p.id,
       descripcion: p.descripcion,
@@ -69,6 +83,7 @@ async function pagosDePaciente(pacienteId: string): Promise<PagosDelPaciente | n
           motivo: m.motivo,
           fecha: m.fecha,
           numeroRecibo: m.numero_recibo,
+          profesional: m.profesional?.nombre ?? null,
         })),
     })),
   }

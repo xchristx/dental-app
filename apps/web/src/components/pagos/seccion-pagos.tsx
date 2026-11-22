@@ -8,11 +8,14 @@ import {
   formatearFechaNumerica,
   formatearMonto,
   montoSugerido,
+  numeroDeRecibo,
   parsearMonto,
   planillaDePagos,
+  type DatosRecibo,
   type FormaPago,
 } from '@dental/core'
 import { claseCampo } from '@/components/historia/campos'
+import { HojaRecibo } from '@/components/pagos/recibo'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -30,25 +33,65 @@ import {
   registrarPago,
   type ResultadoPagos,
 } from '@/lib/pagos/acciones'
-import { consultaPagos, type Presupuesto } from '@/lib/pagos/datos'
+import { consultaPagos, type PagosDelPaciente, type Presupuesto } from '@/lib/pagos/datos'
 import { cn } from '@/lib/utils'
 
 /** "Bs 400" escrito en el campo, sin el "Bs" (va como prefijo). */
 const textoDeMonto = (centavos: number | null) =>
   centavos === null ? '' : formatearMonto(centavos).replace('Bs ', '')
 
-/** "N.º 0001". */
-const textoRecibo = (numero: number) => `N.º ${String(numero).padStart(4, '0')}`
+/** El N.º de recibo de la planilla: abre el recibo para mandarlo (0028). */
+function BotonRecibo({ numero, onClick }: { numero: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`Ver el recibo ${numeroDeRecibo(numero)}`}
+      className="decoration-muted-foreground hover:text-foreground focus-visible:ring-ring/40 inline-flex min-h-6 items-center rounded-sm font-mono whitespace-nowrap underline underline-offset-2 outline-none focus-visible:ring-3"
+    >
+      {numeroDeRecibo(numero)}
+    </button>
+  )
+}
 
 type Formulario =
   | { tipo: 'presupuesto' }
   | { tipo: 'pago'; presupuesto: Presupuesto }
   | { tipo: 'ajuste'; presupuesto: Presupuesto }
+  | { tipo: 'recibo'; movimientoId: string }
+
+/** Los datos del recibo de un pago (0028), con los saldos de su fila en la planilla. */
+function datosDeRecibo(pagos: PagosDelPaciente, movimientoId: string): DatosRecibo | null {
+  for (const p of pagos.presupuestos) {
+    const fila = planillaDePagos(p.totalCentavos, p.movimientos).filas.find(
+      (f) => f.movimiento.id === movimientoId,
+    )
+    const m = fila?.movimiento
+    if (!fila || !m || m.tipo !== 'pago' || !m.numeroRecibo || !m.formaPago) continue
+    return {
+      consultorio: pagos.consultorio,
+      numero: m.numeroRecibo,
+      fecha: m.fecha,
+      paciente: pagos.paciente.nombre,
+      montoCentavos: m.montoCentavos,
+      formaPago: m.formaPago,
+      concepto: p.descripcion,
+      saldoAnteriorCentavos: fila.saldoAnterior,
+      saldoActualCentavos: fila.saldoActual,
+      profesional: m.profesional,
+    }
+  }
+  return null
+}
 
 /** Presupuestos y libro de pagos del paciente (0026). */
 export function SeccionPagos({ pacienteId }: { pacienteId: string }) {
   const pagos = useQuery(consultaPagos(pacienteId))
   const [abierto, setAbierto] = useState<Formulario | null>(null)
+  const recibo =
+    abierto?.tipo === 'recibo' && pagos.data
+      ? datosDeRecibo(pagos.data, abierto.movimientoId)
+      : null
 
   return (
     <section aria-labelledby="titulo-pagos" className="flex flex-col gap-3">
@@ -79,6 +122,7 @@ export function SeccionPagos({ pacienteId }: { pacienteId: string }) {
             presupuesto={p}
             onPago={() => setAbierto({ tipo: 'pago', presupuesto: p })}
             onAjuste={() => setAbierto({ tipo: 'ajuste', presupuesto: p })}
+            onRecibo={(movimientoId) => setAbierto({ tipo: 'recibo', movimientoId })}
           />
         ))
       )}
@@ -97,9 +141,18 @@ export function SeccionPagos({ pacienteId }: { pacienteId: string }) {
               <FormPago
                 presupuesto={abierto.presupuesto}
                 organizacionId={pagos.data.organizacionId}
-                onListo={() => setAbierto(null)}
+                // Guardado el pago, se abre su recibo listo para mandar (0028).
+                onGuardado={(movimientoId) => setAbierto({ tipo: 'recibo', movimientoId })}
               />
             )}
+            {abierto?.tipo === 'recibo' &&
+              (recibo ? (
+                <HojaRecibo recibo={recibo} telefono={pagos.data.paciente.telefono} />
+              ) : (
+                <div aria-busy="true" aria-label="Cargando el recibo" className="p-6">
+                  <div className="bg-muted h-64 rounded-lg" />
+                </div>
+              ))}
             {abierto?.tipo === 'ajuste' && (
               <FormAjuste
                 presupuesto={abierto.presupuesto}
@@ -118,10 +171,12 @@ function TarjetaPresupuesto({
   presupuesto: p,
   onPago,
   onAjuste,
+  onRecibo,
 }: {
   presupuesto: Presupuesto
   onPago: () => void
   onAjuste: () => void
+  onRecibo: (movimientoId: string) => void
 }) {
   const { filas, saldo, pagado } = planillaDePagos(p.totalCentavos, p.movimientos)
   const idTitulo = useId()
@@ -230,9 +285,10 @@ function TarjetaPresupuesto({
                             {m.numeroRecibo && (
                               <span className="@md:hidden">
                                 {' · '}
-                                <span className="font-mono whitespace-nowrap">
-                                  {textoRecibo(m.numeroRecibo)}
-                                </span>
+                                <BotonRecibo
+                                  numero={m.numeroRecibo}
+                                  onClick={() => onRecibo(m.id)}
+                                />
                               </span>
                             )}
                           </span>
@@ -253,8 +309,12 @@ function TarjetaPresupuesto({
                   <td className="px-3 py-2 text-right font-medium">
                     {formatearMonto(saldoActual)}
                   </td>
-                  <td className="hidden px-3 py-2 text-right font-mono @md:table-cell">
-                    {m.numeroRecibo ? textoRecibo(m.numeroRecibo) : '—'}
+                  <td className="hidden px-3 py-2 text-right @md:table-cell">
+                    {m.numeroRecibo ? (
+                      <BotonRecibo numero={m.numeroRecibo} onClick={() => onRecibo(m.id)} />
+                    ) : (
+                      '—'
+                    )}
                   </td>
                 </tr>
               ))}
@@ -519,11 +579,12 @@ function FormPresupuesto({
 function FormPago({
   presupuesto: p,
   organizacionId,
-  onListo,
+  onGuardado,
 }: {
   presupuesto: Presupuesto
   organizacionId: string
-  onListo: () => void
+  /** Con el id del pago, para abrir su recibo. */
+  onGuardado: (movimientoId: string) => void
 }) {
   const { saldo } = planillaDePagos(p.totalCentavos, p.movimientos)
   const hayPagos = p.movimientos.some((m) => m.tipo === 'pago')
@@ -531,7 +592,7 @@ function FormPago({
   const [monto, setMonto] = useState(() => textoDeMonto(montoSugerido(p, saldo, hayPagos)))
   const [forma, setForma] = useState<FormaPago | ''>('')
   const [fecha, setFecha] = useState(() => fechaEnZona(new Date(), ZONA))
-  const { error, setError, guardando, guardar, limpiando } = useGuardar(onListo)
+  const { error, setError, guardando, guardar, limpiando } = useGuardar(() => onGuardado(id))
 
   function enviar() {
     const centavos = leerMonto(monto)
