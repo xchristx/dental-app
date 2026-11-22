@@ -54,6 +54,7 @@ Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome inst
   - [0020: Odontograma con las normas generales](docs/decisiones/0020-odontograma.md)
   - [0021: Tratar o anular un hallazgo, y el plan de tratamiento](docs/decisiones/0021-tratar-o-anular-hallazgos.md)
   - [0022: Editar el catálogo del odontograma](docs/decisiones/0022-editar-el-catalogo-del-odontograma.md)
+  - [0023: Radiografías en el odontograma (columna Rx)](docs/decisiones/0023-radiografias-en-el-odontograma.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack

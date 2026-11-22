@@ -3,6 +3,7 @@ import {
   ARCADAS,
   DatosCodigoOdontograma,
   DatosRegistroOdontograma,
+  DatosRxOdontograma,
   FILAS_ODONTOGRAMA,
   calcularIndices,
   codigoParaTratar,
@@ -203,6 +204,26 @@ describe('la boca en una fecha', () => {
     const despues = estadoOdontograma(registrosAlDia(registros, '2026-03-10'), codigos)
     expect(despues.pendientes).toEqual([])
     expect(despues.vigentes.map((x) => x.id)).toEqual(['obt'])
+  })
+})
+
+describe('DatosRxOdontograma', () => {
+  const base = {
+    id: '5a0e1c2d-3b4f-4a5b-8c6d-7e8f9a0b1c2d',
+    pacienteId: '6b1f2d3e-4c5a-4b6c-9d7e-8f9a0b1c2d3e',
+    pieza: 36,
+    nota: '',
+    fecha: '2026-01-10',
+  }
+
+  it('acepta una Rx sin nota y rechaza una pieza que no existe o una fecha futura', () => {
+    expect(DatosRxOdontograma.safeParse(base).data?.nota).toBeNull()
+    expect(DatosRxOdontograma.safeParse({ ...base, pieza: 19 }).error?.issues[0]?.message).toBe(
+      'Esa pieza no existe.',
+    )
+    expect(
+      DatosRxOdontograma.safeParse({ ...base, fecha: '2999-01-01' }).error?.issues[0]?.message,
+    ).toBe('La fecha no puede ser futura.')
   })
 })
 

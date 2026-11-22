@@ -4,6 +4,7 @@ import {
   SIMBOLOS_CODIGO,
   type Cara,
   type CodigoOdontograma,
+  type RadiografiaOdontograma,
   type RegistroOdontograma,
 } from '@dental/core'
 import { supabase } from '@/lib/supabase/cliente'
@@ -72,6 +73,8 @@ export interface Odontograma {
   codigos: Codigo[]
   /** Registros vigentes, del más nuevo al más viejo. */
   registros: RegistroOdontograma[]
+  /** Radiografías tomadas (0023), de la más nueva a la más vieja. */
+  rx: RadiografiaOdontograma[]
 }
 
 const esCara = (c: string): c is Cara => (CARAS as readonly string[]).includes(c)
@@ -85,7 +88,7 @@ export function consultaOdontograma(pacienteId: string) {
 }
 
 async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | null> {
-  const [paciente, codigos, registros] = await Promise.all([
+  const [paciente, codigos, registros, rx] = await Promise.all([
     supabase.from('pacientes').select('organization_id').eq('id', pacienteId).maybeSingle(),
     supabase
       .from('odontograma_codigos')
@@ -99,11 +102,18 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
       .is('deleted_at', null)
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false }),
+    supabase
+      .from('odontograma_rx')
+      .select('id, pieza, fecha, nota')
+      .eq('paciente_id', pacienteId)
+      .is('deleted_at', null)
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false }),
   ])
   if (paciente.error) throw new Error(`No se pudo leer el paciente: ${paciente.error.message}`)
   if (codigos.error) throw new Error(`No se pudo leer el catálogo: ${codigos.error.message}`)
-  if (registros.error) {
-    throw new Error(`No se pudo leer el odontograma: ${registros.error.message}`)
+  for (const r of [registros, rx]) {
+    if (r.error) throw new Error(`No se pudo leer el odontograma: ${r.error.message}`)
   }
   if (!paciente.data) return null
 
@@ -111,7 +121,8 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
   return {
     organizacionId,
     codigos: codigos.data.map(codigoDeFila),
-    registros: registros.data.map((r) => ({
+    rx: rx.data ?? [],
+    registros: (registros.data ?? []).map((r) => ({
       id: r.id,
       pieza: r.pieza,
       codigoId: r.codigo_id,

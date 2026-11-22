@@ -12,6 +12,7 @@ import {
   formatearFechaNumerica,
   registrosAlDia,
   textoRegistro,
+  type RadiografiaOdontograma,
   type RegistroOdontograma,
 } from '@dental/core'
 import { Diente } from '@/components/odontograma/diente'
@@ -75,11 +76,16 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
     setApertura({ piezas, tratarId })
   const codigos = new Map(datos.codigos.map((c) => [c.id, c]))
   // Ver la boca en un día anterior: solo para mirar. null es hoy.
-  const fechas = fechasDelOdontograma(datos.registros)
+  const fechas = fechasDelOdontograma([...datos.registros, ...datos.rx])
   const [dia, setDia] = useState<string | null>(null)
   const ultimo = fechas.at(-1)
   const pasado = dia !== null && ultimo !== undefined && dia < ultimo ? dia : null
   const registros = pasado ? registrosAlDia(datos.registros, pasado) : datos.registros
+  // Radiografías tomadas (0023), hasta el día que se mira.
+  const rxPorPieza = new Map<number, RadiografiaOdontograma[]>()
+  for (const r of pasado ? registrosAlDia(datos.rx, pasado) : datos.rx) {
+    rxPorPieza.set(r.pieza, [...(rxPorPieza.get(r.pieza) ?? []), r])
+  }
   // Los hallazgos ya tratados no se dibujan ni cuentan: queda lo realizado (0021).
   const { vigentes, pendientes } = estadoOdontograma(registros, datos.codigos)
   const indices = calcularIndices(vigentes, datos.codigos)
@@ -154,12 +160,14 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
       {vista === 'grafico' ? (
         <Grafico
           porPieza={porPieza}
+          rxPorPieza={rxPorPieza}
           codigos={codigos}
           onElegir={pasado ? undefined : (p) => (pincel.activo ? pincel.tocar(p) : abrir([p]))}
         />
       ) : (
         <Tabla
           porPieza={porPieza}
+          rxPorPieza={rxPorPieza}
           codigos={codigos}
           onElegir={pasado ? undefined : (piezas) => abrir(piezas)}
         />
@@ -183,6 +191,7 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
         apertura={apertura}
         onCerrar={() => setApertura(null)}
         registros={datos.registros}
+        rx={datos.rx}
         codigos={datos.codigos}
         pacienteId={pacienteId}
         organizacionId={datos.organizacionId}
@@ -400,10 +409,15 @@ function fechasQueEntran(cantidad: number, elegida: number, ancho: number): Set<
   return new Set(elegidas)
 }
 
-/** "Pieza 36: C II-OM (caries), nota: sensibilidad" o "Pieza 36, sin registros". */
+/** "Rx del 03/03/2026" o "Rx del 03/03/2026 y del 10/03/2026". */
+const textoRx = (rx: RadiografiaOdontograma[]) =>
+  `Rx ${rx.map((r) => `del ${formatearFechaNumerica(r.fecha)}`).join(' y ')}`
+
+/** "Pieza 36: C II-OM (caries), nota: sensibilidad, Rx del 03/03/2026" o "Pieza 36, sin registros". */
 function descripcion(
   pieza: number,
   registros: RegistroOdontograma[],
+  rx: RadiografiaOdontograma[],
   codigos: Map<string, Codigo>,
 ) {
   const textos = registros.flatMap((r) => {
@@ -411,15 +425,18 @@ function descripcion(
     if (c) return [`${textoRegistro(r, c)} (${c.nombre.toLowerCase()})`]
     return r.nota ? [`nota: ${r.nota}`] : []
   })
+  if (rx.length) textos.push(textoRx(rx))
   return textos.length ? `Pieza ${pieza}: ${textos.join(', ')}` : `Pieza ${pieza}, sin registros`
 }
 
 function Grafico({
   porPieza,
+  rxPorPieza,
   codigos,
   onElegir,
 }: {
   porPieza: Map<number, RegistroOdontograma[]>
+  rxPorPieza: Map<number, RadiografiaOdontograma[]>
   codigos: Map<string, Codigo>
   onElegir?: (pieza: number) => void
 }) {
@@ -441,6 +458,7 @@ function Grafico({
                 key={p}
                 pieza={p}
                 registros={porPieza.get(p) ?? []}
+                rx={rxPorPieza.get(p) ?? []}
                 codigos={codigos}
                 onElegir={onElegir}
               />
@@ -469,11 +487,13 @@ function Grafico({
 function BotonDiente({
   pieza,
   registros,
+  rx,
   codigos,
   onElegir,
 }: {
   pieza: number
   registros: RegistroOdontograma[]
+  rx: RadiografiaOdontograma[]
   codigos: Map<string, Codigo>
   onElegir?: (pieza: number) => void
 }) {
@@ -496,6 +516,7 @@ function BotonDiente({
         </span>
       ))}
       {tieneNota && <span className="text-muted-foreground">•</span>}
+      {rx.length > 0 && <span className="text-muted-foreground">Rx</span>}
     </span>
   )
   return (
@@ -503,7 +524,7 @@ function BotonDiente({
       type="button"
       onClick={() => onElegir?.(pieza)}
       disabled={!onElegir}
-      aria-label={descripcion(pieza, registros, codigos)}
+      aria-label={descripcion(pieza, registros, rx, codigos)}
       className="hover:bg-muted disabled:hover:bg-transparent focus-visible:ring-ring/40 flex min-w-0 flex-col items-center gap-0.5 rounded-sm py-0.5 outline-none focus-visible:ring-3"
     >
       {superior ? numero : etiquetas}
@@ -515,10 +536,12 @@ function BotonDiente({
 
 function Tabla({
   porPieza,
+  rxPorPieza,
   codigos,
   onElegir,
 }: {
   porPieza: Map<number, RegistroOdontograma[]>
+  rxPorPieza: Map<number, RadiografiaOdontograma[]>
   codigos: Map<string, Codigo>
   onElegir?: (piezas: number[]) => void
 }) {
@@ -547,11 +570,12 @@ function Tabla({
     <div className="border-border bg-card rounded-lg border text-sm">
       <div
         aria-hidden="true"
-        className="border-border text-muted-foreground grid grid-cols-[4.5rem_1fr_1fr] gap-3 border-b px-3 py-2"
+        className="border-border text-muted-foreground grid grid-cols-[4.5rem_1fr_1fr_2.5rem] gap-3 border-b px-3 py-2"
       >
         <span>Pieza</span>
         <span>A tratar</span>
         <span>Hecho</span>
+        <span>Rx</span>
       </div>
       <ul className="divide-border divide-y">
         {FILAS_ODONTOGRAMA.map(({ permanente, temporal }) => {
@@ -559,13 +583,15 @@ function Tabla({
           const hallazgos = columna(piezas, 'hallazgo')
           const realizados = columna(piezas, 'realizado')
           const notasDeLaFila = notas(piezas)
+          // Como en papel: un ✓ si se tomó la radiografía (0023).
+          const conRx = piezas.filter((p) => rxPorPieza.has(p))
           return (
             <li key={permanente}>
               <button
                 type="button"
                 onClick={() => onElegir?.(piezas)}
                 disabled={!onElegir}
-                className="hover:bg-muted disabled:hover:bg-transparent focus-visible:ring-ring/40 grid min-h-11 w-full grid-cols-[4.5rem_1fr_1fr] items-center gap-3 px-3 py-1.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-inset"
+                className="hover:bg-muted disabled:hover:bg-transparent focus-visible:ring-ring/40 grid min-h-11 w-full grid-cols-[4.5rem_1fr_1fr_2.5rem] items-center gap-3 px-3 py-1.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-inset"
               >
                 <span className="tabular-nums">
                   <span className="font-medium">{permanente}</span>
@@ -583,8 +609,23 @@ function Tabla({
                     <span key={h.id}>{h.texto}</span>
                   ))}
                 </span>
+                <span className="flex flex-col tabular-nums">
+                  {conRx.map((p) => (
+                    <span key={p} className="flex items-center gap-0.5">
+                      {/* En una fila con temporal, la de la temporal lleva su número. */}
+                      {piezas.length > 1 && p === piezas[1] && (
+                        <span className="text-muted-foreground text-xs">{p}</span>
+                      )}
+                      <CheckIcon weight="bold" aria-hidden="true" className="size-4" />
+                      <span className="sr-only">
+                        {textoRx(rxPorPieza.get(p) ?? [])}
+                        {piezas.length > 1 && ` (pieza ${p})`}
+                      </span>
+                    </span>
+                  ))}
+                </span>
                 {notasDeLaFila.length > 0 && (
-                  <span className="text-muted-foreground col-span-2 col-start-2 flex flex-col">
+                  <span className="text-muted-foreground col-span-3 col-start-2 flex flex-col">
                     {notasDeLaFila.map((n) => (
                       <span key={n.id}>Nota: {n.texto}</span>
                     ))}

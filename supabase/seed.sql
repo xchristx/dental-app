@@ -230,3 +230,14 @@ set resuelve_id = '80000000-0000-4000-8000-000000000001'
 from public.odontograma_codigos c
 where c.id = r.codigo_id and c.abreviatura = 'Obt'
   and r.paciente_id = '50000000-0000-4000-8000-000000000001' and r.pieza = 36;
+
+-- Radiografías tomadas (0023), en días que ya tienen registros.
+insert into public.odontograma_rx (organization_id, paciente_id, pieza, fecha, nota, autor_id)
+select
+  '10000000-0000-4000-8000-000000000001', r.paciente::uuid, r.pieza,
+  (now() at time zone 'America/La_Paz')::date - r.hace, r.nota, '70000000-0000-4000-8000-000000000001'
+from (values
+  ('50000000-0000-4000-8000-000000000001', 36, 'Periapical', 90),
+  ('50000000-0000-4000-8000-000000000002', 46, 'Periapical', 45),
+  ('50000000-0000-4000-8000-000000000002', 46, 'Conductometría', 7)
+) as r(paciente, pieza, nota, hace);
