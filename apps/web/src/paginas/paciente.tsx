@@ -20,6 +20,7 @@ import { AvisoAlergias } from '@/components/historia/aviso-alergias'
 import { SeccionAnamnesis } from '@/components/historia/anamnesis'
 import { SeccionDerivaciones } from '@/components/historia/derivaciones'
 import { SeccionEvolucion, type OpcionCita } from '@/components/historia/evolucion'
+import { ResumenOdontograma } from '@/components/odontograma/resumen'
 import { FormularioPaciente } from '@/components/pacientes/formulario-paciente'
 import { ZONA } from '@/lib/agenda/zona'
 import { consultaHistoria } from '@/lib/historia/datos'
@@ -135,6 +136,7 @@ function Ficha({ paciente }: { paciente: FichaPaciente }) {
             organizacionId={historia.data.organizacionId}
             anamnesis={historia.data.anamnesis}
           />
+          <ResumenOdontograma pacienteId={paciente.id} />
           <SeccionEvolucion
             pacienteId={paciente.id}
             organizacionId={historia.data.organizacionId}

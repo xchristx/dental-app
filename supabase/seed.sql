@@ -181,3 +181,34 @@ insert into public.derivaciones (
   ('10000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000006', 'enviada',
    '20000000-0000-4000-8000-000000000002', null, 'Evaluar mordida abierta anterior.',
    (now() at time zone 'America/La_Paz')::date - 20, '70000000-0000-4000-8000-000000000001');
+
+-- Odontograma (0020). El catálogo inicial lo crea el trigger de la
+-- organización; aquí van registros inventados de algunos pacientes.
+insert into public.odontograma_registros (
+  organization_id, paciente_id, codigo_id, pieza, caras, grado, nota, fecha, autor_id
+)
+select
+  '10000000-0000-4000-8000-000000000001', r.paciente::uuid, c.id, r.pieza, r.caras::text[], r.grado,
+  r.nota, (now() at time zone 'America/La_Paz')::date - r.hace, '70000000-0000-4000-8000-000000000001'
+from (values
+  -- Camila
+  ('50000000-0000-4000-8000-000000000001', 'Obt', 36, '{O,M}', null, 'Resina A2', 7),
+  ('50000000-0000-4000-8000-000000000001', 'C',   25, '{L}',   1,    null,        90),
+  ('50000000-0000-4000-8000-000000000001', 'Aus', 18, null,    null, null,        90),
+  ('50000000-0000-4000-8000-000000000001', 'Aus', 28, null,    null, null,        90),
+  -- Martín: endodoncia en curso en 46
+  ('50000000-0000-4000-8000-000000000002', 'C',    46, '{O,D}', 3,   null,        45),
+  ('50000000-0000-4000-8000-000000000002', 'EndI', 46, null,    null, 'Primera sesión hecha', 7),
+  ('50000000-0000-4000-8000-000000000002', 'Obt',  16, '{O}',   null, null,        45),
+  -- Jorge
+  ('50000000-0000-4000-8000-000000000004', 'Cor', 16, null,    null, null,        200),
+  ('50000000-0000-4000-8000-000000000004', 'PC',  47, null,    null, null,        200),
+  ('50000000-0000-4000-8000-000000000004', 'Ext', 38, null,    null, 'Tercer molar semiincluido', 200),
+  -- Sofía: dentición mixta
+  ('50000000-0000-4000-8000-000000000006', 'C',   55, '{O}',   2,    null,        20),
+  ('50000000-0000-4000-8000-000000000006', 'Obt', 75, '{O,D}', null, null,        20),
+  ('50000000-0000-4000-8000-000000000006', 'Ext', 85, null,    null, 'Movilidad, por exfoliar', 20),
+  ('50000000-0000-4000-8000-000000000006', 'S',   36, null,    null, null,        20)
+) as r(paciente, codigo, pieza, caras, grado, nota, hace)
+join public.odontograma_codigos c
+  on c.organization_id = '10000000-0000-4000-8000-000000000001' and c.abreviatura = r.codigo;

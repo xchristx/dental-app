@@ -55,6 +55,10 @@
   --lugar-terracota-fg: #9a4a12;
   --lugar-gris: #efefed;
   --lugar-gris-fg: #55534e;
+
+  /* Odontograma (0020): rojo a tratar, azul hecho o en buen estado */
+  --odontograma-rojo: #c4261d;
+  --odontograma-azul: #1d5fc4;
 }
 
 @theme inline {
@@ -97,6 +101,9 @@
   --color-lugar-terracota-fg: var(--lugar-terracota-fg);
   --color-lugar-gris: var(--lugar-gris);
   --color-lugar-gris-fg: var(--lugar-gris-fg);
+
+  --color-odontograma-rojo: var(--odontograma-rojo);
+  --color-odontograma-azul: var(--odontograma-azul);
 
   /* Radios: 4px inputs y botones, 8px tarjetas, 12px hojas y diálogos */
   --radius-sm: 4px;

@@ -5,6 +5,10 @@ import { lazyRouteComponent } from '@tanstack/react-router'
 // primera pantalla.
 export const PaginaPacientes = lazyRouteComponent(() => import('./pacientes'), 'PaginaPacientes')
 export const PaginaPaciente = lazyRouteComponent(() => import('./paciente'), 'PaginaPaciente')
+export const PaginaOdontograma = lazyRouteComponent(
+  () => import('./odontograma'),
+  'PaginaOdontograma',
+)
 export const PaginaAjustes = lazyRouteComponent(() => import('./ajustes'), 'PaginaAjustes')
 export const PaginaVolverDeGoogle = lazyRouteComponent(
   () => import('./volver-de-google'),
@@ -20,6 +24,7 @@ export function precargarPaginas() {
   const precargar = () => {
     void PaginaPacientes.preload?.()
     void PaginaPaciente.preload?.()
+    void PaginaOdontograma.preload?.()
     void PaginaAjustes.preload?.()
   }
   // Safari no tiene requestIdleCallback.

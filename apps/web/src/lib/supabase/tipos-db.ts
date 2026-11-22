@@ -483,6 +483,134 @@ export type Database = {
           },
         ]
       }
+      odontograma_codigos: {
+        Row: {
+          abreviatura: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          indice: string | null
+          nombre: string
+          orden: number
+          organization_id: string
+          por_caras: boolean
+          simbolo: string
+          tipo: string
+          updated_at: string
+          usa_grado: boolean
+        }
+        ComputedFields: never
+        Insert: {
+          abreviatura: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          indice?: string | null
+          nombre: string
+          orden?: number
+          organization_id: string
+          por_caras?: boolean
+          simbolo: string
+          tipo: string
+          updated_at?: string
+          usa_grado?: boolean
+        }
+        Update: {
+          abreviatura?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          indice?: string | null
+          nombre?: string
+          orden?: number
+          organization_id?: string
+          por_caras?: boolean
+          simbolo?: string
+          tipo?: string
+          updated_at?: string
+          usa_grado?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'odontograma_codigos_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      odontograma_registros: {
+        Row: {
+          autor_id: string | null
+          caras: string[] | null
+          codigo_id: string
+          created_at: string
+          deleted_at: string | null
+          fecha: string
+          grado: number | null
+          id: string
+          nota: string | null
+          organization_id: string
+          paciente_id: string
+          pieza: number
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          autor_id?: string | null
+          caras?: string[] | null
+          codigo_id: string
+          created_at?: string
+          deleted_at?: string | null
+          fecha: string
+          grado?: number | null
+          id?: string
+          nota?: string | null
+          organization_id: string
+          paciente_id: string
+          pieza: number
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          caras?: string[] | null
+          codigo_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          fecha?: string
+          grado?: number | null
+          id?: string
+          nota?: string | null
+          organization_id?: string
+          paciente_id?: string
+          pieza?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'odontograma_registros_organization_id_codigo_id_fkey'
+            columns: ['organization_id', 'codigo_id']
+            isOneToOne: false
+            referencedRelation: 'odontograma_codigos'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'odontograma_registros_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'odontograma_registros_organization_id_paciente_id_fkey'
+            columns: ['organization_id', 'paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
       organizaciones: {
         Row: {
           created_at: string
@@ -643,6 +771,7 @@ export type Database = {
     }
     Functions: {
       es_admin_de: { Args: { org: string }; Returns: boolean }
+      odontograma_catalogo_inicial: { Args: { org: string }; Returns: undefined }
       org_ids_del_usuario: { Args: Record<PropertyKey, never>; Returns: string[] }
       profesional_del_usuario: { Args: { org: string }; Returns: string }
       reagendar_cita: {
