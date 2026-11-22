@@ -10,7 +10,7 @@ Su ficha en papel tiene el odontograma como **tabla**, con una fila por pieza: l
 
 Para no esperar, el autor pidió usar las **normas generales**:
 
-- **Norma boliviana.** Las *Normas en Salud Oral* del Ministerio de Salud (R.M. 1320, 2010) piden la nomenclatura FDI, "temporarios 51 al 85 y permanentes del 11 al 48". También piden que las historias clínicas tengan los indicadores **CPO-D** (piezas permanentes cariadas, perdidas por caries o con extracción indicada, y obturadas) y **ceo-d** (temporales cariadas, con extracción indicada y obturadas). No fijan colores ni símbolos.
+- **Norma boliviana.** Las _Normas en Salud Oral_ del Ministerio de Salud (R.M. 1320, 2010) piden la nomenclatura FDI, "temporarios 51 al 85 y permanentes del 11 al 48". También piden que las historias clínicas tengan los indicadores **CPO-D** (piezas permanentes cariadas, perdidas por caries o con extracción indicada, y obturadas) y **ceo-d** (temporales cariadas, con extracción indicada y obturadas). No fijan colores ni símbolos.
 - **Convención de la región.** En las normas y guías de odontograma de Latinoamérica, el **rojo** marca lo que hay que tratar (caries, extracción indicada) y el **azul** lo que ya está hecho o en buen estado (obturaciones, coronas, endodoncias). Las caras se dibujan como un cuadrado dividido en cinco.
 
 `CLAUDE.md` pide que los códigos salgan de un catálogo editable, nunca fijos en el código.
@@ -18,7 +18,9 @@ Para no esperar, el autor pidió usar las **normas generales**:
 ## Decisión
 
 ### Catálogo editable de códigos
+
 Cada organización tiene su catálogo (`odontograma_codigos`). Cada código define:
+
 - **Abreviatura y nombre:** `C` Caries, `Obt` Obturación, `Cor` Corona…
 - **Tipo:** `hallazgo` (rojo, a tratar) o `realizado` (azul, hecho o en buen estado).
 - **Símbolo:** cómo se dibuja. Es una lista fija de formas de dibujo: pintar las caras, una cruz sobre la pieza, un círculo alrededor, una línea vertical (raíz), una línea horizontal o la abreviatura escrita. Las formas de dibujo son código; los códigos que las usan son datos.
@@ -26,12 +28,14 @@ Cada organización tiene su catálogo (`odontograma_codigos`). Cada código defi
 - **En qué índice cuenta:** cariado, perdido u obturado, o en ninguno.
 
 Una organización nueva empieza con un catálogo inicial armado con las normas generales:
+
 - **Hallazgos (rojo):** caries, caries recidivante, obturación defectuosa, fractura, resto radicular, extracción indicada, endodoncia indicada, mesioversión, distoversión y giroversión.
 - **Realizados (azul):** obturación, incrustación, sellante, corona, endodoncia, perdida por caries, ausente, implante y prótesis fija.
 
 Cuando ella confirme sus abreviaturas, se cambian en el catálogo, sin tocar el código.
 
 ### Registros
+
 - Un registro es **una pieza (FDI), un código y, si corresponde, las caras y el grado**, con una nota opcional ("resina A2") y la fecha.
 - También puede ser **una nota sola sobre la pieza, sin código** ("sensibilidad al frío"). Se ve en gris, no se dibuja y no cuenta en los índices. Sin código, la nota es obligatoria.
 - Las caras se guardan siempre igual (`O`, `M`, `D`, `V`, `L`) y se muestran según la pieza: incisal (`I`) en las anteriores y palatina (`P`) en las superiores.
@@ -39,6 +43,7 @@ Cuando ella confirme sus abreviaturas, se cambian en el catálogo, sin tocar el 
 - Postgres valida la pieza FDI, que las caras correspondan al código (`OD001`), que el grado solo vaya en los códigos con grado (`OD002`) y que la fecha no sea futura (`OD003`). El autor se completa desde la sesión.
 
 ### Vistas
+
 - **Tabla**, como su ficha: una fila por posición, con la permanente y la temporal juntas. Una columna para los hallazgos (rojo) y otra para lo realizado (azul), escritos como en papel: `C II-OMV`, `Obt-OM`.
 - **Gráfico**: el diagrama de cinco caras por pieza, con las permanentes y las temporales en su lugar, generado a partir de los mismos registros.
 - Encima, el **CPO-D** y el **ceo-d** calculados. Cada pieza cuenta una sola vez: perdida antes que cariada, y cariada antes que obturada.
@@ -46,6 +51,7 @@ Cuando ella confirme sus abreviaturas, se cambian en el catálogo, sin tocar el 
 - El odontograma tiene su propia página (`/pacientes/:id/odontograma`). La ficha muestra el resumen y el enlace.
 
 ## Consecuencias
+
 - El odontograma no depende de que ella confirme las abreviaturas: se ajusta el catálogo después.
 - La columna **Rx** de su ficha y los datos generales (cepillado de lengua, oclusión, tártaro…) quedan para después. Rx espera la pregunta 8.
 - Una anotación que abarca varias piezas (por ejemplo, "cálculo abundante de 33 a 43") se carga pieza por pieza, o como nota en la evolución.

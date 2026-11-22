@@ -231,6 +231,21 @@ from public.odontograma_codigos c
 where c.id = r.codigo_id and c.abreviatura = 'Obt'
   and r.paciente_id = '50000000-0000-4000-8000-000000000001' and r.pieza = 36;
 
+-- Examen bucal (0024): Sofía tiene dos versiones, la primera de hace 20 días.
+insert into public.examen_bucal (
+  organization_id, paciente_id, usa_mondadientes, cepilla_lengua, tartaro, halitosis,
+  placa_bacteriana, materia_alba, oclusion, observaciones, autor_id, profesional_id, created_at
+) values
+  ('10000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000006',
+   false, false, false, false, true, true, 'Mordida abierta anterior', null,
+   '70000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
+   now() - interval '20 days'),
+  ('10000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000006',
+   false, true, false, false, true, false, 'Mordida abierta anterior',
+   'Mejoró el cepillado. Placa en el sector anteroinferior, de 33 a 43.',
+   '70000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
+   now() - interval '2 days');
+
 -- Radiografías tomadas (0023), en días que ya tienen registros.
 insert into public.odontograma_rx (organization_id, paciente_id, pieza, fecha, nota, autor_id)
 select

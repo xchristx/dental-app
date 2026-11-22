@@ -15,14 +15,14 @@ Al crear un proyecto gratis, Supabase deja elegir la región exacta: además de 
 
 **Medición del 2026-11-22**, desde La Paz con la conexión del autor: tiempo de conexión TCP (una ida y vuelta) a los endpoints de AWS de cada región de América que ofrece Supabase, 15 muestras por región.
 
-| Región | Mediana | Mínimo |
-|---|---|---|
-| sa-east-1 (São Paulo) | 127 ms | 116 ms |
-| us-east-1 (Virginia) | 142 ms | 130 ms |
-| ca-central-1 (Canadá) | 146 ms | 140 ms |
-| us-east-2 (Ohio) | 152 ms | 145 ms |
-| us-west-1 (California) | 205 ms | 198 ms |
-| us-west-2 (Oregón) | 212 ms | 195 ms |
+| Región                 | Mediana | Mínimo |
+| ---------------------- | ------- | ------ |
+| sa-east-1 (São Paulo)  | 127 ms  | 116 ms |
+| us-east-1 (Virginia)   | 142 ms  | 130 ms |
+| ca-central-1 (Canadá)  | 146 ms  | 140 ms |
+| us-east-2 (Ohio)       | 152 ms  | 145 ms |
+| us-west-1 (California) | 205 ms  | 198 ms |
+| us-west-2 (Oregón)     | 212 ms  | 195 ms |
 
 La demo actual (`dental-app-demo`) está en us-west-2, la peor de la lista. Medido contra ella el mismo día, un pedido a la API tarda unos 236 ms de mediana después de conectar. El borde de Cloudflare que atiende `*.supabase.co` está cerca (~28 ms), pero cada pedido igual viaja hasta Oregón.
 

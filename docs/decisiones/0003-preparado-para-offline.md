@@ -4,9 +4,11 @@
 - **Estado:** aceptada
 
 ## Contexto
+
 La fase 2 es una app Android sin conexión que se sincroniza con Supabase. Cambiar el modelo después cuesta caro, así que lo preparamos desde el inicio.
 
 ## Decisión
+
 - **Identificadores UUID generados en el cliente.** No usamos identificadores autoincrementales.
 - Todas las tablas tienen `created_at` y `updated_at`.
 - **Borrado suave** con `deleted_at`: nunca se borran filas.
@@ -17,5 +19,6 @@ La fase 2 es una app Android sin conexión que se sincroniza con Supabase. Cambi
 - Los números de recibo correlativos se asignan en el servidor al sincronizar, no en el dispositivo.
 
 ## Consecuencias
+
 - No hay conflictos al sincronizar pagos.
 - En los demás registros, si hay un conflicto, gana la última escritura. Con una sola usuaria editando, es suficiente.

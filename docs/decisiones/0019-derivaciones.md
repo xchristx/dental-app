@@ -7,6 +7,7 @@
 ## Contexto
 
 Los pacientes se derivan en los dos sentidos (`descubrimiento.md`):
+
 - Ella deriva al implantólogo y a la ortodoncista, y después vuelven a ella para controles.
 - Las socias le derivan pacientes para endodoncia.
 
@@ -24,6 +25,7 @@ Hoy eso no queda anotado en ningún lado. Cuando el paciente vuelve, no hay form
 - Como en la 0018, quién la anotó lo completa un trigger desde la sesión, y la fecha futura la rechaza Postgres (`DR001`). Todos los miembros de la organización las ven.
 
 ## Consecuencias
+
 - Cuando un paciente vuelve, la ficha dice quién lo mandó, a quién se mandó y para qué.
 - Una derivación a una socia queda ligada a su profesional: si después tiene usuario, se puede mostrar lo que le derivaron.
 - No hay estado ("pendiente", "volvió"). Si hace falta seguir la vuelta del paciente, se agrega después.

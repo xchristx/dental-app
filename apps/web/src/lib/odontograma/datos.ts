@@ -3,10 +3,13 @@ import {
   INDICES_CODIGO,
   SIMBOLOS_CODIGO,
   type Cara,
+  fechaEnZona,
   type CodigoOdontograma,
+  type DatosExamenBucal,
   type RadiografiaOdontograma,
   type RegistroOdontograma,
 } from '@dental/core'
+import { ZONA } from '@/lib/agenda/zona'
 import { supabase } from '@/lib/supabase/cliente'
 
 export interface Codigo extends CodigoOdontograma {
@@ -75,6 +78,15 @@ export interface Odontograma {
   registros: RegistroOdontograma[]
   /** Radiografías tomadas (0023), de la más nueva a la más vieja. */
   rx: RadiografiaOdontograma[]
+  /** Versiones del examen bucal (0024), de la más nueva a la más vieja. */
+  examenes: ExamenBucal[]
+}
+
+export interface ExamenBucal extends Omit<DatosExamenBucal, 'pacienteId'> {
+  /** Día (en La Paz) en que se guardó esta versión. */
+  fecha: string
+  actualizado: Date
+  profesional: string | null
 }
 
 const esCara = (c: string): c is Cara => (CARAS as readonly string[]).includes(c)
@@ -88,7 +100,7 @@ export function consultaOdontograma(pacienteId: string) {
 }
 
 async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | null> {
-  const [paciente, codigos, registros, rx] = await Promise.all([
+  const [paciente, codigos, registros, rx, examenes] = await Promise.all([
     supabase.from('pacientes').select('organization_id').eq('id', pacienteId).maybeSingle(),
     supabase
       .from('odontograma_codigos')
@@ -109,9 +121,21 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
       .is('deleted_at', null)
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false }),
+    supabase
+      .from('examen_bucal')
+      .select(
+        `id, usa_mondadientes, cepilla_lengua, tartaro, halitosis, placa_bacteriana, materia_alba,
+         oclusion, observaciones, created_at, profesional:profesionales(nombre)`,
+      )
+      .eq('paciente_id', pacienteId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false }),
   ])
   if (paciente.error) throw new Error(`No se pudo leer el paciente: ${paciente.error.message}`)
   if (codigos.error) throw new Error(`No se pudo leer el catálogo: ${codigos.error.message}`)
+  if (examenes.error) {
+    throw new Error(`No se pudo leer el examen bucal: ${examenes.error.message}`)
+  }
   for (const r of [registros, rx]) {
     if (r.error) throw new Error(`No se pudo leer el odontograma: ${r.error.message}`)
   }
@@ -122,6 +146,20 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
     organizacionId,
     codigos: codigos.data.map(codigoDeFila),
     rx: rx.data ?? [],
+    examenes: examenes.data.map((e) => ({
+      id: e.id,
+      usaMondadientes: e.usa_mondadientes,
+      cepillaLengua: e.cepilla_lengua,
+      tartaro: e.tartaro,
+      halitosis: e.halitosis,
+      placaBacteriana: e.placa_bacteriana,
+      materiaAlba: e.materia_alba,
+      oclusion: e.oclusion,
+      observaciones: e.observaciones,
+      fecha: fechaEnZona(new Date(e.created_at), ZONA),
+      actualizado: new Date(e.created_at),
+      profesional: e.profesional?.nombre ?? null,
+    })),
     registros: (registros.data ?? []).map((r) => ({
       id: r.id,
       pieza: r.pieza,

@@ -4,11 +4,13 @@
 - **Estado:** aceptada
 
 ## Contexto
+
 Ella usa un celular Android y va a instalar la web como PWA. El link mágico por correo funciona mal en ese caso: el link se abre en el navegador y no en la app instalada, y la sesión queda en el lugar equivocado.
 
 Más adelante entran las socias (decisión 0002), así que el usuario tiene que estar separado de la profesional.
 
 ## Decisión
+
 - **Supabase Auth** con dos formas de entrar:
   - **Google**, la principal. En Android ya tiene su cuenta: es un toque.
   - **Correo y contraseña**, como respaldo.
@@ -20,5 +22,6 @@ Más adelante entran las socias (decisión 0002), así que el usuario tiene que 
 - Sesión larga: no se le pide entrar de nuevo cada día.
 
 ## Consecuencias
+
 - Hay que configurar el cliente OAuth de Google en los dos proyectos de Supabase (demo y producción).
 - Dar acceso a una socia es crear una invitación y una fila en `miembros`. No hace falta cambiar el modelo.

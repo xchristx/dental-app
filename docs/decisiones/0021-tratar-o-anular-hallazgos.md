@@ -21,6 +21,7 @@ Además, en el gráfico las caras con hallazgos y las realizadas solo se disting
 - **Rayas en los hallazgos:** en el gráfico, las caras con hallazgos van en rojo con rayas, y las realizadas en azul liso. La leyenda lo muestra igual.
 
 ## Consecuencias
+
 - Queda registrado qué se trató y cuándo. Eso permite, más adelante, ver la boca en una fecha y el odontograma inicial, sin cambiar el modelo.
 - El CPO-D cuenta como obturada una pieza con caries tratada con una obturación, sin tocar nada a mano.
 - Un tratamiento que resuelve dos hallazgos de la misma pieza (por ejemplo, dos caries) se marca dos veces, una por cada uno.
