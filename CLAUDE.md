@@ -33,17 +33,19 @@ Nunca guardar en el repositorio datos ni imágenes de pacientes reales. Los dato
 
 Monorepo con pnpm y Turborepo. Todo se corre desde la raíz.
 
-- `pnpm dev`: la web en <http://localhost:3000>.
+- `pnpm dev`: la web en <http://localhost:5173>.
 - `pnpm build`, `pnpm lint`, `pnpm typecheck`, `pnpm test`.
 - `pnpm format`: formatea con Prettier. CI corre `pnpm format:check`.
 - `pnpm --filter @dental/core test:watch`: tests de la lógica compartida en modo watch.
 - `pnpm db:start` / `pnpm db:stop`: Supabase local (requiere Docker).
 - `pnpm db:reset`: aplica las migraciones de `supabase/migrations/` y carga `supabase/seed.sql`.
 - `pnpm db:test`: tests pgTAP de `supabase/tests/`.
+- `pnpm test:e2e`: pruebas de punta a punta con Playwright (necesita el Supabase local y Chrome). Cada archivo reinicia la base local con el seed.
 - `supabase migration new <nombre>`: crea una migración. Nunca se cambia el esquema desde el panel de Supabase.
 
 ## Convenciones de código
 
-- `packages/core` (`@dental/core`) no depende de React, Next ni Supabase. Lo que use la web y después la app Android va ahí.
-- Next.js 16: leer `apps/web/AGENTS.md` y la documentación en `apps/web/node_modules/next/dist/docs/` antes de usar una API de Next.
-- Componentes de shadcn/ui: `pnpm dlx shadcn@latest add <componente>` dentro de `apps/web`, y después se adaptan a `docs/diseno.md`. Íconos de `@phosphor-icons/react/ssr` en componentes de servidor.
+- `packages/core` (`@dental/core`) no depende de React ni de Supabase. Lo que use la web y después la app Android va ahí.
+- La web es una SPA con Vite, TanStack Router y TanStack Query (0017). Habla directo con Supabase desde el navegador, sin servidor propio. Las reglas que no se pueden saltear van en Postgres (RLS, triggers, restricciones); lo que valida la interfaz es solo para avisar antes.
+- Componentes de shadcn/ui: `pnpm dlx shadcn@latest add <componente>` dentro de `apps/web`, y después se adaptan a `docs/diseno.md`. Íconos de `@phosphor-icons/react`.
+- Trabajo de interfaz (componentes, CSS, formularios, diálogos, tablas, accesibilidad, animaciones, rendimiento en el cliente): antes de escribir código, usar la skill `modern-web-guidance` y buscar el patrón. Lo que diga se adapta a `docs/diseno.md` y a shadcn/ui; si choca con una decisión de `docs/decisiones/`, manda la decisión.
