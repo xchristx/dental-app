@@ -15,8 +15,12 @@
 # - VITE_DEMO_*: la cuenta del botón "Entrar como demo", que también está en
 #   supabase/seed.sql.
 # Nunca agregar aquí una clave secreta (por ejemplo, la service role de Supabase).
+#
+# Temporal (migración 0017): las variables de la web con Next tienen los mismos
+# valores y siguen cargadas en Netlify mientras se hace el cambio. Cuando se
+# borren del panel, se sacan de esta lista.
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_PUBLISHABLE_KEY,VITE_DEMO_EMAIL,VITE_DEMO_PASSWORD"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_PUBLISHABLE_KEY,VITE_DEMO_EMAIL,VITE_DEMO_PASSWORD,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,DEMO_EMAIL,DEMO_PASSWORD"
 
 # SPA: cualquier ruta (/pacientes, /ajustes…) la resuelve index.html.
 [[redirects]]
