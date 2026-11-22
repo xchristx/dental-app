@@ -64,8 +64,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # La web usa la base, la autenticación y la API REST. Lo demás no hace falta.
-      - run: supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      # La web usa la base, la autenticación, la API REST y Storage (radiografías y
+      # comprobantes, 0027). Lo demás no hace falta.
+      - run: supabase start -x realtime,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 
       # Las mismas variables que apps/web/.env.example, con la clave del Supabase local.
       - name: Variables de la web
