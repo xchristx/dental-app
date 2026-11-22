@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ZONA_LA_PAZ, fechaEnZona, sumarDias } from '../fechas/fechas'
 import {
   DatosAnamnesis,
+  DatosDerivacion,
   DatosEvolucion,
   evolucionEditable,
   formatearFechaNumerica,
@@ -118,5 +119,37 @@ describe('evolucionEditable', () => {
 describe('formatearFechaNumerica', () => {
   it('muestra día/mes/año', () => {
     expect(formatearFechaNumerica('2026-11-22')).toBe('22/11/2026')
+  })
+})
+
+describe('DatosDerivacion', () => {
+  const hoy = fechaEnZona(new Date(), ZONA_LA_PAZ)
+  const base = {
+    id: ID,
+    pacienteId: PACIENTE,
+    sentido: 'enviada' as const,
+    profesionalId: null,
+    contacto: '',
+    motivo: ' Implante en 36 ',
+    fecha: hoy,
+  }
+
+  it('pide una profesional o un nombre', () => {
+    const r = DatosDerivacion.safeParse(base)
+    expect(r.error?.issues[0]?.message).toBe('Elige una profesional o escribe a quién.')
+  })
+
+  it('con profesional descarta el nombre de afuera y recorta el motivo', () => {
+    const r = DatosDerivacion.safeParse({ ...base, profesionalId: USUARIA, contacto: 'Sobra' })
+    expect(r.data).toMatchObject({
+      profesionalId: USUARIA,
+      contacto: null,
+      motivo: 'Implante en 36',
+    })
+  })
+
+  it('acepta a alguien de afuera', () => {
+    const r = DatosDerivacion.safeParse({ ...base, contacto: 'Dr. Pérez' })
+    expect(r.data?.contacto).toBe('Dr. Pérez')
   })
 })

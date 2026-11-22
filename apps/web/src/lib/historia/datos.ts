@@ -1,3 +1,4 @@
+import { nombreConEspecialidad } from '@dental/core'
 import { supabase } from '@/lib/supabase/cliente'
 
 /** La versión vigente de la anamnesis (la última que se guardó). */
@@ -21,11 +22,25 @@ export interface Evolucion {
   creadaEn: Date
 }
 
+/** Derivación recibida o enviada (0019). */
+export interface Derivacion {
+  id: string
+  sentido: 'recibida' | 'enviada'
+  profesionalId: string | null
+  /** Nombre de la profesional (con especialidad) o de alguien de afuera. */
+  quien: string
+  contacto: string | null
+  motivo: string | null
+  fecha: string
+}
+
 export interface HistoriaClinica {
   organizacionId: string
   anamnesis: Anamnesis | null
   /** De la más nueva a la más vieja. */
   evoluciones: Evolucion[]
+  /** De la más nueva a la más vieja. */
+  derivaciones: Derivacion[]
 }
 
 /**
@@ -40,7 +55,7 @@ export function consultaHistoria(pacienteId: string) {
 }
 
 async function historiaDePaciente(pacienteId: string): Promise<HistoriaClinica | null> {
-  const [paciente, anamnesis, evoluciones] = await Promise.all([
+  const [paciente, anamnesis, evoluciones, derivaciones] = await Promise.all([
     supabase.from('pacientes').select('organization_id').eq('id', pacienteId).maybeSingle(),
     supabase
       .from('anamnesis')
@@ -60,11 +75,23 @@ async function historiaDePaciente(pacienteId: string): Promise<HistoriaClinica |
       .is('deleted_at', null)
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false }),
+    supabase
+      .from('derivaciones')
+      .select(
+        'id, sentido, profesional_id, contacto, motivo, fecha, profesional:profesionales(nombre, especialidad)',
+      )
+      .eq('paciente_id', pacienteId)
+      .is('deleted_at', null)
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false }),
   ])
   if (paciente.error) throw new Error(`No se pudo leer el paciente: ${paciente.error.message}`)
   if (anamnesis.error) throw new Error(`No se pudo leer la anamnesis: ${anamnesis.error.message}`)
   if (evoluciones.error) {
     throw new Error(`No se pudo leer la evolución: ${evoluciones.error.message}`)
+  }
+  if (derivaciones.error) {
+    throw new Error(`No se pudieron leer las derivaciones: ${derivaciones.error.message}`)
   }
   if (!paciente.data) return null
 
@@ -88,6 +115,20 @@ async function historiaDePaciente(pacienteId: string): Promise<HistoriaClinica |
       autorId: e.autor_id,
       profesional: e.profesional?.nombre ?? null,
       creadaEn: new Date(e.created_at),
+    })),
+    derivaciones: derivaciones.data.map((d) => ({
+      id: d.id,
+      sentido: d.sentido === 'recibida' ? 'recibida' : 'enviada',
+      profesionalId: d.profesional_id,
+      quien: d.profesional
+        ? nombreConEspecialidad({
+            nombre: d.profesional.nombre,
+            especialidad: d.profesional.especialidad,
+          })
+        : (d.contacto ?? ''),
+      contacto: d.contacto,
+      motivo: d.motivo,
+      fecha: d.fecha,
     })),
   }
 }

@@ -169,3 +169,15 @@ from semana s, (values
   ('50000000-0000-4000-8000-000000000003', '60000000-0000-4000-8000-000000000003', 1, '11:00',
    'Control. Sin caries nuevas. Tartrectomía y pulido.')
 ) as e(paciente, cita, dia, hora, texto);
+
+-- Derivaciones (0019): Martín llegó derivado de afuera para la endodoncia, y
+-- Sofía se derivó a Rocío para ortodoncia.
+insert into public.derivaciones (
+  organization_id, paciente_id, sentido, profesional_id, contacto, motivo, fecha, autor_id
+) values
+  ('10000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000002', 'recibida',
+   null, 'Dr. Ramiro Soliz, odontología general', 'Endodoncia en 46.',
+   (now() at time zone 'America/La_Paz')::date - 45, '70000000-0000-4000-8000-000000000001'),
+  ('10000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000006', 'enviada',
+   '20000000-0000-4000-8000-000000000002', null, 'Evaluar mordida abierta anterior.',
+   (now() at time zone 'America/La_Paz')::date - 20, '70000000-0000-4000-8000-000000000001');

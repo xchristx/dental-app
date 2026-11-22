@@ -18,6 +18,7 @@ import { badges } from '@/components/agenda/bloque-cita'
 import { Enlace } from '@/components/enlace'
 import { AvisoAlergias } from '@/components/historia/aviso-alergias'
 import { SeccionAnamnesis } from '@/components/historia/anamnesis'
+import { SeccionDerivaciones } from '@/components/historia/derivaciones'
 import { SeccionEvolucion, type OpcionCita } from '@/components/historia/evolucion'
 import { FormularioPaciente } from '@/components/pacientes/formulario-paciente'
 import { ZONA } from '@/lib/agenda/zona'
@@ -139,6 +140,11 @@ function Ficha({ paciente }: { paciente: FichaPaciente }) {
             organizacionId={historia.data.organizacionId}
             evoluciones={historia.data.evoluciones}
             citas={citasAtendidas}
+          />
+          <SeccionDerivaciones
+            pacienteId={paciente.id}
+            organizacionId={historia.data.organizacionId}
+            derivaciones={historia.data.derivaciones}
           />
         </>
       ) : (

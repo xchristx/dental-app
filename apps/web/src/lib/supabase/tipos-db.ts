@@ -181,6 +181,74 @@ export type Database = {
           },
         ]
       }
+      derivaciones: {
+        Row: {
+          autor_id: string | null
+          contacto: string | null
+          created_at: string
+          deleted_at: string | null
+          fecha: string
+          id: string
+          motivo: string | null
+          organization_id: string
+          paciente_id: string
+          profesional_id: string | null
+          sentido: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          autor_id?: string | null
+          contacto?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha: string
+          id?: string
+          motivo?: string | null
+          organization_id: string
+          paciente_id: string
+          profesional_id?: string | null
+          sentido: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          contacto?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha?: string
+          id?: string
+          motivo?: string | null
+          organization_id?: string
+          paciente_id?: string
+          profesional_id?: string | null
+          sentido?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'derivaciones_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'derivaciones_organization_id_paciente_id_fkey'
+            columns: ['organization_id', 'paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'derivaciones_organization_id_profesional_id_fkey'
+            columns: ['organization_id', 'profesional_id']
+            isOneToOne: false
+            referencedRelation: 'profesionales'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
       evoluciones: {
         Row: {
           autor_id: string | null
