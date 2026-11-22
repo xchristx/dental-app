@@ -78,8 +78,8 @@ test('la ficha dice cómo suele llegar, la edad y el historial', async () => {
   )
   await expect(main).toContainText(`23/11/1998 · ${edad('1998-11-23')} años`)
   await expect(main).toContainText('No tiene citas agendadas.')
-  await expect.poll(() => filas('Historial')).toHaveLength(3)
-  const historial = await filas('Historial')
+  await expect.poll(() => filas('Historial de citas')).toHaveLength(3)
+  const historial = await filas('Historial de citas')
   expect(historial[0]).toMatch(new RegExp(`^${diaLargo(dia(-6))} · 10:00.*Atendida$`))
   await expect(page.locator('aside a[aria-current=page]')).toHaveText('Pacientes')
 })
@@ -100,7 +100,7 @@ test('editar el celular: valida y ofrece WhatsApp', async () => {
 })
 
 test('una cita del historial abre su detalle en la agenda', async () => {
-  await page.locator('section[aria-label=Historial] li a').first().click()
+  await page.locator('section[aria-label="Historial de citas"] li a').first().click()
   await expect(page).toHaveURL(/cita=/)
   await expect(titulo(h)).toHaveText('Lucía Fernández')
 })

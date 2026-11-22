@@ -7,6 +7,7 @@ import {
   edad,
   fechaEnZona,
   formatearDiaLargo,
+  formatearFechaNumerica,
   formatearHora,
   puntualidad,
   telefonoParaWhatsApp,
@@ -15,8 +16,12 @@ import {
 } from '@dental/core'
 import { badges } from '@/components/agenda/bloque-cita'
 import { Enlace } from '@/components/enlace'
+import { AvisoAlergias } from '@/components/historia/aviso-alergias'
+import { SeccionAnamnesis } from '@/components/historia/anamnesis'
+import { SeccionEvolucion, type OpcionCita } from '@/components/historia/evolucion'
 import { FormularioPaciente } from '@/components/pacientes/formulario-paciente'
 import { ZONA } from '@/lib/agenda/zona'
+import { consultaHistoria } from '@/lib/historia/datos'
 import { tituloDePagina } from '@/lib/navegacion'
 import { fichaDePaciente, type CitaDelPaciente, type FichaPaciente } from '@/lib/pacientes/datos'
 import { cn } from '@/lib/utils'
@@ -58,19 +63,34 @@ function Ficha({ paciente }: { paciente: FichaPaciente }) {
   const anios = edad(paciente.fechaNacimiento, hoy)
   const habito = puntualidad(paciente.citas.filter((c) => c.estado === 'atendida'))
   const whatsapp = telefonoParaWhatsApp(paciente.telefono)
+  const historia = useQuery(consultaHistoria(paciente.id))
+  // Las citas atendidas, para ligarles una evolución.
+  const citasAtendidas: OpcionCita[] = paciente.citas
+    .filter((c) => c.estado === 'atendida')
+    .map((c) => {
+      const fecha = fechaEnZona(c.inicio, ZONA)
+      return {
+        id: c.id,
+        fecha,
+        etiqueta: `${formatearFechaNumerica(fecha)} · ${c.tipo ?? 'Cita'} · ${c.lugar}`,
+      }
+    })
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-medium">{paciente.nombre}</h1>
-          {habito && (
-            <p className="text-muted-foreground">
-              {textoPuntualidad(habito.llegada)} (según {habito.citas} citas)
-            </p>
-          )}
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-medium">{paciente.nombre}</h1>
+            {habito && (
+              <p className="text-muted-foreground">
+                {textoPuntualidad(habito.llegada)} (según {habito.citas} citas)
+              </p>
+            )}
+          </div>
+          <FormularioPaciente paciente={paciente} />
         </div>
-        <FormularioPaciente paciente={paciente} />
+        {historia.data && <AvisoAlergias anamnesis={historia.data.anamnesis} />}
       </header>
 
       <dl className="border-border bg-card divide-border divide-y rounded-lg border text-sm">
@@ -106,7 +126,30 @@ function Ficha({ paciente }: { paciente: FichaPaciente }) {
         citas={proximas}
         vacia="No tiene citas agendadas. Se agendan desde la agenda."
       />
-      <ListaCitas titulo="Historial" citas={anteriores} vacia="Todavía no tuvo citas." />
+
+      {historia.data ? (
+        <>
+          <SeccionAnamnesis
+            pacienteId={paciente.id}
+            organizacionId={historia.data.organizacionId}
+            anamnesis={historia.data.anamnesis}
+          />
+          <SeccionEvolucion
+            pacienteId={paciente.id}
+            organizacionId={historia.data.organizacionId}
+            evoluciones={historia.data.evoluciones}
+            citas={citasAtendidas}
+          />
+        </>
+      ) : (
+        <div
+          aria-busy="true"
+          aria-label="Cargando la historia clínica"
+          className="bg-muted h-64 rounded-lg"
+        />
+      )}
+
+      <ListaCitas titulo="Historial de citas" citas={anteriores} vacia="Todavía no tuvo citas." />
     </>
   )
 }
