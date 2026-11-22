@@ -249,6 +249,39 @@ insert into public.examen_bucal (
    '70000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
    now() - interval '2 days');
 
+-- Presupuestos y pagos (0026), inventados. El trigger calcula el saldo y
+-- numera los recibos en el orden en que se insertan.
+insert into public.presupuestos (
+  id, organization_id, paciente_id, descripcion, total_centavos, cuota_inicial_centavos,
+  cuota_sugerida_centavos, fecha, autor_id, profesional_id, created_at
+) values
+  ('90000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001',
+   '50000000-0000-4000-8000-000000000004', 'Ortodoncia', 650000, 100000, 40000,
+   (now() at time zone 'America/La_Paz')::date - 200, '70000000-0000-4000-8000-000000000001',
+   '20000000-0000-4000-8000-000000000001', now() - interval '200 days'),
+  ('90000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001',
+   '50000000-0000-4000-8000-000000000002', 'Endodoncia de la 46', 80000, null, null,
+   (now() at time zone 'America/La_Paz')::date - 45, '70000000-0000-4000-8000-000000000001',
+   '20000000-0000-4000-8000-000000000001', now() - interval '45 days');
+
+insert into public.movimientos_pago (
+  organization_id, presupuesto_id, tipo, monto_centavos, forma_pago, motivo, fecha, autor_id,
+  profesional_id, created_at
+)
+select
+  '10000000-0000-4000-8000-000000000001', m.presupuesto::uuid, m.tipo, m.monto, m.forma, m.motivo,
+  (now() at time zone 'America/La_Paz')::date - m.hace, '70000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001', now() - make_interval(days => m.hace)
+from (values
+  (1, '90000000-0000-4000-8000-000000000001', 'pago',   100000, 'efectivo',      null, 200),
+  (2, '90000000-0000-4000-8000-000000000001', 'pago',    40000, 'qr',            null, 170),
+  (3, '90000000-0000-4000-8000-000000000001', 'pago',    40000, 'transferencia', null, 140),
+  (4, '90000000-0000-4000-8000-000000000001', 'ajuste', -10000, null, 'Descuento por pago puntual', 140),
+  (5, '90000000-0000-4000-8000-000000000001', 'pago',    40000, 'qr',            null, 110),
+  (6, '90000000-0000-4000-8000-000000000002', 'pago',    30000, 'efectivo',      null, 45)
+) as m(orden, presupuesto, tipo, monto, forma, motivo, hace)
+order by m.orden;
+
 -- Radiografías tomadas (0023), en días que ya tienen registros.
 insert into public.odontograma_rx (organization_id, paciente_id, pieza, fecha, nota, autor_id)
 select
