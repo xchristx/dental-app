@@ -1,10 +1,12 @@
 import { useId, useState, useTransition } from 'react'
-import { CheckIcon, ProhibitIcon } from '@phosphor-icons/react'
+import { useQuery } from '@tanstack/react-query'
+import { CheckIcon, NotePencilIcon, ProhibitIcon } from '@phosphor-icons/react'
 import {
   codigoParaTratar,
   describirPieza,
   errorDeRegistro,
   estadoOdontograma,
+  evolucionEditable,
   fechaEnZona,
   formatearFechaNumerica,
   textoRegistro,
@@ -24,8 +26,15 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { ZONA } from '@/lib/agenda/zona'
-import { agregarRegistro, agregarRx, anularRegistro, anularRx } from '@/lib/odontograma/acciones'
-import type { Codigo } from '@/lib/odontograma/datos'
+import {
+  agregarRegistro,
+  agregarRx,
+  anularRegistro,
+  anularRx,
+  editarNota,
+} from '@/lib/odontograma/acciones'
+import { consultaUsuario } from '@/lib/historia/datos'
+import type { Codigo, RegistroCargado } from '@/lib/odontograma/datos'
 import { cn } from '@/lib/utils'
 
 const COLOR_TEXTO = {
@@ -76,7 +85,7 @@ export function HojaPieza({
 }: {
   apertura: AperturaPieza | null
   onCerrar: () => void
-  registros: RegistroOdontograma[]
+  registros: RegistroCargado[]
   /** Radiografías tomadas del paciente (0023). */
   rx: RadiografiaOdontograma[]
   codigos: Codigo[]
@@ -93,6 +102,9 @@ export function HojaPieza({
   const [error, setError] = useState<string | null>(null)
   const [anulando, setAnulando] = useState<string | null>(null)
   const [nuevaRx, setNuevaRx] = useState(() => rxVacia(hoy))
+  // Corregir la nota de un registro: quien lo cargó, el mismo día (0025).
+  const [editando, setEditando] = useState<{ id: string; nota: string } | null>(null)
+  const usuario = useQuery(consultaUsuario())
   const [pendiente, iniciar] = useTransition()
   const idFormRx = useId()
 
@@ -120,6 +132,7 @@ export function HojaPieza({
     const hallazgo = registros.find((r) => r.id === apertura.tratarId)
     setPieza(hallazgo?.pieza ?? apertura.piezas[0] ?? 11)
     setAnulando(null)
+    setEditando(null)
     setError(null)
     setNuevaRx(rxVacia(hoy))
     if (hallazgo) empezarATratar(hallazgo)
@@ -185,6 +198,15 @@ export function HojaPieza({
       const r = await anularRegistro(id)
       if (r.ok) setAnulando(null)
       else setError(r.error)
+    })
+  }
+
+  function guardarNota(r: RegistroCargado) {
+    if (!editando) return
+    iniciar(async () => {
+      const resultado = await editarNota(r.id, editando.nota, r.codigoId === null)
+      if (resultado.ok) setEditando(null)
+      else setError(resultado.error)
     })
   }
 
@@ -294,8 +316,69 @@ export function HojaPieza({
                           )}
                         </div>
 
-                        {!tratadoCon && anulando !== r.id && (
+                        {editando?.id === r.id && (
+                          <div className="flex flex-col gap-2">
+                            <label className="flex flex-col gap-1.5 font-medium">
+                              Corregir la nota
+                              <input
+                                value={editando.nota}
+                                autoComplete="off"
+                                maxLength={500}
+                                onChange={(e) => {
+                                  setError(null)
+                                  setEditando({ id: r.id, nota: e.target.value })
+                                }}
+                                // Enter guarda la nota, no agrega un registro.
+                                onKeyDown={(e) => {
+                                  if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+                                  e.preventDefault()
+                                  guardarNota(r)
+                                }}
+                                className={claseCampo}
+                              />
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={pendiente}
+                                onClick={() => setEditando(null)}
+                              >
+                                Cancelar
+                              </Button>
+                              <Button
+                                type="button"
+                                disabled={pendiente}
+                                onClick={() => guardarNota(r)}
+                              >
+                                Guardar nota
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {!tratadoCon && anulando !== r.id && editando?.id !== r.id && (
                           <div className="flex flex-wrap gap-2">
+                            {evolucionEditable(
+                              { autorId: r.autorId, creadaEn: r.creadoEn },
+                              usuario.data ?? null,
+                              new Date(),
+                            ) && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label={c ? `Editar la nota de ${etiqueta}` : 'Editar la nota'}
+                                onClick={() => {
+                                  setError(null)
+                                  setAnulando(null)
+                                  setEditando({ id: r.id, nota: r.nota ?? '' })
+                                }}
+                              >
+                                <NotePencilIcon weight="bold" />
+                                {r.nota ? 'Editar nota' : 'Agregar nota'}
+                              </Button>
+                            )}
                             {esPendiente && (
                               <Button
                                 type="button"
