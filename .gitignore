@@ -31,3 +31,7 @@ coverage/
 # pruebas de punta a punta
 playwright-report/
 test-results/
+
+# Claves privadas y respaldos de producción (0031): nunca al repositorio
+sifel-respaldo-*.txt
+*.age
