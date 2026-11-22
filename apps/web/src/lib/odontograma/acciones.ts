@@ -79,6 +79,35 @@ export async function anularRegistro(id: string): Promise<ResultadoOdontograma> 
   return { ok: true }
 }
 
+const NOTA_VACIA = 'Una nota sola no puede quedar vacía. Para quitarla, anúlala.'
+
+/**
+ * Corrige la nota de un registro: solo quien lo cargó y solo el mismo día
+ * (0025). Postgres lo controla (OD008 y OD009).
+ */
+export async function editarNota(
+  id: string,
+  nota: string,
+  sinCodigo: boolean,
+): Promise<ResultadoOdontograma> {
+  const texto = nota.trim()
+  if (texto.length > 500) return { ok: false, error: 'Máximo 500 caracteres.' }
+  if (sinCodigo && !texto) return { ok: false, error: NOTA_VACIA }
+  const { data, error } = await supabase
+    .from('odontograma_registros')
+    .update({ nota: texto || null })
+    .eq('id', id)
+    .select('id')
+  if (error) {
+    if (error.code === 'OD008' || error.code === 'OD009') return { ok: false, error: error.message }
+    if (error.code === '23514') return { ok: false, error: NOTA_VACIA }
+    return fallo('editar-nota', error)
+  }
+  if (!data.length) return { ok: false, error: 'No encontramos ese registro. Recarga la página.' }
+  refrescar()
+  return { ok: true }
+}
+
 /** Registra que se tomó una radiografía de una pieza (0023). */
 export async function agregarRx(
   datos: unknown,

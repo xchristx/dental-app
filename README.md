@@ -56,6 +56,7 @@ Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome inst
   - [0022: Editar el catálogo del odontograma](docs/decisiones/0022-editar-el-catalogo-del-odontograma.md)
   - [0023: Radiografías en el odontograma (columna Rx)](docs/decisiones/0023-radiografias-en-el-odontograma.md)
   - [0024: Examen bucal (datos generales de la ficha)](docs/decisiones/0024-examen-bucal.md)
+  - [0025: Editar la nota de un registro del odontograma](docs/decisiones/0025-editar-la-nota-de-un-registro.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack

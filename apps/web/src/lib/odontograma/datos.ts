@@ -75,11 +75,17 @@ export interface Odontograma {
   /** Todo el catálogo, en su orden. */
   codigos: Codigo[]
   /** Registros vigentes, del más nuevo al más viejo. */
-  registros: RegistroOdontograma[]
+  registros: RegistroCargado[]
   /** Radiografías tomadas (0023), de la más nueva a la más vieja. */
   rx: RadiografiaOdontograma[]
   /** Versiones del examen bucal (0024), de la más nueva a la más vieja. */
   examenes: ExamenBucal[]
+}
+
+/** Un registro con quién y cuándo lo cargó: su nota se corrige solo ese día (0025). */
+export interface RegistroCargado extends RegistroOdontograma {
+  autorId: string | null
+  creadoEn: Date
 }
 
 export interface ExamenBucal extends Omit<DatosExamenBucal, 'pacienteId'> {
@@ -109,7 +115,7 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
       .order('abreviatura'),
     supabase
       .from('odontograma_registros')
-      .select('id, pieza, codigo_id, resuelve_id, caras, grado, nota, fecha')
+      .select('id, pieza, codigo_id, resuelve_id, caras, grado, nota, fecha, autor_id, created_at')
       .eq('paciente_id', pacienteId)
       .is('deleted_at', null)
       .order('fecha', { ascending: false })
@@ -169,6 +175,8 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
       grado: r.grado,
       nota: r.nota,
       fecha: r.fecha,
+      autorId: r.autor_id,
+      creadoEn: new Date(r.created_at),
     })),
   }
 }

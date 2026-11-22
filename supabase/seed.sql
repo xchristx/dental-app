@@ -184,12 +184,14 @@ insert into public.derivaciones (
 
 -- Odontograma (0020). El catálogo inicial lo crea el trigger de la
 -- organización; aquí van registros inventados de algunos pacientes.
+-- created_at es el día de la fecha: la nota de días anteriores ya no se edita (0025).
 insert into public.odontograma_registros (
-  organization_id, paciente_id, codigo_id, pieza, caras, grado, nota, fecha, autor_id
+  organization_id, paciente_id, codigo_id, pieza, caras, grado, nota, fecha, autor_id, created_at
 )
 select
   '10000000-0000-4000-8000-000000000001', r.paciente::uuid, c.id, r.pieza, r.caras::text[], r.grado,
-  r.nota, (now() at time zone 'America/La_Paz')::date - r.hace, '70000000-0000-4000-8000-000000000001'
+  r.nota, (now() at time zone 'America/La_Paz')::date - r.hace, '70000000-0000-4000-8000-000000000001',
+  ((now() at time zone 'America/La_Paz')::date - r.hace + time '10:00') at time zone 'America/La_Paz'
 from (values
   -- Camila
   ('50000000-0000-4000-8000-000000000001', 'Obt', 36, '{O,M}', null, 'Resina A2', 7),
@@ -216,12 +218,13 @@ join public.odontograma_codigos c
 -- Tratar un hallazgo (0021): la obturación de Camila en 36 trató una caries
 -- que se había registrado en la primera consulta.
 insert into public.odontograma_registros (
-  id, organization_id, paciente_id, codigo_id, pieza, caras, grado, fecha, autor_id
+  id, organization_id, paciente_id, codigo_id, pieza, caras, grado, fecha, autor_id, created_at
 )
 select
   '80000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001',
   '50000000-0000-4000-8000-000000000001', c.id, 36, '{O,M}', 2,
-  (now() at time zone 'America/La_Paz')::date - 90, '70000000-0000-4000-8000-000000000001'
+  (now() at time zone 'America/La_Paz')::date - 90, '70000000-0000-4000-8000-000000000001',
+  ((now() at time zone 'America/La_Paz')::date - 90 + time '10:00') at time zone 'America/La_Paz'
 from public.odontograma_codigos c
 where c.organization_id = '10000000-0000-4000-8000-000000000001' and c.abreviatura = 'C';
 
