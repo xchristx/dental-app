@@ -15,6 +15,7 @@ import {
   type EstadoCita,
 } from '@dental/core'
 import { badges } from '@/components/agenda/bloque-cita'
+import { SeccionArchivos } from '@/components/archivos/seccion-archivos'
 import { Enlace } from '@/components/enlace'
 import { AvisoAlergias } from '@/components/historia/aviso-alergias'
 import { SeccionAnamnesis } from '@/components/historia/anamnesis'
@@ -149,6 +150,7 @@ function Ficha({ paciente }: { paciente: FichaPaciente }) {
             organizacionId={historia.data.organizacionId}
             derivaciones={historia.data.derivaciones}
           />
+          <SeccionArchivos pacienteId={paciente.id} />
           <SeccionPagos pacienteId={paciente.id} />
         </>
       ) : (
