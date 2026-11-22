@@ -30,7 +30,7 @@ Las cuentas de servicio de Google ya no tienen espacio propio en Drive: solo pue
   - El runner solo tiene las claves públicas, guardadas en la variable `RESPALDO_CLAVES_PUBLICAS`.
   - Las privadas las guarda cada uno, fuera de GitHub y de Drive. Cualquiera de las dos descifra.
 - **Dónde se guarda:** en Google Drive, en la carpeta `sifel-respaldos`, con [rclone](https://rclone.org).
-  - Usa la cuenta de Google del autor, con el permiso `drive.file`: rclone solo ve lo que él mismo subió, no el resto del Drive.
+  - Usa la cuenta de Google de Sifel (0030), con el permiso `drive.file`: rclone solo ve lo que él mismo subió.
   - La base queda en `base/`, un archivo por día, y se borran los de más de 30 días.
   - Los archivos quedan en `archivos/`, con la misma ruta que en Storage y `.age` al final. No se borran.
 - **Nada sin cifrar sale del runner.** Ningún paso imprime datos, y no se suben artifacts.
@@ -42,7 +42,7 @@ Las cuentas de servicio de Google ya no tienen espacio propio en Drive: solo pue
 
 ## Consecuencias
 
-- No cuesta nada: Drive da 15 GB, compartidos con el resto de la cuenta. La base comprimida pesa poco. Lo que más crece son los archivos, unos 300 a 600 KB por foto (0027).
+- No cuesta nada: Drive da 15 GB, y la cuenta de Sifel no tiene nada más. La base comprimida pesa poco. Lo que más crece son los archivos, unos 300 a 600 KB por foto (0027).
 - Las claves de S3 de Storage pasan por encima de RLS, así que son un secreto tan delicado como `PROD_DB_URL`. Las dos viven solo en el environment `produccion` de GitHub.
 - Si el respaldo falla, GitHub le manda un correo a quien programó el workflow.
 - **Probado el 2026-11-22 en local:**

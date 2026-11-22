@@ -5,6 +5,7 @@
 - **Reemplaza:**
   - De la [0016](0016-region-de-supabase.md), que antes de crear producción se mide la latencia desde la conexión de la dentista. Ahora se mide después.
   - De la [0007](0007-autenticacion.md), que el cliente OAuth de Google se configura en los dos proyectos. Ahora va solo en producción.
+  - De la [0016](0016-region-de-supabase.md), que producción y la demo ocupan el cupo de proyectos gratis del autor. Pasan a una cuenta de Supabase aparte, de Sifel.
   - De la [0015](0015-demo-se-reinicia-cada-dia.md), que la demo está en `sifel.netlify.app`. Pasa a `sifel-demo.netlify.app`, y `sifel.netlify.app` queda para producción.
 - **Sigue:** la [0011](0011-produccion-en-plan-gratis.md). Los respaldos están en la [0031](0031-respaldos-en-google-drive.md).
 
@@ -15,6 +16,19 @@ Los MVP 1 a 3 están completos y la dentista va a empezar a usar la app con sus 
 El cupo gratis de Supabase permite dos proyectos activos (0016). Hoy solo está activa la demo.
 
 ## Decisión
+
+### Una cuenta solo para Sifel
+
+- **Una cuenta de Google dedicada**, con verificación en dos pasos. Es dueña de:
+  - la cuenta de Supabase;
+  - el cliente OAuth en Google Cloud;
+  - la carpeta de respaldos en Drive (0031).
+
+  Para entrar a la app, la dentista y el autor usan sus propias cuentas de Google: esta solo administra.
+- **Una cuenta de Supabase aparte,** con el correo de Sifel y una organización `Sifel` que tiene los dos proyectos, la demo y producción.
+  - El cupo de 2 proyectos gratis activos es por persona (0016). Así no choca con los otros proyectos del autor.
+  - La demo se **transfiere** desde la cuenta del autor. Un proyecto transferido conserva su URL y sus claves, así que Netlify, `DEMO_DB_URL` y el reinicio diario no cambian.
+  - Después, el autor sale de la organización o queda como Developer. Como Owner o Admin, los proyectos contarían en su cupo personal.
 
 ### Dónde
 

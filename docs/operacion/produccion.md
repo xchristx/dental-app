@@ -6,7 +6,33 @@ Cómo se arma producción (decisiones [0030](../decisiones/0030-produccion.md) y
 
 En la guía, `<ref>` es la referencia del proyecto de Supabase (sale en su URL). Producción va en `sifel.netlify.app` y la demo en `sifel-demo.netlify.app` (0030).
 
-## 0. Mover la demo a sifel-demo.netlify.app
+## 0. Antes de empezar
+
+### 0.1 La cuenta de Google de Sifel
+
+Es una cuenta de Google solo para Sifel. Es dueña de lo de Sifel en Supabase, del cliente OAuth de Google Cloud (paso 3) y de la carpeta de respaldos en Drive (paso 4). Así nada de eso se mezcla con tus otros proyectos.
+
+1. Créala en <https://accounts.google.com/signup>, con un correo nuevo de Gmail.
+2. Activa la verificación en dos pasos. Pon tu teléfono y tu correo personal como recuperación.
+3. Guarda la contraseña en tu gestor de contraseñas.
+
+Para entrar a la app, la dentista y tú siguen usando sus propias cuentas de Google. Esta cuenta solo administra.
+
+### 0.2 Supabase: una cuenta aparte, con la demo transferida
+
+El cupo de 2 proyectos gratis activos es por persona (0016). Con una cuenta aparte, Sifel no choca con tus otros proyectos.
+
+1. Crea una cuenta de Supabase en <https://supabase.com/dashboard/sign-up>, con el correo de Sifel (correo y contraseña). Activa MFA en **Account → Security**.
+2. Con esa cuenta, crea una organización `Sifel`, en el plan Free.
+3. En **Organization settings → Team**, invita a tu cuenta personal de Supabase como **Owner**. Solo hace falta para transferir.
+4. Con tu cuenta personal:
+   - Acepta la invitación.
+   - En el proyecto `dental-app-demo-sa`, entra a **Project Settings → General → Transfer project** y elige la organización `Sifel`.
+   - La transferencia no se puede deshacer, pero el proyecto **conserva su URL y sus claves**. Netlify, el secreto `DEMO_DB_URL` y el workflow de reinicio no cambian.
+5. Con la cuenta de Sifel, en **Team**, saca a tu cuenta personal o déjala como **Developer**. Si queda como Owner o Admin, el proyecto sigue contando en tu cupo personal.
+6. En tu computadora, corre `pnpm exec supabase login` con la cuenta de Sifel, para que la CLI vea los proyectos.
+
+### 0.3 Mover la demo a sifel-demo.netlify.app
 
 Haz los pasos 1 y 2 seguidos. Los nombres de Netlify son únicos entre todos sus usuarios: apenas se libera `sifel`, otra persona podría tomarlo.
 
@@ -33,7 +59,7 @@ Cada uno (el autor y la dentista) tiene su par de claves de [age](https://age-en
 
 ## 2. Supabase: el proyecto
 
-1. Crea un proyecto en el panel de Supabase.
+1. Con la cuenta de Sifel, crea un proyecto en la organización `Sifel`.
    - **Nombre:** `sifel-produccion`.
    - **Región:** South America (São Paulo), sa-east-1.
    - Pon una contraseña de base larga y guárdala en el gestor de contraseñas.
@@ -47,11 +73,11 @@ Cada uno (el autor y la dentista) tiene su par de claves de [age](https://age-en
 
 ## 3. Google: el cliente OAuth
 
-En [Google Cloud Console](https://console.cloud.google.com), con tu cuenta:
+En [Google Cloud Console](https://console.cloud.google.com), con la cuenta de Google de Sifel:
 
 1. Crea un proyecto llamado `Sifel`.
 2. En **Google Auth Platform**:
-   - **Branding:** nombre de la app `Sifel` y tu correo de soporte.
+   - **Branding:** nombre de la app `Sifel` y el correo de Sifel como correo de soporte. Es el que ve la dentista en la pantalla de Google.
    - **Audience:** External. Después, **Publish app** para que quede *In production*. Con solo los permisos básicos (email y perfil) no pide verificación.
    - **Clients → Create client → Web application:**
      - **Authorized JavaScript origins:** `https://sifel.netlify.app`
@@ -62,10 +88,10 @@ En [Google Cloud Console](https://console.cloud.google.com), con tu cuenta:
 ## 4. Google Drive: dónde quedan los respaldos
 
 1. Instala rclone: `scoop install rclone` o `winget install Rclone.Rclone`.
-2. Corre `rclone config create drive drive scope drive.file`. Se abre el navegador: entra con la cuenta de Google donde van a quedar los respaldos.
+2. Corre `rclone config create drive drive scope drive.file`. Se abre el navegador: entra con la cuenta de Google de Sifel.
 3. Corre `rclone config show drive` y copia todo lo que imprime, desde la línea `[drive]`. Es el secreto `RCLONE_DRIVE_CONF` del paso 5.
 
-Con `drive.file`, rclone solo ve lo que sube él: la carpeta `sifel-respaldos`, no el resto de tu Drive.
+Con `drive.file`, rclone solo ve lo que sube él: la carpeta `sifel-respaldos`. Para descargar un respaldo (prueba mensual), entra a Drive con la cuenta de Sifel.
 
 ## 5. GitHub: environment, secretos y variables
 
