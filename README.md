@@ -47,6 +47,7 @@ Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome inst
   - [0013: Reglas de tiempo de una cita y llegada tarde](docs/decisiones/0013-reglas-de-tiempo-y-llegada-tarde.md)
   - [0014: Gestión de profesionales y permisos por rol](docs/decisiones/0014-gestion-de-profesionales.md)
   - [0015: La demo se reinicia cada día](docs/decisiones/0015-demo-se-reinicia-cada-dia.md)
+  - [0016: Supabase en São Paulo](docs/decisiones/0016-region-de-supabase.md)
   - [0017: La web pasa a ser una SPA con Vite](docs/decisiones/0017-spa-con-vite.md)
 - [Guía de diseño](docs/diseno.md)
 
