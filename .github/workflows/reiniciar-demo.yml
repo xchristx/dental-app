@@ -5,8 +5,8 @@ name: Reiniciar la demo
 # vacía, se borra lo que cambien las visitas y el proyecto gratis de Supabase
 # no se pausa por inactividad.
 #
-# Solo toca el proyecto dental-app-demo. Nunca producción: el paso de
-# comprobación corta si el secreto apunta a otro proyecto.
+# Solo toca el proyecto dental-app-demo-sa (São Paulo, decisión 0016). Nunca
+# producción: el paso de comprobación corta si el secreto apunta a otro proyecto.
 
 on:
   schedule:
@@ -26,10 +26,10 @@ jobs:
     name: Reiniciar con migraciones y seed
     runs-on: ubuntu-latest
     env:
-      # Cadena de conexión del "Session pooler" de dental-app-demo (los runners
+      # Cadena de conexión del "Session pooler" de dental-app-demo-sa (los runners
       # de GitHub no tienen IPv6, que es lo que usa la conexión directa).
       DEMO_DB_URL: ${{ secrets.DEMO_DB_URL }}
-      PROYECTO_DEMO: gakkdxmjydidvwsgvevx
+      PROYECTO_DEMO: mbqrsaxdecuuqitavcel
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +41,7 @@ jobs:
           fi
           case "$DEMO_DB_URL" in
             *"$PROYECTO_DEMO"*) echo "Apunta al proyecto de la demo." ;;
-            *) echo "::error::DEMO_DB_URL no es del proyecto dental-app-demo. No se reinicia nada."; exit 1 ;;
+            *) echo "::error::DEMO_DB_URL no es del proyecto dental-app-demo-sa. No se reinicia nada."; exit 1 ;;
           esac
 
       - uses: supabase/setup-cli@v1
