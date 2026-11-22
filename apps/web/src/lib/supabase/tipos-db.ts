@@ -782,6 +782,7 @@ export type Database = {
     Functions: {
       es_admin_de: { Args: { org: string }; Returns: boolean }
       odontograma_catalogo_inicial: { Args: { org: string }; Returns: undefined }
+      odontograma_codigos_usados: { Args: Record<PropertyKey, never>; Returns: string[] }
       org_ids_del_usuario: { Args: Record<PropertyKey, never>; Returns: string[] }
       profesional_del_usuario: { Args: { org: string }; Returns: string }
       reagendar_cita: {

@@ -1,16 +1,69 @@
 import {
   CARAS,
+  INDICES_CODIGO,
+  SIMBOLOS_CODIGO,
   type Cara,
   type CodigoOdontograma,
-  type IndiceCodigo,
   type RegistroOdontograma,
-  type SimboloCodigo,
 } from '@dental/core'
 import { supabase } from '@/lib/supabase/cliente'
 
 export interface Codigo extends CodigoOdontograma {
   /** Dado de baja del catálogo: sus registros se siguen viendo, pero no se usa para agregar. */
   activo: boolean
+}
+
+const COLUMNAS_CODIGO =
+  'id, abreviatura, nombre, tipo, simbolo, por_caras, usa_grado, indice, deleted_at'
+
+interface FilaCodigo {
+  id: string
+  abreviatura: string
+  nombre: string
+  tipo: string
+  simbolo: string
+  por_caras: boolean
+  usa_grado: boolean
+  indice: string | null
+  deleted_at: string | null
+}
+
+function codigoDeFila(c: FilaCodigo): Codigo {
+  return {
+    id: c.id,
+    abreviatura: c.abreviatura,
+    nombre: c.nombre,
+    tipo: c.tipo === 'realizado' ? 'realizado' : 'hallazgo',
+    simbolo: SIMBOLOS_CODIGO.find((s) => s === c.simbolo) ?? 'texto',
+    porCaras: c.por_caras,
+    usaGrado: c.usa_grado,
+    indice: INDICES_CODIGO.find((i) => i === c.indice) ?? null,
+    activo: c.deleted_at === null,
+  }
+}
+
+export interface CodigoCatalogo extends Codigo {
+  /** Si ya hay registros con este código: no cambia de tipo, caras ni grado (0022). */
+  usado: boolean
+}
+
+/** El catálogo de la organización para editarlo en Ajustes (0022). */
+export const consultaCatalogo = {
+  queryKey: ['odontograma', 'catalogo'],
+  queryFn: async (): Promise<CodigoCatalogo[]> => {
+    const [codigos, usados] = await Promise.all([
+      supabase
+        .from('odontograma_codigos')
+        .select(COLUMNAS_CODIGO)
+        .order('orden')
+        .order('abreviatura'),
+      supabase.rpc('odontograma_codigos_usados'),
+    ])
+    if (codigos.error) throw new Error(`No se pudo leer el catálogo: ${codigos.error.message}`)
+    if (usados.error) throw new Error(`No se pudo leer el catálogo: ${usados.error.message}`)
+    const enUso = new Set(usados.data)
+    return codigos.data.map((c) => ({ ...codigoDeFila(c), usado: enUso.has(c.id) }))
+  },
 }
 
 export interface Odontograma {
@@ -20,16 +73,6 @@ export interface Odontograma {
   /** Registros vigentes, del más nuevo al más viejo. */
   registros: RegistroOdontograma[]
 }
-
-const SIMBOLOS: SimboloCodigo[] = [
-  'superficie',
-  'cruz',
-  'circulo',
-  'linea_vertical',
-  'linea_horizontal',
-  'texto',
-]
-const INDICES: IndiceCodigo[] = ['cariado', 'perdido', 'obturado']
 
 const esCara = (c: string): c is Cara => (CARAS as readonly string[]).includes(c)
 
@@ -46,7 +89,7 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
     supabase.from('pacientes').select('organization_id').eq('id', pacienteId).maybeSingle(),
     supabase
       .from('odontograma_codigos')
-      .select('id, abreviatura, nombre, tipo, simbolo, por_caras, usa_grado, indice, deleted_at')
+      .select(COLUMNAS_CODIGO)
       .order('orden')
       .order('abreviatura'),
     supabase
@@ -67,17 +110,7 @@ async function odontogramaDePaciente(pacienteId: string): Promise<Odontograma | 
   const organizacionId = paciente.data.organization_id
   return {
     organizacionId,
-    codigos: codigos.data.map((c) => ({
-      id: c.id,
-      abreviatura: c.abreviatura,
-      nombre: c.nombre,
-      tipo: c.tipo === 'realizado' ? 'realizado' : 'hallazgo',
-      simbolo: SIMBOLOS.find((s) => s === c.simbolo) ?? 'texto',
-      porCaras: c.por_caras,
-      usaGrado: c.usa_grado,
-      indice: INDICES.find((i) => i === c.indice) ?? null,
-      activo: c.deleted_at === null,
-    })),
+    codigos: codigos.data.map(codigoDeFila),
     registros: registros.data.map((r) => ({
       id: r.id,
       pieza: r.pieza,

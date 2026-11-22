@@ -7,10 +7,39 @@ import { ZONA_LA_PAZ, esFechaValida, fechaEnZona, type Fecha } from '../fechas/f
 export const CARAS = ['O', 'M', 'D', 'V', 'L'] as const
 export type Cara = (typeof CARAS)[number]
 
-export type TipoCodigo = 'hallazgo' | 'realizado'
-export type SimboloCodigo =
-  'superficie' | 'cruz' | 'circulo' | 'linea_vertical' | 'linea_horizontal' | 'texto'
-export type IndiceCodigo = 'cariado' | 'perdido' | 'obturado'
+export const TIPOS_CODIGO = ['hallazgo', 'realizado'] as const
+export type TipoCodigo = (typeof TIPOS_CODIGO)[number]
+
+/** Las formas de dibujo son fijas; los códigos que las usan, no (0020). */
+export const SIMBOLOS_CODIGO = [
+  'superficie',
+  'cruz',
+  'circulo',
+  'linea_vertical',
+  'linea_horizontal',
+  'texto',
+] as const
+export type SimboloCodigo = (typeof SIMBOLOS_CODIGO)[number]
+
+export const INDICES_CODIGO = ['cariado', 'perdido', 'obturado'] as const
+export type IndiceCodigo = (typeof INDICES_CODIGO)[number]
+
+/** Cómo se dibuja cada forma, para elegirla en el catálogo. */
+export const NOMBRE_SIMBOLO: Record<SimboloCodigo, string> = {
+  superficie: 'Pinta las caras',
+  cruz: 'Cruz sobre la pieza',
+  circulo: 'Círculo alrededor',
+  linea_vertical: 'Línea vertical (raíz)',
+  linea_horizontal: 'Línea horizontal',
+  texto: 'Solo la abreviatura',
+}
+
+/** En qué cuenta cada índice, según la dentición (CPO-D y ceo-d). */
+export const NOMBRE_INDICE: Record<IndiceCodigo, string> = {
+  cariado: 'Cariada',
+  perdido: 'Perdida o con extracción indicada',
+  obturado: 'Obturada',
+}
 
 export interface CodigoOdontograma {
   id: string
@@ -205,6 +234,31 @@ export const DatosRegistroOdontograma = z
     path: ['codigoId'],
   })
 export type DatosRegistroOdontograma = z.infer<typeof DatosRegistroOdontograma>
+
+/**
+ * Un código del catálogo, nuevo o editado (0022). Postgres controla además
+ * que un código ya usado no cambie de tipo, de caras ni de grado (OD006).
+ */
+export const DatosCodigoOdontograma = z
+  .object({
+    id: z.uuid(),
+    abreviatura: z
+      .string()
+      .trim()
+      .min(1, 'Escribe la abreviatura.')
+      .max(8, 'La abreviatura tiene hasta 8 caracteres.'),
+    nombre: z.string().trim().min(1, 'Escribe el nombre.').max(80, 'Máximo 80 caracteres.'),
+    tipo: z.enum(TIPOS_CODIGO),
+    simbolo: z.enum(SIMBOLOS_CODIGO),
+    porCaras: z.boolean(),
+    usaGrado: z.boolean(),
+    indice: z.enum(INDICES_CODIGO).nullable(),
+  })
+  .refine((c) => c.simbolo !== 'superficie' || c.porCaras, {
+    message: 'Para pintar las caras, el código tiene que ir por caras.',
+    path: ['simbolo'],
+  })
+export type DatosCodigoOdontograma = z.infer<typeof DatosCodigoOdontograma>
 
 const LADOS = ['superior derecha', 'superior izquierda', 'inferior izquierda', 'inferior derecha']
 

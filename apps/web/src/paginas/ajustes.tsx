@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { CatalogoOdontograma } from '@/components/ajustes/catalogo-odontograma'
 import { Horarios } from '@/components/ajustes/horarios'
 import { Lugares } from '@/components/ajustes/lugares'
 import { Profesionales } from '@/components/ajustes/profesionales'
@@ -7,8 +8,8 @@ import { SesionUsuario } from '@/components/sesion-usuario'
 import { datosDeAjustes } from '@/lib/ajustes/datos'
 import { tituloDePagina } from '@/lib/navegacion'
 
-// Lo que se carga una vez para que la agenda funcione: lugares, profesionales
-// y horarios (0004 y 0014).
+// Lo que se carga una vez: lugares, profesionales y horarios para la agenda
+// (0004 y 0014), y los códigos del odontograma (0022).
 export function PaginaAjustes() {
   useEffect(() => tituloDePagina('Ajustes'), [])
   const ajustes = useQuery({ queryKey: ['ajustes'], queryFn: datosDeAjustes })
@@ -27,6 +28,7 @@ export function PaginaAjustes() {
             esAdmin={datos.esAdmin}
           />
           <Horarios datos={datos} />
+          <CatalogoOdontograma esAdmin={datos.esAdmin} />
         </>
       ) : (
         <div aria-busy="true" aria-label="Cargando los ajustes" className="flex flex-col gap-10">

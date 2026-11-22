@@ -1,4 +1,4 @@
-import { DatosRegistroOdontograma } from '@dental/core'
+import { DatosCodigoOdontograma, DatosRegistroOdontograma } from '@dental/core'
 import { refrescar } from '@/lib/consultas'
 import { supabase } from '@/lib/supabase/cliente'
 
@@ -13,6 +13,8 @@ const MENSAJES: Record<string, string> = {
   OD003: 'La fecha no puede ser futura.',
   OD004: 'Para marcar un hallazgo como tratado, elige algo realizado.',
   OD005: 'Solo se trata un hallazgo vigente de la misma pieza.',
+  // 0022: el código se dio de baja mientras el panel estaba abierto.
+  OD007: 'Ese código ya no se usa. Elige otro.',
   '23514': 'Esa pieza no existe.',
 }
 
@@ -68,6 +70,94 @@ export async function anularRegistro(id: string): Promise<ResultadoOdontograma> 
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return fallo('anular', error)
+  refrescar()
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo (0022). Lo cambia solo la administradora: lo aplica RLS.
+// ---------------------------------------------------------------------------
+
+const SOLO_ADMIN = 'Solo la administradora puede cambiar el catálogo.'
+
+function falloCatalogo(accion: string, error: { code?: string; message: string }) {
+  if (error.code === '23505') {
+    return { ok: false as const, error: 'Ya hay un código en uso con esa abreviatura.' }
+  }
+  if (error.code === 'OD006') {
+    return {
+      ok: false as const,
+      error:
+        'Este código ya se usó: no se puede cambiar si es hallazgo o realizado, si va por caras ni si lleva grado. Puedes darlo de baja y crear otro.',
+    }
+  }
+  if (error.code === '42501') return { ok: false as const, error: SOLO_ADMIN }
+  console.error(`[catalogo:${accion}] código=${error.code ?? '-'}: ${error.message}`)
+  return { ok: false as const, error: ERROR_GENERICO }
+}
+
+/** Crea o edita un código. Uno nuevo va al final de su grupo. */
+export async function guardarCodigo(datos: unknown): Promise<ResultadoOdontograma> {
+  const validacion = DatosCodigoOdontograma.safeParse(datos)
+  if (!validacion.success) {
+    return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
+  }
+  const c = validacion.data
+  const campos = {
+    abreviatura: c.abreviatura,
+    nombre: c.nombre,
+    tipo: c.tipo,
+    simbolo: c.simbolo,
+    por_caras: c.porCaras,
+    usa_grado: c.usaGrado,
+    indice: c.indice,
+  }
+
+  const editado = await supabase
+    .from('odontograma_codigos')
+    .update(campos)
+    .eq('id', c.id)
+    .select('id')
+  if (editado.error) return falloCatalogo('editar', editado.error)
+
+  if (!editado.data.length) {
+    const [organizacion, ultimo] = await Promise.all([
+      supabase.rpc('org_ids_del_usuario'),
+      supabase
+        .from('odontograma_codigos')
+        .select('orden')
+        .eq('tipo', c.tipo)
+        .order('orden', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
+    const org = Array.isArray(organizacion.data) ? organizacion.data[0] : null
+    if (typeof org !== 'string') return { ok: false, error: SOLO_ADMIN }
+    const { error } = await supabase.from('odontograma_codigos').insert({
+      id: c.id,
+      organization_id: org,
+      orden: (ultimo.data?.orden ?? 0) + 10,
+      ...campos,
+    })
+    if (error) return falloCatalogo('crear', error)
+  }
+
+  refrescar()
+  return { ok: true }
+}
+
+/**
+ * Da de baja un código o lo vuelve a usar. Dado de baja, no se usa para
+ * agregar, pero los registros que ya lo usan se siguen viendo (0022).
+ */
+export async function cambiarBajaCodigo(id: string, baja: boolean): Promise<ResultadoOdontograma> {
+  const { data, error } = await supabase
+    .from('odontograma_codigos')
+    .update({ deleted_at: baja ? new Date().toISOString() : null })
+    .eq('id', id)
+    .select('id')
+  if (error) return falloCatalogo(baja ? 'baja' : 'volver', error)
+  if (!data.length) return { ok: false, error: SOLO_ADMIN }
   refrescar()
   return { ok: true }
 }
