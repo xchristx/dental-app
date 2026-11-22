@@ -60,7 +60,7 @@ Cada uno (el autor y la dentista) tiene su par de claves de [age](https://age-en
 ## 2. Supabase: el proyecto
 
 1. Con la cuenta de Sifel, crea un proyecto en la organización `Sifel`.
-   - **Nombre:** `sifel-produccion`.
+   - **Nombre:** `sifel-prod`.
    - **Región:** South America (São Paulo), sa-east-1.
    - Pon una contraseña de base larga y guárdala en el gestor de contraseñas.
 2. En **Authentication → Sign In / Providers**:

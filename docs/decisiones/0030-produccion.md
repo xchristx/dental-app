@@ -32,7 +32,7 @@ El cupo gratis de Supabase permite dos proyectos activos (0016). Hoy solo está 
 
 ### Dónde
 
-- **Supabase:** un proyecto nuevo, `sifel-produccion`, en sa-east-1 (São Paulo). Se crea sin medir antes desde la conexión de la dentista.
+- **Supabase:** un proyecto nuevo, `sifel-prod`, en sa-east-1 (São Paulo). Se crea sin medir antes desde la conexión de la dentista.
   - Esa medición se hace después.
   - Si otra región sale más de 20 ms mejor, se pasa a esa región con un respaldo y una restauración (0031), y se escribe una decisión nueva.
 - **Web:** producción va en **`sifel.netlify.app`**, la dirección corta, que es la que va a usar la dentista. La demo pasa a **`sifel-demo.netlify.app`**.
