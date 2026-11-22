@@ -8,14 +8,16 @@ import {
 import { rutaInternaSegura } from '@dental/core'
 import { sesionActual } from '@/lib/auth/acciones'
 import { PaginaAgenda } from '@/paginas/agenda'
-import { PaginaAjustes } from '@/paginas/ajustes'
+import {
+  PaginaAjustes,
+  PaginaPaciente,
+  PaginaPacientes,
+  PaginaVolverDeGoogle,
+} from '@/paginas/diferidas'
 import { PaginaEntrar } from '@/paginas/entrar'
 import { PaginaError } from '@/paginas/error'
 import { LayoutApp } from '@/paginas/layout-app'
 import { PaginaNoEncontrada } from '@/paginas/no-encontrada'
-import { PaginaPaciente } from '@/paginas/paciente'
-import { PaginaPacientes } from '@/paginas/pacientes'
-import { PaginaVolverDeGoogle } from '@/paginas/volver-de-google'
 
 const raiz = createRootRoute({
   component: Outlet,

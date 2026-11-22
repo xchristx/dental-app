@@ -1,13 +1,16 @@
+import { useEffect } from 'react'
 import { Outlet } from '@tanstack/react-router'
 import { ToothIcon } from '@phosphor-icons/react'
 import { NavegacionInferior, NavegacionLateral } from '@/components/navegacion'
 import { SesionUsuario } from '@/components/sesion-usuario'
+import { precargarPaginas } from '@/paginas/diferidas'
 import { ES_DEMO } from '@/lib/supabase/config'
 
 // Estructura de la app (decisión 0009): barra lateral desde `lg`,
 // barra inferior fija en celular y tablet.
 // El router exige la sesión; los datos los protege RLS.
 export function LayoutApp() {
+  useEffect(precargarPaginas, [])
   return (
     <div className="flex flex-1">
       <aside className="border-border bg-card sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-6 border-r px-3 py-6 lg:flex">

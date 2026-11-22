@@ -1,12 +1,12 @@
 // Variables públicas: Vite las incrusta al compilar. Ninguna es secreta.
-// Ver apps/web-vite/.env.example.
+// Ver apps/web/.env.example.
 const url = import.meta.env.VITE_SUPABASE_URL
 const clavePublica = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 export function configSupabase() {
   if (!url || !clavePublica) {
     throw new Error(
-      'Faltan VITE_SUPABASE_URL o VITE_SUPABASE_PUBLISHABLE_KEY. Ver apps/web-vite/.env.example.',
+      'Faltan VITE_SUPABASE_URL o VITE_SUPABASE_PUBLISHABLE_KEY. Ver apps/web/.env.example.',
     )
   }
   return { url, clavePublica }
