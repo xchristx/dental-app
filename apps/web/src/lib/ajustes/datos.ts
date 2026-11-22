@@ -1,7 +1,6 @@
-import 'server-only'
 import { COLORES_LUGAR, fechaEnZona, type ColorLugar } from '@dental/core'
 import { ZONA } from '@/lib/agenda/zona'
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { supabase } from '@/lib/supabase/cliente'
 
 export interface LugarAjustes {
   id: string
@@ -41,7 +40,6 @@ export interface DatosAjustes {
 }
 
 export async function datosDeAjustes(): Promise<DatosAjustes> {
-  const supabase = await crearClienteServidor()
   const { data: sesion } = await supabase.auth.getClaims()
   const hoy = fechaEnZona(new Date(), ZONA)
 

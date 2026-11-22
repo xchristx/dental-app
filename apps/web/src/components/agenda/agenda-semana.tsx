@@ -1,8 +1,4 @@
-'use client'
-
-import { createContext, use, useId, useMemo, useRef, useTransition } from 'react'
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { createContext, use, useId, useRef } from 'react'
 import { CaretDownIcon, CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react'
 import {
   diaCorto,
@@ -17,12 +13,13 @@ import {
 import { AgendarCita } from '@/components/agenda/agendar-cita'
 import { BloqueCita } from '@/components/agenda/bloque-cita'
 import { DetalleSeleccionado } from '@/components/agenda/detalle-cita'
-import { EnlaceDetalle } from '@/components/agenda/enlace-detalle'
+import { Enlace } from '@/components/enlace'
 import { Button } from '@/components/ui/button'
 import { Cargando } from '@/components/ui/cargando'
 import type { CitaAgenda, EnlacesReagenda } from '@/lib/agenda/datos'
 import type { OpcionesAgendar } from '@/lib/agenda/opciones'
 import { ZONA } from '@/lib/agenda/zona'
+import { useIr } from '@/lib/navegacion'
 import { cn } from '@/lib/utils'
 
 /** URL de la agenda: `/?fecha=…&cita=…`. Sin fecha, es hoy. */
@@ -35,9 +32,8 @@ export function urlAgenda({ fecha, cita }: { fecha?: Fecha; cita?: string }): st
 }
 
 /**
- * La semana que mandó el servidor. El día que se ve sale de la URL y se lee
- * en el navegador: pasar a otro día de la misma semana no va al servidor.
- * Pasar a otra semana sí, porque hacen falta sus citas.
+ * Una semana de la agenda. El día que se ve sale de la URL. Cada semana queda
+ * en caché: volver a una que ya se vio, o pasar a otro día, es instantáneo.
  */
 export function AgendaSemana({
   citas,
@@ -45,35 +41,29 @@ export function AgendaSemana({
   opciones,
   lunes,
   hoy,
-  fechaInicial,
+  fecha,
+  cargando,
 }: {
   citas: CitaAgenda[]
   enlaces: Record<string, EnlacesReagenda>
   opciones: OpcionesAgendar
-  /** Lunes de la semana que se cargó. */
+  /** Lunes de la semana que se ve. */
   lunes: Fecha
   hoy: Fecha
-  /** El día que pidió la URL al cargar la página. */
-  fechaInicial: Fecha
+  /** El día que se ve (en el celular). Es de la semana de `lunes`. */
+  fecha: Fecha
+  /**
+   * La URL ya pide otra semana y todavía no llegaron sus citas: mientras
+   * tanto, la semana que se ve queda atenuada y junto a la fecha aparece un
+   * indicador de carga.
+   */
+  cargando: boolean
 }) {
-  const valor = useSearchParams().get('fecha')
-  const pedida = esFechaValida(valor) ? valor : hoy
-  // Si la URL pide un día de otra semana (no debería pasar), se queda en el inicial.
-  const fecha = esDeLaSemana(pedida, lunes) ? pedida : fechaInicial
   const hrefCita = (id: string) => urlAgenda({ fecha, cita: id })
-
-  // Otra semana va al servidor y puede tardar: mientras tanto, la semana que
-  // se ve queda atenuada y junto a la fecha aparece un indicador de carga.
-  const router = useRouter()
-  const [cargando, iniciar] = useTransition()
-  const cambio = useMemo(
-    () => ({ cargando, ir: (href: string) => iniciar(() => router.push(href)) }),
-    [cargando, router],
-  )
   const atenuar = cn(cargando && 'opacity-50 transition-opacity delay-150 duration-200')
 
   return (
-    <CambioDeSemana value={cambio}>
+    <CambioDeSemana value={cargando}>
       <Encabezado fecha={fecha} lunes={lunes} hoy={hoy}>
         <AgendarCita opciones={opciones} fecha={fecha} />
       </Encabezado>
@@ -87,13 +77,11 @@ export function AgendaSemana({
   )
 }
 
-/** Ir a otra semana (con el servidor) y saber si todavía está cargando. */
-const CambioDeSemana = createContext<{ cargando: boolean; ir: (href: string) => void }>({
-  cargando: false,
-  ir: () => {},
-})
+/** Si la semana que se ve todavía está por cambiar a otra. */
+const CambioDeSemana = createContext(false)
 
-function esDeLaSemana(fecha: Fecha, lunes: Fecha) {
+/** Si la fecha es de la semana que empieza en `lunes`. */
+export function esDeLaSemana(fecha: Fecha, lunes: Fecha) {
   return fecha >= lunes && fecha <= sumarDias(lunes, 6)
 }
 
@@ -101,50 +89,28 @@ function delDia(citas: CitaAgenda[], fecha: Fecha) {
   return citas.filter((c) => fechaEnZona(c.inicio, ZONA) === fecha)
 }
 
-/**
- * Enlace a un día. Dentro de la semana cargada cambia solo la URL; fuera de
- * ella navega con Next y el servidor trae la otra semana.
- */
+/** Enlace a un día de la agenda. "Hoy" va sin fecha en la URL, como al entrar. */
 function EnlaceFecha({
   fecha,
   hoy,
-  lunes,
   className,
   children,
   ...props
 }: {
   fecha: Fecha
   hoy: Fecha
-  lunes: Fecha
   className?: string
   children: React.ReactNode
   'aria-label'?: string
 }) {
-  const { ir } = use(CambioDeSemana)
-  // "Hoy" va sin fecha en la URL, como al entrar.
-  const href = urlAgenda({ fecha: fecha === hoy ? undefined : fecha })
-  if (esDeLaSemana(fecha, lunes)) {
-    return (
-      <EnlaceDetalle href={href} className={className} {...props}>
-        {children}
-      </EnlaceDetalle>
-    )
-  }
-  // Sigue siendo un Link (precarga, abrir en otra pestaña), pero el clic
-  // normal navega dentro de la transición que muestra la carga.
   return (
-    <Link
-      href={href}
+    <Enlace
+      href={urlAgenda({ fecha: fecha === hoy ? undefined : fecha })}
       className={className}
       {...props}
-      onClick={(e) => {
-        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-        e.preventDefault()
-        ir(href)
-      }}
     >
       {children}
-    </Link>
+    </Enlace>
   )
 }
 
@@ -190,18 +156,13 @@ function Encabezado({
             size="icon"
             className={f.clase}
           >
-            <EnlaceFecha
-              fecha={f.antes}
-              hoy={hoy}
-              lunes={lunes}
-              aria-label={`${f.unidad} anterior`}
-            >
+            <EnlaceFecha fecha={f.antes} hoy={hoy} aria-label={`${f.unidad} anterior`}>
               <CaretLeftIcon weight="bold" />
             </EnlaceFecha>
           </Button>
         ))}
         <Button asChild variant="outline">
-          <EnlaceFecha fecha={hoy} hoy={hoy} lunes={lunes}>
+          <EnlaceFecha fecha={hoy} hoy={hoy}>
             Hoy
           </EnlaceFecha>
         </Button>
@@ -213,12 +174,7 @@ function Encabezado({
             size="icon"
             className={f.clase}
           >
-            <EnlaceFecha
-              fecha={f.despues}
-              hoy={hoy}
-              lunes={lunes}
-              aria-label={`${f.unidad} siguiente`}
-            >
+            <EnlaceFecha fecha={f.despues} hoy={hoy} aria-label={`${f.unidad} siguiente`}>
               <CaretRightIcon weight="bold" />
             </EnlaceFecha>
           </Button>
@@ -237,7 +193,8 @@ function Encabezado({
  * su semana.
  */
 function ElegirFecha({ fecha, lunes, hoy }: { fecha: Fecha; lunes: Fecha; hoy: Fecha }) {
-  const { ir: irASemana, cargando } = use(CambioDeSemana)
+  const cargando = use(CambioDeSemana)
+  const irA = useIr()
   const entrada = useRef<HTMLInputElement>(null)
   const idAyuda = useId()
 
@@ -256,8 +213,7 @@ function ElegirFecha({ fecha, lunes, hoy }: { fecha: Fecha; lunes: Fecha; hoy: F
     if (!esFechaValida(destino) || destino === fecha) return
     // "Hoy" va sin fecha en la URL, como al entrar.
     const href = urlAgenda({ fecha: destino === hoy ? undefined : destino })
-    if (esDeLaSemana(destino, lunes)) window.history.pushState(null, '', href)
-    else irASemana(href)
+    void irA(href)
   }
 
   return (

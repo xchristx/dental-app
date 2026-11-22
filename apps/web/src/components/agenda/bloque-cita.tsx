@@ -1,5 +1,5 @@
 import { calcularLlegada, formatearHora, formatearLlegada, type EstadoCita } from '@dental/core'
-import { EnlaceDetalle } from '@/components/agenda/enlace-detalle'
+import { Enlace } from '@/components/enlace'
 import type { CitaAgenda } from '@/lib/agenda/datos'
 import { ZONA } from '@/lib/agenda/zona'
 import type { ColorLugar } from '@dental/core'
@@ -73,11 +73,11 @@ export function BloqueCita({ cita, href }: { cita: CitaAgenda; href?: string }) 
 
   if (!href) return bloque
   return (
-    <EnlaceDetalle
+    <Enlace
       href={href}
       className="focus-visible:ring-ring/40 block rounded-lg transition-transform duration-150 outline-none focus-visible:ring-3 active:scale-[0.98]"
     >
       {bloque}
-    </EnlaceDetalle>
+    </Enlace>
   )
 }

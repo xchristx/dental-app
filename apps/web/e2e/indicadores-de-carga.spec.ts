@@ -2,9 +2,8 @@
 // está cargando en vez de parecer congelada. Las respuestas se retrasan a
 // propósito con page.route. Solo lee datos.
 //
-// Sirve para la web con Next y para la SPA (0017): se retrasan los pedidos de
-// Next (`_rsc`) y las consultas a Supabase, y "está cargando" es el indicador
-// de carga o un esqueleto (aria-busy).
+// Se retrasan las consultas a Supabase. "Está cargando" es el indicador de
+// carga o un esqueleto (aria-busy).
 import { expect, test, type Page } from '@playwright/test'
 import { reiniciarBase } from './apoyo/base'
 import { dia, diaLargo, rangoSemana } from './apoyo/fechas'
@@ -12,13 +11,10 @@ import { CELULAR, calendarioAgenda, entrarComoDemo, principal, tituloAgenda } fr
 
 test.beforeAll(reiniciarBase)
 
-/**
- * Retrasa 2 s los pedidos de Next que cumplan `rsc` y las consultas a la
- * tabla `tabla` de Supabase.
- */
-async function retrasar(page: Page, { rsc, tabla }: { rsc: (url: URL) => boolean; tabla: string }) {
+/** Retrasa 2 s las consultas a la tabla `tabla` de Supabase. */
+async function retrasar(page: Page, tabla: string) {
   await page.route(
-    (url) => (url.searchParams.has('_rsc') && rsc(url)) || url.pathname === `/rest/v1/${tabla}`,
+    (url) => url.pathname === `/rest/v1/${tabla}`,
     async (ruta) => {
       await new Promise((r) => setTimeout(r, 2000))
       await ruta.fallback()
@@ -32,7 +28,7 @@ const cargando = (page: Page) =>
 
 test('celular: una sección que tarda muestra que está cargando', async ({ page }) => {
   await page.setViewportSize(CELULAR)
-  await retrasar(page, { rsc: (url) => url.pathname === '/pacientes', tabla: 'pacientes' })
+  await retrasar(page, 'pacientes')
   await entrarComoDemo(page)
   await page.locator('a[href="/pacientes"]').filter({ visible: true }).click()
   await expect(cargando(page)).toBeVisible()
@@ -48,7 +44,7 @@ test('celular: una sección que tarda muestra que está cargando', async ({ page
 test('escritorio: ir a otra semana muestra la carga y atenúa la semana anterior', async ({
   page,
 }) => {
-  await retrasar(page, { rsc: (url) => url.searchParams.has('fecha'), tabla: 'citas' })
+  await retrasar(page, 'citas')
   await entrarComoDemo(page)
   await expect(tituloAgenda(page)).toHaveText(rangoSemana(dia(0)), { timeout: 15_000 })
   await calendarioAgenda(page).fill(dia(23))
@@ -67,7 +63,7 @@ test('escritorio: ir a otra semana muestra la carga y atenúa la semana anterior
 
 test('celular: ir a un día de otra semana también muestra la carga', async ({ page }) => {
   await page.setViewportSize(CELULAR)
-  await retrasar(page, { rsc: (url) => url.searchParams.has('fecha'), tabla: 'citas' })
+  await retrasar(page, 'citas')
   await entrarComoDemo(page, `/?fecha=${dia(6)}`)
   await expect(tituloAgenda(page)).toHaveText(diaLargo(dia(6)), { timeout: 15_000 })
   await calendarioAgenda(page).fill(dia(22))
@@ -80,7 +76,7 @@ test('abrir la ficha de un paciente que tarda muestra que está cargando', async
   await entrarComoDemo(page, '/pacientes')
   const fila = principal(page).locator('ul li a').filter({ hasText: 'Lucía Fernández' })
   await expect(fila).toBeVisible()
-  await retrasar(page, { rsc: (url) => url.pathname.startsWith('/pacientes/'), tabla: 'pacientes' })
+  await retrasar(page, 'pacientes')
   await fila.click()
   await expect(cargando(page)).toBeVisible()
   await expect(page.getByRole('heading', { level: 1, name: 'Lucía Fernández' })).toBeVisible({

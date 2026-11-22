@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useTransition } from 'react'
 import { CheckIcon, PlusIcon } from '@phosphor-icons/react'
 import { COLORES_LUGAR, type ColorLugar } from '@dental/core'

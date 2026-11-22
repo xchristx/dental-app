@@ -1,7 +1,5 @@
-'use client'
-
 import { useEffect, useId, useMemo, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useIr } from '@/lib/navegacion'
 import { CalendarPlusIcon, UserPlusIcon, WarningIcon, XIcon } from '@phosphor-icons/react'
 import {
   avisosDeCita,
@@ -137,7 +135,7 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
   const [abierto, setAbierto] = useState(false)
   // Cada vez que se abre, el formulario empieza de cero.
   const [vez, setVez] = useState(0)
-  const router = useRouter()
+  const ir = useIr()
 
   function abrir() {
     setVez((v) => v + 1)
@@ -168,7 +166,7 @@ export function AgendarCita({ opciones, fecha }: { opciones: OpcionesAgendar; fe
         onOpenChange={setAbierto}
         onGuardada={(guardada) => {
           setAbierto(false)
-          if (guardada.fecha !== fecha) router.push(`/?fecha=${guardada.fecha}`)
+          if (guardada.fecha !== fecha) void ir(`/?fecha=${guardada.fecha}`)
         }}
       />
     </>

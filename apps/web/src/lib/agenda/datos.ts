@@ -1,4 +1,3 @@
-import 'server-only'
 import {
   COLORES_LUGAR,
   EstadoCita,
@@ -6,7 +5,7 @@ import {
   type ColorLugar,
   type Fecha,
 } from '@dental/core'
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { supabase } from '@/lib/supabase/cliente'
 import { ZONA } from './zona'
 
 export { ZONA }
@@ -42,7 +41,6 @@ export interface CitaAgenda {
 
 /** Todas las citas que tocan la semana, de todas las profesionales de la organización. */
 export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
-  const supabase = await crearClienteServidor()
   const { desde, hasta } = rangoDeLaSemana(lunes, ZONA)
 
   const [citas, propia] = await Promise.all([
@@ -97,7 +95,6 @@ export async function citasDeLaSemana(lunes: Fecha): Promise<CitaAgenda[]> {
 
 /** Profesional asociada a la usuaria que entró (0007). Puede no tener ninguna. */
 async function profesionalDelUsuario(): Promise<string | null> {
-  const supabase = await crearClienteServidor()
   const { data: sesion } = await supabase.auth.getClaims()
   const usuario = sesion?.claims.sub
   if (!usuario) return null
@@ -130,7 +127,6 @@ export async function enlacesDeLaSemana(
   const filtros = [`reagendada_desde.in.(${citas.map((c) => c.id).join(',')})`]
   if (origenes.length > 0) filtros.push(`id.in.(${origenes.join(',')})`)
 
-  const supabase = await crearClienteServidor()
   const { data, error } = await supabase
     .from('citas')
     .select('id, inicio, reagendada_desde')

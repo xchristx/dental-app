@@ -1,6 +1,5 @@
-import 'server-only'
 import type { Horario } from '@dental/core'
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { supabase } from '@/lib/supabase/cliente'
 
 export interface OpcionesAgendar {
   profesionales: {
@@ -24,7 +23,6 @@ export interface OpcionesAgendar {
  * semana de la agenda.
  */
 export async function opcionesParaAgendar(): Promise<OpcionesAgendar> {
-  const supabase = await crearClienteServidor()
   const { data: sesion } = await supabase.auth.getClaims()
 
   const [profesionales, lugares, tipos, horarios, miembro] = await Promise.all([

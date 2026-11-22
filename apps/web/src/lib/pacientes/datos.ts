@@ -1,6 +1,5 @@
-import 'server-only'
 import { EstadoCita } from '@dental/core'
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { supabase } from '@/lib/supabase/cliente'
 
 export interface PacienteLista {
   id: string
@@ -29,7 +28,6 @@ export interface FichaPaciente extends PacienteLista {
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function listaDePacientes(): Promise<PacienteLista[]> {
-  const supabase = await crearClienteServidor()
   const { data, error } = await supabase
     .from('pacientes')
     .select('id, nombre, telefono, fecha_nacimiento')
@@ -47,7 +45,6 @@ export async function listaDePacientes(): Promise<PacienteLista[]> {
 /** Ficha con todas sus citas, de la más nueva a la más vieja. null si no existe. */
 export async function fichaDePaciente(id: string): Promise<FichaPaciente | null> {
   if (!ES_UUID.test(id)) return null
-  const supabase = await crearClienteServidor()
   const [paciente, citas] = await Promise.all([
     supabase
       .from('pacientes')
