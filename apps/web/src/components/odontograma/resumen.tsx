@@ -10,7 +10,8 @@ export function ResumenOdontograma({ pacienteId }: { pacienteId: string }) {
   const odontograma = useQuery(consultaOdontograma(pacienteId))
   const datos = odontograma.data
   const tipoDe = new Map(datos?.codigos.map((c) => [c.id, c.tipo]))
-  const aTratar = datos?.registros.filter((r) => tipoDe.get(r.codigoId) === 'hallazgo').length ?? 0
+  const aTratar =
+    datos?.registros.filter((r) => r.codigoId && tipoDe.get(r.codigoId) === 'hallazgo').length ?? 0
   const indices = datos && calcularIndices(datos.registros, datos.codigos)
 
   return (

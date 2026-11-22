@@ -54,7 +54,8 @@ export function Diente({
 }) {
   // Lo realizado debajo y los hallazgos encima: lo que hay que tratar se ve siempre.
   const ordenados = registros
-    .map((r) => ({ r, c: codigos.get(r.codigoId) }))
+    // Las notas solas no se dibujan.
+    .map((r) => ({ r, c: r.codigoId ? codigos.get(r.codigoId) : undefined }))
     .filter((x): x is { r: RegistroOdontograma; c: Codigo } => x.c !== undefined)
     .sort((a, b) => (a.c.tipo === b.c.tipo ? 0 : a.c.tipo === 'realizado' ? -1 : 1))
 

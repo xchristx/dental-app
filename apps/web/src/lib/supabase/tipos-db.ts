@@ -544,7 +544,7 @@ export type Database = {
         Row: {
           autor_id: string | null
           caras: string[] | null
-          codigo_id: string
+          codigo_id: string | null
           created_at: string
           deleted_at: string | null
           fecha: string
@@ -560,7 +560,7 @@ export type Database = {
         Insert: {
           autor_id?: string | null
           caras?: string[] | null
-          codigo_id: string
+          codigo_id?: string | null
           created_at?: string
           deleted_at?: string | null
           fecha: string
@@ -575,7 +575,7 @@ export type Database = {
         Update: {
           autor_id?: string | null
           caras?: string[] | null
-          codigo_id?: string
+          codigo_id?: string | null
           created_at?: string
           deleted_at?: string | null
           fecha?: string

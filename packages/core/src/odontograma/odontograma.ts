@@ -26,7 +26,8 @@ export interface CodigoOdontograma {
 export interface RegistroOdontograma {
   id: string
   pieza: number
-  codigoId: string
+  /** null: una nota sola sobre la pieza. */
+  codigoId: string | null
   caras: Cara[] | null
   grado: number | null
   nota: string | null
@@ -131,7 +132,7 @@ export function calcularIndices(
   const indiceDe = new Map(codigos.map((c) => [c.id, c.indice]))
   const porPieza = new Map<number, Set<IndiceCodigo>>()
   for (const r of registros) {
-    const indice = indiceDe.get(r.codigoId)
+    const indice = r.codigoId ? indiceDe.get(r.codigoId) : null
     if (!indice) continue
     const conjunto = porPieza.get(r.pieza) ?? new Set()
     conjunto.add(indice)
@@ -161,35 +162,44 @@ export function calcularIndices(
   return { cpod, ceod }
 }
 
-/** Lo que le falta a un registro según su código, o null si está completo. */
+/**
+ * Lo que le falta a un registro según su código, o null si está completo.
+ * Sin código (`codigo` null), alcanza con una nota.
+ */
 export function errorDeRegistro(
-  codigo: Pick<CodigoOdontograma, 'porCaras' | 'usaGrado'>,
-  registro: Pick<RegistroOdontograma, 'caras' | 'grado'>,
+  codigo: Pick<CodigoOdontograma, 'porCaras' | 'usaGrado'> | null,
+  registro: Pick<RegistroOdontograma, 'caras' | 'grado' | 'nota'>,
 ): string | null {
+  if (!codigo) return registro.nota?.trim() ? null : 'Elige un código o escribe una nota.'
   if (codigo.porCaras && !registro.caras?.length) return 'Elige al menos una cara.'
   if (!codigo.usaGrado && registro.grado !== null) return 'Este código no lleva grado.'
   return null
 }
 
-/** Un registro nuevo del odontograma. */
-export const DatosRegistroOdontograma = z.object({
-  id: z.uuid(),
-  pacienteId: z.uuid(),
-  codigoId: z.uuid({ message: 'Elige qué encontraste o qué está hecho.' }),
-  pieza: z.number().refine(esPiezaValida, 'Esa pieza no existe.'),
-  caras: z.array(z.enum(CARAS)).nullable(),
-  grado: z.number().int().min(1).max(4).nullable(),
-  nota: z
-    .string()
-    .trim()
-    .max(500, 'Máximo 500 caracteres.')
-    .transform((v) => (v === '' ? null : v))
-    .nullable(),
-  fecha: z
-    .string()
-    .refine(esFechaValida, 'Elige una fecha válida.')
-    .refine((v) => v <= fechaEnZona(new Date(), ZONA_LA_PAZ), 'La fecha no puede ser futura.'),
-})
+/** Un registro nuevo del odontograma: un código, o una nota sola sobre la pieza. */
+export const DatosRegistroOdontograma = z
+  .object({
+    id: z.uuid(),
+    pacienteId: z.uuid(),
+    codigoId: z.uuid().nullable(),
+    pieza: z.number().refine(esPiezaValida, 'Esa pieza no existe.'),
+    caras: z.array(z.enum(CARAS)).nullable(),
+    grado: z.number().int().min(1).max(4).nullable(),
+    nota: z
+      .string()
+      .trim()
+      .max(500, 'Máximo 500 caracteres.')
+      .transform((v) => (v === '' ? null : v))
+      .nullable(),
+    fecha: z
+      .string()
+      .refine(esFechaValida, 'Elige una fecha válida.')
+      .refine((v) => v <= fechaEnZona(new Date(), ZONA_LA_PAZ), 'La fecha no puede ser futura.'),
+  })
+  .refine((r) => r.codigoId !== null || r.nota !== null, {
+    message: 'Elige un código o escribe una nota.',
+    path: ['codigoId'],
+  })
 export type DatosRegistroOdontograma = z.infer<typeof DatosRegistroOdontograma>
 
 const LADOS = ['superior derecha', 'superior izquierda', 'inferior izquierda', 'inferior derecha']

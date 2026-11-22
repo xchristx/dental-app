@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(16);
 
 insert into auth.users (id, email, aud, role) values
   ('f0000000-0000-4000-8000-000000000001', 'laura@ejemplo.test', 'authenticated', 'authenticated'),
@@ -109,6 +109,28 @@ select throws_ok(
     (select id from codigo where abreviatura = 'Ext')),
   'OD003', null,
   'la fecha no puede ser futura'
+);
+
+select lives_ok(
+  $$insert into public.odontograma_registros (id, organization_id, paciente_id, pieza, caras, nota, fecha)
+    values ('c1000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001',
+            'd0000000-0000-4000-8000-000000000001', 14, array['O'], '  Sensibilidad al frío  ',
+            (now() at time zone 'America/La_Paz')::date)$$,
+  'una nota sola sobre la pieza, sin código'
+);
+
+select results_eq(
+  $$select caras, nota from public.odontograma_registros where id = 'c1000000-0000-4000-8000-000000000003'$$,
+  $$values (null::text[], 'Sensibilidad al frío'::text)$$,
+  'una nota sola no lleva caras'
+);
+
+select throws_ok(
+  $$insert into public.odontograma_registros (organization_id, paciente_id, pieza, nota, fecha)
+    values ('a0000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000001', 14, '   ',
+            (now() at time zone 'America/La_Paz')::date)$$,
+  '23514', null,
+  'sin código, la nota es obligatoria'
 );
 
 select lives_ok(

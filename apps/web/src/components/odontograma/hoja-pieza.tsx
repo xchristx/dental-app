@@ -102,21 +102,18 @@ export function HojaPieza({
 
   function agregar(evento: React.FormEvent) {
     evento.preventDefault()
-    if (!codigo) {
-      setError('Elige qué encontraste o qué está hecho.')
-      return
-    }
+    // Sin código, el registro es una nota sola sobre la pieza.
     const datos = {
       id: form.id,
       pacienteId,
-      codigoId: form.codigoId,
+      codigoId: codigo?.id ?? null,
       pieza,
-      caras: codigo.porCaras ? form.caras : null,
-      grado: codigo.usaGrado && form.grado ? Number(form.grado) : null,
+      caras: codigo?.porCaras ? form.caras : null,
+      grado: codigo?.usaGrado && form.grado ? Number(form.grado) : null,
       nota: form.nota,
       fecha: form.fecha,
     }
-    const falta = errorDeRegistro(codigo, datos)
+    const falta = errorDeRegistro(codigo ?? null, datos)
     if (falta) {
       setError(falta)
       return
@@ -175,21 +172,27 @@ export function HojaPieza({
               ) : (
                 <ul className="border-border divide-border divide-y rounded-lg border">
                   {deLaPieza.map((r) => {
-                    const c = porId.get(r.codigoId)
-                    if (!c) return null
+                    const c = r.codigoId ? porId.get(r.codigoId) : undefined
+                    // Una nota sola se muestra en gris, con su texto como título.
+                    const etiqueta = c ? textoRegistro(r, c) : 'Nota'
                     return (
                       <li key={r.id} className="flex flex-col gap-2 px-3 py-2.5 text-sm">
                         <div className="flex items-start gap-2">
                           <div className="min-w-0 flex-1">
                             <p>
-                              <span className={cn('font-medium', COLOR_TEXTO[c.tipo])}>
-                                {textoRegistro(r, c)}
+                              <span
+                                className={cn(
+                                  'font-medium',
+                                  c ? COLOR_TEXTO[c.tipo] : 'text-muted-foreground',
+                                )}
+                              >
+                                {etiqueta}
                               </span>{' '}
-                              {c.nombre}
+                              {c ? c.nombre : r.nota}
                             </p>
                             <p className="text-muted-foreground tabular-nums">
                               {formatearFechaNumerica(r.fecha)}
-                              {r.nota && ` · ${r.nota}`}
+                              {c && r.nota && ` · ${r.nota}`}
                             </p>
                           </div>
                           {quitando !== r.id && (
@@ -198,7 +201,7 @@ export function HojaPieza({
                               variant="ghost"
                               size="sm"
                               className="-my-1"
-                              aria-label={`Quitar ${textoRegistro(r, c)}`}
+                              aria-label={c ? `Quitar ${etiqueta}` : 'Quitar la nota'}
                               onClick={() => setQuitando(r.id)}
                             >
                               <TrashIcon weight="bold" />
@@ -209,8 +212,9 @@ export function HojaPieza({
                         {quitando === r.id && (
                           <div className="bg-destructive-bg flex flex-col gap-2 rounded-lg p-3">
                             <p className="text-destructive">
-                              ¿Quitar {textoRegistro(r, c)}? Si se trató, agrega también lo
-                              realizado.
+                              {c
+                                ? `¿Quitar ${etiqueta}? Si se trató, agrega también lo realizado.`
+                                : '¿Quitar la nota?'}
                             </p>
                             <div className="grid grid-cols-2 gap-2">
                               <Button
@@ -250,7 +254,7 @@ export function HojaPieza({
                   onChange={(e) => cambiar({ codigoId: e.target.value, grado: '' })}
                   className={claseCampo}
                 >
-                  <option value="">Elige uno</option>
+                  <option value="">Ninguno: solo una nota</option>
                   <optgroup label="Hallazgos (rojo, a tratar)">
                     {activos
                       .filter((c) => c.tipo === 'hallazgo')
@@ -333,7 +337,7 @@ export function HojaPieza({
               )}
 
               <label className="flex flex-col gap-1.5 text-sm font-medium">
-                Nota (opcional)
+                {codigo ? 'Nota (opcional)' : 'Nota'}
                 <input
                   value={form.nota}
                   autoComplete="off"

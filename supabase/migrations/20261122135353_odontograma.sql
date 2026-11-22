@@ -96,7 +96,8 @@ create table public.odontograma_registros (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizaciones (id),
   paciente_id uuid not null,
-  codigo_id uuid not null,
+  -- Sin código, el registro es una nota sobre la pieza.
+  codigo_id uuid,
   -- FDI: permanentes 11–48 y temporales 51–85 (Normas en Salud Oral 2010).
   pieza smallint not null check (
     (pieza / 10 between 1 and 4 and pieza % 10 between 1 and 8)
@@ -111,6 +112,8 @@ create table public.odontograma_registros (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz,
+
+  constraint odontograma_registros_codigo_o_nota check (codigo_id is not null or nota is not null),
 
   foreign key (organization_id, paciente_id)
     references public.pacientes (organization_id, id),
@@ -131,10 +134,14 @@ language plpgsql
 set search_path = ''
 as $$
 declare
-  codigo record;
+  por_caras boolean := false;
+  usa_grado boolean := false;
 begin
-  select c.por_caras, c.usa_grado into codigo
-  from public.odontograma_codigos c where c.id = new.codigo_id;
+  -- Sin código (una nota sola), no lleva caras ni grado.
+  if new.codigo_id is not null then
+    select c.por_caras, c.usa_grado into por_caras, usa_grado
+    from public.odontograma_codigos c where c.id = new.codigo_id;
+  end if;
 
   -- Caras sin repetir y siempre en el mismo orden.
   new.caras := nullif(array(
@@ -142,13 +149,13 @@ begin
     where t.cara = any(new.caras)
     order by t.n
   ), '{}');
-  if codigo.por_caras and new.caras is null then
+  if por_caras and new.caras is null then
     raise exception 'Elige al menos una cara.' using errcode = 'OD001';
   end if;
-  if not codigo.por_caras then
+  if not por_caras then
     new.caras := null;
   end if;
-  if new.grado is not null and not codigo.usa_grado then
+  if new.grado is not null and not usa_grado then
     raise exception 'Este código no lleva grado.' using errcode = 'OD002';
   end if;
   new.nota := nullif(trim(new.nota), '');

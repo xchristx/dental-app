@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ARCADAS,
+  DatosRegistroOdontograma,
   FILAS_ODONTOGRAMA,
   calcularIndices,
   describirPieza,
@@ -93,15 +94,48 @@ describe('calcularIndices', () => {
 })
 
 describe('errorDeRegistro', () => {
+  const sinNota = { nota: null }
+
   it('pide caras y rechaza el grado donde no va', () => {
-    expect(errorDeRegistro({ porCaras: true, usaGrado: true }, { caras: [], grado: 2 })).toBe(
-      'Elige al menos una cara.',
+    expect(
+      errorDeRegistro({ porCaras: true, usaGrado: true }, { caras: [], grado: 2, ...sinNota }),
+    ).toBe('Elige al menos una cara.')
+    expect(
+      errorDeRegistro({ porCaras: false, usaGrado: false }, { caras: null, grado: 1, ...sinNota }),
+    ).toBe('Este código no lleva grado.')
+    expect(
+      errorDeRegistro(
+        { porCaras: true, usaGrado: false },
+        { caras: ['O'], grado: null, ...sinNota },
+      ),
+    ).toBeNull()
+  })
+
+  it('sin código alcanza con una nota', () => {
+    expect(errorDeRegistro(null, { caras: null, grado: null, nota: 'Sensibilidad' })).toBeNull()
+    expect(errorDeRegistro(null, { caras: null, grado: null, nota: '  ' })).toBe(
+      'Elige un código o escribe una nota.',
     )
-    expect(errorDeRegistro({ porCaras: false, usaGrado: false }, { caras: null, grado: 1 })).toBe(
-      'Este código no lleva grado.',
+  })
+})
+
+describe('DatosRegistroOdontograma', () => {
+  const base = {
+    id: '5a0e1c2d-3b4f-4a5b-8c6d-7e8f9a0b1c2d',
+    pacienteId: '6b1f2d3e-4c5a-4b6c-9d7e-8f9a0b1c2d3e',
+    codigoId: null,
+    pieza: 14,
+    caras: null,
+    grado: null,
+    fecha: '2026-01-10',
+  }
+
+  it('acepta una nota sola y rechaza un registro vacío', () => {
+    expect(DatosRegistroOdontograma.safeParse({ ...base, nota: ' Sensibilidad ' }).data?.nota).toBe(
+      'Sensibilidad',
     )
     expect(
-      errorDeRegistro({ porCaras: true, usaGrado: false }, { caras: ['O'], grado: null }),
-    ).toBeNull()
+      DatosRegistroOdontograma.safeParse({ ...base, nota: '' }).error?.issues[0]?.message,
+    ).toBe('Elige un código o escribe una nota.')
   })
 })

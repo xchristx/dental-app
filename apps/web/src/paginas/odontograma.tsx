@@ -140,15 +140,16 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
   )
 }
 
-/** "Pieza 36: C II-OM, Obt-O" o "Pieza 36, sin registros". */
+/** "Pieza 36: C II-OM (caries), nota: sensibilidad" o "Pieza 36, sin registros". */
 function descripcion(
   pieza: number,
   registros: RegistroOdontograma[],
   codigos: Map<string, Codigo>,
 ) {
   const textos = registros.flatMap((r) => {
-    const c = codigos.get(r.codigoId)
-    return c ? [`${textoRegistro(r, c)} (${c.nombre.toLowerCase()})`] : []
+    const c = r.codigoId ? codigos.get(r.codigoId) : undefined
+    if (c) return [`${textoRegistro(r, c)} (${c.nombre.toLowerCase()})`]
+    return r.nota ? [`nota: ${r.nota}`] : []
   })
   return textos.length ? `Pieza ${pieza}: ${textos.join(', ')}` : `Pieza ${pieza}, sin registros`
 }
@@ -219,9 +220,11 @@ function BotonDiente({
   const superior = esSuperior(pieza)
   // Los códigos que se dibujan como texto van escritos debajo o encima del diente.
   const textos = registros.flatMap((r) => {
-    const c = codigos.get(r.codigoId)
+    const c = r.codigoId ? codigos.get(r.codigoId) : undefined
     return c?.simbolo === 'texto' ? [{ id: r.id, texto: c.abreviatura, tipo: c.tipo }] : []
   })
+  // Un punto gris avisa que la pieza tiene una nota.
+  const tieneNota = registros.some((r) => r.codigoId === null)
   const numero = (
     <span className="text-muted-foreground text-[0.6875rem] tabular-nums">{pieza}</span>
   )
@@ -232,6 +235,7 @@ function BotonDiente({
           {t.texto}
         </span>
       ))}
+      {tieneNota && <span className="text-muted-foreground">•</span>}
     </span>
   )
   return (
@@ -261,11 +265,20 @@ function Tabla({
   const columna = (piezas: number[], tipo: 'hallazgo' | 'realizado') =>
     piezas.flatMap((p) =>
       (porPieza.get(p) ?? []).flatMap((r) => {
-        const c = codigos.get(r.codigoId)
+        const c = r.codigoId ? codigos.get(r.codigoId) : undefined
         if (c?.tipo !== tipo) return []
         // En una fila con temporal, lo de la temporal lleva su número.
         const prefijo = piezas.length > 1 && p === piezas[1] ? `${p} ` : ''
         return [{ id: r.id, texto: prefijo + textoRegistro(r, c) }]
+      }),
+    )
+  // Las notas solas van debajo, a lo ancho de las dos columnas.
+  const notas = (piezas: number[]) =>
+    piezas.flatMap((p) =>
+      (porPieza.get(p) ?? []).flatMap((r) => {
+        if (r.codigoId !== null || !r.nota) return []
+        const prefijo = piezas.length > 1 && p === piezas[1] ? `${p}: ` : ''
+        return [{ id: r.id, texto: prefijo + r.nota }]
       }),
     )
 
@@ -284,6 +297,7 @@ function Tabla({
           const piezas = temporal ? [permanente, temporal] : [permanente]
           const hallazgos = columna(piezas, 'hallazgo')
           const realizados = columna(piezas, 'realizado')
+          const notasDeLaFila = notas(piezas)
           return (
             <li key={permanente}>
               <button
@@ -307,6 +321,13 @@ function Tabla({
                     <span key={h.id}>{h.texto}</span>
                   ))}
                 </span>
+                {notasDeLaFila.length > 0 && (
+                  <span className="text-muted-foreground col-span-2 col-start-2 flex flex-col">
+                    {notasDeLaFila.map((n) => (
+                      <span key={n.id}>Nota: {n.texto}</span>
+                    ))}
+                  </span>
+                )}
               </button>
             </li>
           )

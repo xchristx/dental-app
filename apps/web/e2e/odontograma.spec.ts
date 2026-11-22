@@ -81,6 +81,27 @@ test('se agrega una caries por caras y con grado, y cuenta en el CPO-D', async (
   expect(rows).toEqual([{ caras: ['O', 'M'], grado: 2 }])
 })
 
+test('se anota una nota sola sobre la pieza, sin código', async () => {
+  await page.getByRole('button', { name: /^Pieza 14/ }).click()
+  await expect(titulo(h)).toHaveText('Pieza 14')
+  await expect(campo(h, 'Código')).toHaveValue('')
+
+  // Sin código ni nota no hay nada que guardar.
+  await control(h, 'Agregar a la pieza 14').click()
+  await expect(alerta(h)).toHaveText('Elige un código o escribe una nota.')
+
+  await campo(h, 'Nota').fill('Sensibilidad al frío')
+  await control(h, 'Agregar a la pieza 14').click()
+  await expect.poll(registrosDeLaHoja).toEqual(['Nota Sensibilidad al frío'])
+  await page.keyboard.press('Escape')
+
+  await expect(
+    page.getByRole('button', { name: 'Pieza 14: nota: Sensibilidad al frío' }),
+  ).toBeVisible()
+  // No cuenta en los índices.
+  await expect(indices()).toContainText('CPO-D 1C 1 · P 0 · O 0')
+})
+
 test('quitar un hallazgo lo saca del gráfico y del índice', async () => {
   await page.getByRole('button', { name: /^Pieza 55/ }).click()
   await expect(titulo(h)).toHaveText('Pieza 55')
@@ -101,6 +122,8 @@ test('la tabla muestra la permanente y la temporal juntas, como en papel', async
   const fila = (texto: RegExp) => principal(page).locator('li button').filter({ hasText: texto })
   await expect(fila(/^36/)).toHaveText(/^36A tratar: C II-OMHecho: S$/)
   await expect(fila(/^45 · 85/)).toHaveText(/^45 · 85A tratar: 85 ExtHecho: $/)
+  // La nota sola va debajo, a lo ancho.
+  await expect(fila(/^14 · 54/)).toHaveText(/^14 · 54A tratar: Hecho: Nota: Sensibilidad al frío$/)
 
   // Una fila con temporal deja elegir cuál de las dos piezas.
   await fila(/^15 · 55/).click()

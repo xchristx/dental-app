@@ -33,6 +33,7 @@ Cuando ella confirme sus abreviaturas, se cambian en el catálogo, sin tocar el 
 
 ### Registros
 - Un registro es **una pieza (FDI), un código y, si corresponde, las caras y el grado**, con una nota opcional ("resina A2") y la fecha.
+- También puede ser **una nota sola sobre la pieza, sin código** ("sensibilidad al frío"). Se ve en gris, no se dibuja y no cuenta en los índices. Sin código, la nota es obligatoria.
 - Las caras se guardan siempre igual (`O`, `M`, `D`, `V`, `L`) y se muestran según la pieza: incisal (`I`) en las anteriores y palatina (`P`) en las superiores.
 - El odontograma muestra los registros vigentes. Cuando algo se trata, el hallazgo se **quita** (borrado suave, 0003) y se agrega lo realizado. Lo que se hizo queda en la evolución (0018).
 - Postgres valida la pieza FDI, que las caras correspondan al código (`OD001`), que el grado solo vaya en los códigos con grado (`OD002`) y que la fecha no sea futura (`OD003`). El autor se completa desde la sesión.
