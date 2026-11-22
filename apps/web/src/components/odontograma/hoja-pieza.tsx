@@ -1,4 +1,4 @@
-import { useState, useTransition } from 'react'
+import { useId, useState, useTransition } from 'react'
 import { CheckIcon, ProhibitIcon } from '@phosphor-icons/react'
 import {
   codigoParaTratar,
@@ -9,6 +9,7 @@ import {
   formatearFechaNumerica,
   textoRegistro,
   type Cara,
+  type RadiografiaOdontograma,
   type RegistroOdontograma,
 } from '@dental/core'
 import { claseCampo } from '@/components/historia/campos'
@@ -23,7 +24,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { ZONA } from '@/lib/agenda/zona'
-import { agregarRegistro, anularRegistro } from '@/lib/odontograma/acciones'
+import { agregarRegistro, agregarRx, anularRegistro, anularRx } from '@/lib/odontograma/acciones'
 import type { Codigo } from '@/lib/odontograma/datos'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +49,8 @@ interface Form {
   fecha: string
 }
 
+const rxVacia = (hoy: string) => ({ id: crypto.randomUUID(), fecha: hoy, nota: '' })
+
 const formVacio = (hoy: string): Form => ({
   id: crypto.randomUUID(),
   codigoId: '',
@@ -66,6 +69,7 @@ export function HojaPieza({
   apertura,
   onCerrar,
   registros,
+  rx,
   codigos,
   pacienteId,
   organizacionId,
@@ -73,6 +77,8 @@ export function HojaPieza({
   apertura: AperturaPieza | null
   onCerrar: () => void
   registros: RegistroOdontograma[]
+  /** Radiografías tomadas del paciente (0023). */
+  rx: RadiografiaOdontograma[]
   codigos: Codigo[]
   pacienteId: string
   organizacionId: string
@@ -86,7 +92,9 @@ export function HojaPieza({
   const [tratando, setTratando] = useState<RegistroOdontograma | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [anulando, setAnulando] = useState<string | null>(null)
+  const [nuevaRx, setNuevaRx] = useState(() => rxVacia(hoy))
   const [pendiente, iniciar] = useTransition()
+  const idFormRx = useId()
 
   const porId = new Map(codigos.map((c) => [c.id, c]))
   const codigoDe = (r: RegistroOdontograma) => (r.codigoId ? porId.get(r.codigoId) : undefined)
@@ -113,6 +121,7 @@ export function HojaPieza({
     setPieza(hallazgo?.pieza ?? apertura.piezas[0] ?? 11)
     setAnulando(null)
     setError(null)
+    setNuevaRx(rxVacia(hoy))
     if (hallazgo) empezarATratar(hallazgo)
     else {
       setTratando(null)
@@ -178,6 +187,27 @@ export function HojaPieza({
       else setError(r.error)
     })
   }
+
+  // Radiografías (0023): un formulario aparte, para que Enter no agregue un registro.
+  function agregarRadiografia(evento: React.FormEvent) {
+    evento.preventDefault()
+    setError(null)
+    iniciar(async () => {
+      const r = await agregarRx({ ...nuevaRx, pacienteId, pieza }, organizacionId)
+      if (r.ok) setNuevaRx(rxVacia(hoy))
+      else setError(r.error)
+    })
+  }
+
+  function anularRadiografia(id: string) {
+    iniciar(async () => {
+      const r = await anularRx(id)
+      if (r.ok) setAnulando(null)
+      else setError(r.error)
+    })
+  }
+
+  const rxDeLaPieza = rx.filter((r) => r.pieza === pieza)
 
   const tratandoCodigo = tratando ? codigoDe(tratando) : undefined
 
@@ -325,6 +355,105 @@ export function HojaPieza({
               )}
             </section>
 
+            <section aria-labelledby="titulo-rx-pieza" className="flex flex-col gap-2">
+              <h3 id="titulo-rx-pieza" className="text-sm font-medium">
+                Radiografías (Rx)
+              </h3>
+              {rxDeLaPieza.length > 0 && (
+                <ul className="border-border divide-border divide-y rounded-lg border text-sm">
+                  {rxDeLaPieza.map((r) => {
+                    const fecha = formatearFechaNumerica(r.fecha)
+                    return (
+                      <li key={r.id} className="flex flex-col gap-2 px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="tabular-nums">
+                            <CheckIcon
+                              weight="bold"
+                              aria-hidden="true"
+                              className="mr-1.5 inline size-4 align-[-0.125em]"
+                            />
+                            Rx del {fecha}
+                            {r.nota && <span className="text-muted-foreground"> · {r.nota}</span>}
+                          </p>
+                          {anulando !== r.id && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Anular la Rx del ${fecha}`}
+                              onClick={() => setAnulando(r.id)}
+                            >
+                              <ProhibitIcon weight="bold" />
+                              Anular
+                            </Button>
+                          )}
+                        </div>
+                        {anulando === r.id && (
+                          <div className="bg-destructive-bg flex flex-col gap-2 rounded-lg p-3">
+                            <p className="text-destructive">
+                              ¿Anular la Rx del {fecha}? Úsalo solo si se cargó por error.
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={pendiente}
+                                onClick={() => setAnulando(null)}
+                              >
+                                No
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={pendiente}
+                                onClick={() => anularRadiografia(r.id)}
+                              >
+                                Sí, anular
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+              <div className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] items-end gap-2">
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                  Tomada el
+                  <input
+                    form={idFormRx}
+                    type="date"
+                    max={hoy}
+                    value={nuevaRx.fecha}
+                    onChange={(e) => setNuevaRx((x) => ({ ...x, fecha: e.target.value }))}
+                    className={cn(claseCampo, 'min-w-0')}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-sm font-medium">
+                  Detalle (opcional)
+                  <input
+                    form={idFormRx}
+                    value={nuevaRx.nota}
+                    autoComplete="off"
+                    placeholder="Periapical"
+                    onChange={(e) => setNuevaRx((x) => ({ ...x, nota: e.target.value }))}
+                    className={cn(claseCampo, 'min-w-0')}
+                  />
+                </label>
+              </div>
+              <Button
+                form={idFormRx}
+                type="submit"
+                variant="outline"
+                className="self-start"
+                disabled={pendiente}
+              >
+                <CheckIcon weight="bold" />
+                Agregar Rx a la pieza {pieza}
+              </Button>
+            </section>
+
             <section aria-labelledby="titulo-agregar-pieza" className="flex flex-col gap-4">
               <h3 id="titulo-agregar-pieza" className="text-sm font-medium">
                 {tratando ? 'Marcar como tratado' : 'Agregar'}
@@ -452,6 +581,8 @@ export function HojaPieza({
             </Button>
           </SheetFooter>
         </form>
+        {/* Los campos de la Rx apuntan acá con el atributo form: no se anidan formularios. */}
+        <form id={idFormRx} onSubmit={agregarRadiografia} noValidate hidden />
       </SheetContent>
     </Sheet>
   )

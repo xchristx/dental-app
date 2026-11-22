@@ -65,6 +65,14 @@ export interface RegistroOdontograma {
   fecha: string
 }
 
+/** Una radiografía tomada de una pieza: la columna Rx de su ficha (0023). */
+export interface RadiografiaOdontograma {
+  id: string
+  pieza: number
+  fecha: string
+  nota: string | null
+}
+
 /** Permanentes 11–48 y temporales 51–85. */
 export function esPiezaValida(pieza: number): boolean {
   if (!Number.isInteger(pieza)) return false
@@ -259,6 +267,24 @@ export const DatosCodigoOdontograma = z
     path: ['simbolo'],
   })
 export type DatosCodigoOdontograma = z.infer<typeof DatosCodigoOdontograma>
+
+/** Una radiografía tomada (0023). */
+export const DatosRxOdontograma = z.object({
+  id: z.uuid(),
+  pacienteId: z.uuid(),
+  pieza: z.number().refine(esPiezaValida, 'Esa pieza no existe.'),
+  nota: z
+    .string()
+    .trim()
+    .max(200, 'Máximo 200 caracteres.')
+    .transform((v) => (v === '' ? null : v))
+    .nullable(),
+  fecha: z
+    .string()
+    .refine(esFechaValida, 'Elige una fecha válida.')
+    .refine((v) => v <= fechaEnZona(new Date(), ZONA_LA_PAZ), 'La fecha no puede ser futura.'),
+})
+export type DatosRxOdontograma = z.infer<typeof DatosRxOdontograma>
 
 const LADOS = ['superior derecha', 'superior izquierda', 'inferior izquierda', 'inferior derecha']
 

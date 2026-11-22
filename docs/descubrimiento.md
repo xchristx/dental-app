@@ -84,7 +84,7 @@ No es un dibujo: es una **tabla con una fila por pieza dental**.
 | `N` | ¿Normal? Es raro, porque las piezas sanas quedan en blanco | Baja |
 | Tildes en 18, 28, 38, 48 | ¿Muelas del juicio ausentes o para extraer? | Baja |
 | Barritas en 55, 74, 75, 85 | ¿Indican qué piezas temporales están presentes? | Baja |
-| ✓ en la columna Rx | Radiografía tomada o indicada | Media |
+| ✓ en la columna Rx | Radiografía **tomada** | Confirmada (2026-11-22) |
 
 ## Pagos
 

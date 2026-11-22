@@ -31,7 +31,7 @@ const plan = () =>
 
 test('hoy muestra lo tratado y el plan con lo pendiente', async () => {
   await expect(linea()).toHaveAttribute('aria-valuetext', /^Hoy/)
-  await expect(pieza(36)).toHaveAccessibleName('Pieza 36: Obt-OM (obturación)')
+  await expect(pieza(36)).toHaveAccessibleName(`Pieza 36: Obt-OM (obturación), Rx del ${inicial()}`)
   await expect.poll(plan).toEqual(['25 C I-P Caries Tratar'])
 })
 
@@ -40,7 +40,8 @@ test('en el odontograma inicial la caries de 36 estaba pendiente, solo para mira
   await expect(linea()).toHaveAttribute('aria-valuetext', `${inicial()} (inicial)`)
   await expect(principal(page)).toContainText(`Así estaba el ${inicial()}.`)
 
-  await expect(pieza(36)).toHaveAccessibleName('Pieza 36: C II-OM (caries)')
+  // La Rx de ese día ya estaba tomada (0023).
+  await expect(pieza(36)).toHaveAccessibleName(`Pieza 36: C II-OM (caries), Rx del ${inicial()}`)
   await expect(pieza(36)).toBeDisabled()
   await expect(principal(page).getByRole('heading', { level: 2 })).toContainText(
     `Pendiente al ${inicial()}`,

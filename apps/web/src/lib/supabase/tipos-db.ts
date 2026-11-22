@@ -621,6 +621,61 @@ export type Database = {
           },
         ]
       }
+      odontograma_rx: {
+        Row: {
+          autor_id: string | null
+          created_at: string
+          deleted_at: string | null
+          fecha: string
+          id: string
+          nota: string | null
+          organization_id: string
+          paciente_id: string
+          pieza: number
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          autor_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha: string
+          id?: string
+          nota?: string | null
+          organization_id: string
+          paciente_id: string
+          pieza: number
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha?: string
+          id?: string
+          nota?: string | null
+          organization_id?: string
+          paciente_id?: string
+          pieza?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'odontograma_rx_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'odontograma_rx_organization_id_paciente_id_fkey'
+            columns: ['organization_id', 'paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
       organizaciones: {
         Row: {
           created_at: string
