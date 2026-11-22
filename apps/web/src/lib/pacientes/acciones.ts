@@ -1,8 +1,6 @@
-'use server'
-
-import { refresh } from 'next/cache'
+import { refrescar } from '@/lib/consultas'
 import { DatosPaciente } from '@dental/core'
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { supabase } from '@/lib/supabase/cliente'
 
 export type ResultadoPaciente = { ok: true; id: string } | { ok: false; error: string }
 
@@ -15,7 +13,6 @@ export async function guardarPaciente(datos: unknown): Promise<ResultadoPaciente
     return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
   }
   const p = validacion.data
-  const supabase = await crearClienteServidor()
   const campos = { nombre: p.nombre, telefono: p.telefono, fecha_nacimiento: p.fechaNacimiento }
 
   // Primero se intenta editar; si no existe, se crea.
@@ -40,6 +37,6 @@ export async function guardarPaciente(datos: unknown): Promise<ResultadoPaciente
     }
   }
 
-  refresh()
+  refrescar()
   return { ok: true, id: p.id }
 }

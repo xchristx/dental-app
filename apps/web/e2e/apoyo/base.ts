@@ -1,7 +1,6 @@
 // Acceso directo a la base local para preparar cada prueba.
 // Solo funciona contra el Supabase local: nunca contra la demo ni producción.
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import pg from 'pg'
 
 const URL_BASE = process.env.E2E_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -13,7 +12,7 @@ if (host !== '127.0.0.1' && host !== 'localhost') {
   )
 }
 
-const SEED = readFileSync(join(__dirname, '../../../../supabase/seed.sql'), 'utf8')
+const SEED = readFileSync(new URL('../../../../supabase/seed.sql', import.meta.url), 'utf8')
 
 /** Ids fijos del seed. */
 export const ID = {

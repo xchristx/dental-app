@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useTransition } from 'react'
 import { PlusIcon, ProhibitIcon } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'

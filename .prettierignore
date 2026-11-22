@@ -1,11 +1,8 @@
 pnpm-lock.yaml
-.next
 .turbo
 dist
 coverage
 supabase/.temp
 docs
-next-env.d.ts
-apps/web/AGENTS.md
 playwright-report
 test-results

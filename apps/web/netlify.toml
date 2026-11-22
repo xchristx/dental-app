@@ -1,18 +1,33 @@
-# Despliegue en Netlify (decisión 0010).
+# Despliegue en Netlify (decisiones 0010 y 0017): un sitio estático, sin
+# funciones de servidor.
 # En el panel: base directory vacío (raíz del repo) y package directory `apps/web`.
 # Las rutas de este archivo son relativas al base directory, es decir, a la raíz.
 
 [build]
   command = "pnpm turbo run build --filter=@dental/web"
-  publish = "apps/web/.next"
+  publish = "apps/web/dist"
 
 # Netlify frena el build si encuentra el valor de una variable de entorno en
-# el repo o en el resultado. Estas cuatro son públicas a propósito:
-# - NEXT_PUBLIC_*: van al navegador; la clave "publishable" es pública por
-#   diseño y los datos los protege RLS.
-# - DEMO_*: la cuenta del botón "Entrar como demo", que también está en
+# el repo o en el resultado. Estas son públicas a propósito y van en el
+# JavaScript que descarga el navegador:
+# - VITE_SUPABASE_*: la clave "publishable" es pública por diseño y los datos
+#   los protege RLS.
+# - VITE_DEMO_*: la cuenta del botón "Entrar como demo", que también está en
 #   supabase/seed.sql.
-# Las demás variables se siguen revisando. Nunca agregar aquí una clave secreta
-# (por ejemplo, la service role de Supabase).
+# Nunca agregar aquí una clave secreta (por ejemplo, la service role de Supabase).
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,DEMO_EMAIL,DEMO_PASSWORD"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_PUBLISHABLE_KEY,VITE_DEMO_EMAIL,VITE_DEMO_PASSWORD"
+
+# SPA: cualquier ruta (/pacientes, /ajustes…) la resuelve index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Los archivos de /assets llevan un hash en el nombre: cambian de nombre en
+# cada despliegue, así que el navegador los puede guardar para siempre.
+# index.html no: tiene que pedirse de nuevo para enterarse de un despliegue.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

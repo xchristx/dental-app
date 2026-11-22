@@ -16,25 +16,15 @@ Requisitos: Node 24, pnpm (`corepack enable pnpm`), Docker y la CLI de Supabase.
 pnpm install
 pnpm db:start   # Supabase local, con datos inventados
 cp apps/web/.env.example apps/web/.env.local
-# Completar NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY con la de `supabase status`
-pnpm dev        # web en http://localhost:3000
+# Completar VITE_SUPABASE_PUBLISHABLE_KEY con la de `supabase status`
+pnpm dev        # web en http://localhost:5173
 ```
 
 En local, "Entrar como demo" usa la usuaria `demo@ejemplo.test` del seed.
 
-Durante la migración a una SPA con Vite ([0017](docs/decisiones/0017-spa-con-vite.md)) conviven dos apps. La nueva está en `apps/web-vite`:
-
-```sh
-cp apps/web-vite/.env.example apps/web-vite/.env.local
-# Completar VITE_SUPABASE_PUBLISHABLE_KEY con la de `supabase status`
-pnpm --filter @dental/web-vite dev   # http://localhost:5173
-```
-
-Las pruebas de punta a punta corren contra la app nueva con `E2E_APP=vite pnpm test:e2e`.
-
 Tests: `pnpm test` (packages/core), `pnpm db:test` (pgTAP) y `pnpm test:e2e` (Playwright, de punta a punta).
 
-Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome instalado. Compilan la web y la levantan en el puerto 3100, o usan el servidor que ya esté en ese puerto (por ejemplo, `pnpm --filter @dental/web dev --port 3100`). Cada archivo de `apps/web/e2e/` reinicia la base local con el seed, así que no corren contra otra base. Las fechas se calculan desde hoy: el resultado no depende del día en que se corren.
+Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome instalado. Compilan la web y la sirven con `vite preview` en el puerto 4173, o usan el servidor que ya esté en ese puerto. Cada archivo de `apps/web/e2e/` reinicia la base local con el seed, así que no corren contra otra base. Las fechas se calculan desde hoy: el resultado no depende del día en que se corren.
 
 ## Documentación
 
@@ -61,12 +51,12 @@ Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome inst
 
 ## Stack
 
-TypeScript · pnpm + Turborepo · Next.js · Tailwind v4 + shadcn/ui · Phosphor · Supabase (Postgres) · Zod · Vitest + pgTAP + Playwright · Netlify · Expo + PowerSync (fase 2)
+TypeScript · pnpm + Turborepo · Vite + TanStack Router y Query · Tailwind v4 + shadcn/ui · Phosphor · Supabase (Postgres) · Zod · Vitest + pgTAP + Playwright · Netlify (sitio estático) · Expo + PowerSync (fase 2)
 
 ## Estructura
 
 ```
-apps/web        Next.js (fase 1)
+apps/web        SPA con Vite (fase 1)
 apps/mobile     Expo Android, sin conexión (fase 2, todavía no existe)
 packages/core   lógica compartida: saldos, choques de agenda, odontograma
 supabase/       migraciones y datos de prueba

@@ -1,6 +1,4 @@
-'use server'
-
-import { refresh } from 'next/cache'
+import { refrescar } from '@/lib/consultas'
 import {
   DatosLugar,
   DatosProfesional,
@@ -11,14 +9,14 @@ import {
   listarDias,
 } from '@dental/core'
 import { ZONA } from '@/lib/agenda/zona'
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { supabase } from '@/lib/supabase/cliente'
 
 export type ResultadoAjustes = { ok: true } | { ok: false; error: string }
 
 const ERROR_GENERICO = 'No pudimos guardar el cambio. Revisa tu conexión e inténtalo de nuevo.'
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-type Supabase = Awaited<ReturnType<typeof crearClienteServidor>>
+type Supabase = typeof supabase
 
 async function organizacionDelUsuario(supabase: Supabase): Promise<string | null> {
   const { data } = await supabase.rpc('org_ids_del_usuario')
@@ -36,7 +34,6 @@ export async function guardarLugar(datos: unknown): Promise<ResultadoAjustes> {
     return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
   }
   const lugar = validacion.data
-  const supabase = await crearClienteServidor()
   const campos = {
     nombre: lugar.nombre,
     color: lugar.color,
@@ -71,7 +68,7 @@ export async function guardarLugar(datos: unknown): Promise<ResultadoAjustes> {
     }
   }
 
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
@@ -85,7 +82,6 @@ export async function agregarTramos(datos: unknown): Promise<ResultadoAjustes> {
     return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
   }
   const nuevo = validacion.data
-  const supabase = await crearClienteServidor()
   const hoy = fechaEnZona(new Date(), ZONA)
 
   const existentes = await supabase
@@ -137,14 +133,13 @@ export async function agregarTramos(datos: unknown): Promise<ResultadoAjustes> {
     }
   }
 
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
 /** Quita un tramo: lo cierra ayer para conservar la historia, o lo borra si es de hoy (0004). */
 export async function quitarTramo(id: string): Promise<ResultadoAjustes> {
   if (!ES_UUID.test(id)) return { ok: false, error: 'No encontramos ese horario.' }
-  const supabase = await crearClienteServidor()
   const { data: tramo } = await supabase
     .from('horarios')
     .select('vigente_desde')
@@ -167,7 +162,7 @@ export async function quitarTramo(id: string): Promise<ResultadoAjustes> {
     return { ok: false, error: ERROR_GENERICO }
   }
 
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
@@ -179,7 +174,6 @@ export async function guardarMargenTraslado(
   if (!ES_UUID.test(profesionalId) || !Number.isInteger(minutos) || minutos < 0 || minutos > 240) {
     return { ok: false, error: 'Elige un tiempo válido.' }
   }
-  const supabase = await crearClienteServidor()
   const { data, error } = await supabase
     .from('profesionales')
     .update({ margen_traslado_min: minutos })
@@ -191,7 +185,7 @@ export async function guardarMargenTraslado(
   }
   if (!data?.length) return { ok: false, error: 'No encontramos a esa profesional.' }
 
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
@@ -209,7 +203,6 @@ export async function guardarProfesional(datos: unknown): Promise<ResultadoAjust
     return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
   }
   const profesional = validacion.data
-  const supabase = await crearClienteServidor()
   const campos = { nombre: profesional.nombre, especialidad: profesional.especialidad }
 
   const editado = await supabase
@@ -239,7 +232,7 @@ export async function guardarProfesional(datos: unknown): Promise<ResultadoAjust
     }
   }
 
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
@@ -249,7 +242,6 @@ export async function guardarProfesional(datos: unknown): Promise<ResultadoAjust
  */
 export async function darDeBajaProfesional(id: string): Promise<ResultadoAjustes> {
   if (!ES_UUID.test(id)) return { ok: false, error: 'No encontramos a esa profesional.' }
-  const supabase = await crearClienteServidor()
   const { data, error } = await supabase
     .from('profesionales')
     .update({ deleted_at: new Date().toISOString() })
@@ -290,6 +282,6 @@ export async function darDeBajaProfesional(id: string): Promise<ResultadoAjustes
     return { ok: false, error: 'Solo la administradora puede dar de baja a una profesional.' }
   }
 
-  refresh()
+  refrescar()
   return { ok: true }
 }

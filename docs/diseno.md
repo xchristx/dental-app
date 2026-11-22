@@ -10,7 +10,7 @@ Cómo se ve y cómo se comporta la interfaz. Las decisiones de fondo están en [
 
 ## Tokens
 
-Se definen una sola vez en [`apps/web/src/app/globals.css`](../apps/web/src/app/globals.css) (Tailwind v4). Todos los pares de texto y fondo cumplen contraste AA (4,5 o más).
+Se definen una sola vez en [`apps/web/src/globals.css`](../apps/web/src/globals.css) (Tailwind v4). Todos los pares de texto y fondo cumplen contraste AA (4,5 o más).
 
 En el código, los neutros usan los nombres de shadcn/ui, para que sus componentes funcionen sin cambios:
 
@@ -86,7 +86,7 @@ Detalle en la decisión [0009](decisiones/0009-interfaz-en-celular-y-escritorio.
 | Título de la fecha en la agenda | Newsreader | Interlineado 1,1 y tracking -0,02em. Solo ahí |
 | Códigos del odontograma y números de recibo | Geist Mono | |
 
-Se cargan con `next/font`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
+Se cargan con Fontsource, en `apps/web/src/main.tsx`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
 
 ## Íconos
 - Phosphor (`@phosphor-icons/react`), peso `bold`, en 16 o 20 px.

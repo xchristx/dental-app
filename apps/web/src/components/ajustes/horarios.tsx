@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useTransition } from 'react'
 import { PlusIcon, XIcon } from '@phosphor-icons/react'
 import { NOMBRES_DIAS } from '@dental/core'

@@ -1,6 +1,4 @@
-'use server'
-
-import { refresh } from 'next/cache'
+import { refrescar } from '@/lib/consultas'
 import {
   ESTADOS_QUE_OCUPAN,
   EstadoCita,
@@ -22,7 +20,7 @@ import {
   telefonoParaWhatsApp,
   type Fecha,
 } from '@dental/core'
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { supabase } from '@/lib/supabase/cliente'
 import { ZONA } from './zona'
 
 export type ResultadoAgendar = { ok: true; fecha: Fecha } | { ok: false; error: string }
@@ -43,7 +41,6 @@ export interface CitaDelDia {
  */
 export async function ocupacionDelDia(fecha: string): Promise<CitaDelDia[]> {
   if (!esFechaValida(fecha)) return []
-  const supabase = await crearClienteServidor()
   const { data, error } = await supabase
     .from('citas')
     .select('id, profesional_id, lugar_id, inicio, fin, estado')
@@ -64,7 +61,7 @@ export async function ocupacionDelDia(fecha: string): Promise<CitaDelDia[]> {
 
 const ERROR_GENERICO = 'No pudimos guardar la cita. Revisa tu conexión e inténtalo de nuevo.'
 
-type Supabase = Awaited<ReturnType<typeof crearClienteServidor>>
+type Supabase = typeof supabase
 
 export async function agendarCita(datos: unknown): Promise<ResultadoAgendar> {
   const validacion = NuevaCita.safeParse(datos)
@@ -72,7 +69,6 @@ export async function agendarCita(datos: unknown): Promise<ResultadoAgendar> {
     return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
   }
   const cita = validacion.data
-  const supabase = await crearClienteServidor()
 
   const organizacion = await organizacionDelUsuario(supabase)
   if (!organizacion) return { ok: false, error: 'Tu usuario no tiene acceso a ninguna agenda.' }
@@ -134,7 +130,7 @@ export async function agendarCita(datos: unknown): Promise<ResultadoAgendar> {
   }
 
   // La agenda se vuelve a leer con la cita nueva.
-  refresh()
+  refrescar()
   return { ok: true, fecha: cita.fecha }
 }
 
@@ -233,7 +229,6 @@ async function leerCita(supabase: Supabase, id: string) {
 export async function cambiarEstadoCita(id: string, estado: string): Promise<ResultadoCita> {
   const nuevo = EstadoCita.safeParse(estado)
   if (!nuevo.success) return { ok: false, error: 'Estado no válido.' }
-  const supabase = await crearClienteServidor()
   const cita = await leerCita(supabase, id)
   if (!cita) return NO_ENCONTRADA
 
@@ -287,14 +282,13 @@ export async function cambiarEstadoCita(id: string, estado: string): Promise<Res
     return { ok: false, error: ERROR_GENERICO }
   }
 
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
 /** Corrige la hora real de llegada ("HH:MM", hora local del día de la cita). */
 export async function corregirLlegada(id: string, hora: string): Promise<ResultadoCita> {
   if (!esHoraValida(hora)) return { ok: false, error: 'Elige una hora válida.' }
-  const supabase = await crearClienteServidor()
   const cita = await leerCita(supabase, id)
   if (!cita) return NO_ENCONTRADA
   if (cita.estado !== 'atendida') return { ok: false, error: 'Primero marca que llegó.' }
@@ -311,7 +305,7 @@ export async function corregirLlegada(id: string, hora: string): Promise<Resulta
     console.error(`[llegada] código=${error.code}: ${error.message}`)
     return { ok: false, error: ERROR_GENERICO }
   }
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
@@ -321,7 +315,6 @@ export async function corregirLlegada(id: string, hora: string): Promise<Resulta
  * pedido no la alarga otra vez. Si pisa otra cita, Postgres lo impide.
  */
 export async function extenderCita(id: string): Promise<ResultadoCita> {
-  const supabase = await crearClienteServidor()
   const cita = await leerCita(supabase, id)
   if (!cita) return NO_ENCONTRADA
   if (cita.estado !== 'atendida' || !cita.llegada_at) {
@@ -338,7 +331,7 @@ export async function extenderCita(id: string): Promise<ResultadoCita> {
     llegada: new Date(cita.llegada_at),
   })
   if (finCompleto <= fin) {
-    refresh()
+    refrescar()
     return { ok: true }
   }
 
@@ -361,13 +354,12 @@ export async function extenderCita(id: string): Promise<ResultadoCita> {
     console.error(`[extender] código=${error.code}: ${error.message}`)
     return { ok: false, error: ERROR_GENERICO }
   }
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
 /** Marca que se envió el recordatorio por WhatsApp (0005). */
 export async function marcarRecordatorioEnviado(id: string): Promise<ResultadoCita> {
-  const supabase = await crearClienteServidor()
   const cita = await leerCita(supabase, id)
   if (!cita) return NO_ENCONTRADA
   if (!puedeEnviarRecordatorio(EstadoCita.parse(cita.estado), new Date(cita.inicio), new Date())) {
@@ -381,7 +373,7 @@ export async function marcarRecordatorioEnviado(id: string): Promise<ResultadoCi
     console.error(`[recordatorio] código=${error.code}: ${error.message}`)
     return { ok: false, error: ERROR_GENERICO }
   }
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
@@ -398,7 +390,6 @@ export async function guardarTelefono(
       error: 'Ese número no parece un celular. Escríbelo con 8 dígitos, por ejemplo 71234567.',
     }
   }
-  const supabase = await crearClienteServidor()
   const { data, error } = await supabase
     .from('pacientes')
     .update({ telefono: limpio })
@@ -409,7 +400,7 @@ export async function guardarTelefono(
     return { ok: false, error: ERROR_GENERICO }
   }
   if (!data?.length) return NO_ENCONTRADA
-  refresh()
+  refrescar()
   return { ok: true }
 }
 
@@ -439,7 +430,6 @@ export async function reagendarCita(datos: unknown): Promise<ResultadoReagendar>
     return { ok: false, error: validacion.error.issues[0]?.message ?? 'Revisa los datos.' }
   }
   const nueva = validacion.data
-  const supabase = await crearClienteServidor()
   const original = await leerCita(supabase, nueva.citaOriginalId)
   if (!original) return NO_ENCONTRADA
 
@@ -489,7 +479,7 @@ export async function reagendarCita(datos: unknown): Promise<ResultadoReagendar>
     }
   }
 
-  refresh()
+  refrescar()
   return { ok: true, fecha: nueva.fecha, id: nueva.id }
 }
 
@@ -507,7 +497,6 @@ export interface PacienteParaAgendar {
  * formulario y no con cada semana de la agenda: es la lista que más crece.
  */
 export async function pacientesParaAgendar(): Promise<PacienteParaAgendar[]> {
-  const supabase = await crearClienteServidor()
   const { data, error } = await supabase
     .from('pacientes')
     .select('id, nombre')

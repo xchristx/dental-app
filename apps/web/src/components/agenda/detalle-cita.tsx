@@ -1,8 +1,6 @@
-'use client'
-
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Enlace } from '@/components/enlace'
+import { useIr, useParametro } from '@/lib/navegacion'
 import {
   ArrowCounterClockwiseIcon,
   CalendarPlusIcon,
@@ -82,7 +80,7 @@ export function DetalleSeleccionado({
   /** El día de la agenda, para volver a él al cerrar. */
   fecha: string
 }) {
-  const id = useSearchParams().get('cita')
+  const id = useParametro('cita')
   const cita = citas.find((c) => c.id === id)
   if (!cita) return null
   const dia = fechaEnZona(cita.inicio, ZONA)
@@ -113,7 +111,7 @@ export function DetalleCita({
   opciones: OpcionesAgendar
   urlCerrar: string
 }) {
-  const router = useRouter()
+  const ir = useIr()
   const [reagendando, setReagendando] = useState<DatosReagendar | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
@@ -210,16 +208,14 @@ export function DetalleCita({
           onOpenChange={(abierto) => !abierto && setReagendando(null)}
           reagendar={reagendando}
           // Se abre el detalle de la cita nueva, para enviarle el recordatorio con la hora nueva.
-          onGuardada={(nueva) =>
-            router.push(`/?fecha=${nueva.fecha}&cita=${nueva.id}`, { scroll: false })
-          }
+          onGuardada={(nueva) => void ir(`/?fecha=${nueva.fecha}&cita=${nueva.id}`)}
         />
       )}
       <Sheet
         open={!reagendando}
         onOpenChange={(abierto) => {
-          // Cerrar tampoco va al servidor: solo cambia la URL (ver EnlaceDetalle).
-          if (!abierto) window.history.replaceState(null, '', urlCerrar)
+          // Cerrar solo cambia la URL: los datos ya están en la página.
+          if (!abierto) void ir(urlCerrar, { reemplazar: true })
         }}
       >
         <SheetContent aria-busy={pendiente}>
@@ -478,13 +474,9 @@ export function DetalleCita({
 function EnlaceCita({ id, inicio }: { id: string; inicio: Date }) {
   const fecha = fechaEnZona(inicio, ZONA)
   return (
-    <Link
-      href={`/?fecha=${fecha}&cita=${id}`}
-      scroll={false}
-      className="underline underline-offset-4"
-    >
+    <Enlace href={`/?fecha=${fecha}&cita=${id}`} className="underline underline-offset-4">
       {formatearDiaLargo(fecha)} · {formatearHora(inicio, ZONA)}
-    </Link>
+    </Enlace>
   )
 }
 

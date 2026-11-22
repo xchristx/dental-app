@@ -1,7 +1,5 @@
-'use client'
-
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useIr } from '@/lib/navegacion'
 import { PencilSimpleIcon, UserPlusIcon } from '@phosphor-icons/react'
 import { fechaEnZona } from '@dental/core'
 import { Button } from '@/components/ui/button'
@@ -35,7 +33,7 @@ export function FormularioPaciente({ paciente }: { paciente?: PacienteLista }) {
   const [form, setForm] = useState<Form | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [guardando, iniciar] = useTransition()
-  const router = useRouter()
+  const ir = useIr()
   const esNuevo = !paciente
 
   function abrir() {
@@ -63,7 +61,7 @@ export function FormularioPaciente({ paciente }: { paciente?: PacienteLista }) {
         return
       }
       setForm(null)
-      if (esNuevo) router.push(`/pacientes/${r.id}`)
+      if (esNuevo) void ir(`/pacientes/${r.id}`)
     })
   }
 
