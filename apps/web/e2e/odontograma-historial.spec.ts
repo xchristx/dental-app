@@ -56,3 +56,11 @@ test('"Volver a hoy" vuelve al odontograma actual', async () => {
   await expect(pieza(36)).toBeEnabled()
   await expect.poll(plan).toEqual(['25 C I-P Caries Tratar'])
 })
+
+test('cada día con registros tiene su fecha debajo, y se puede tocar', async () => {
+  const corta = inicial().replace(/\d\d(\d\d)$/, '$1') // "03/03/26"
+  await principal(page).getByText(corta, { exact: true }).click()
+  await expect(linea()).toHaveAttribute('aria-valuetext', `${inicial()} (inicial)`)
+  await expect(pieza(36)).toBeDisabled()
+  await control(page, 'Volver a hoy').click()
+})

@@ -266,9 +266,22 @@ function LineaDeTiempo({
     return i === 0 ? `${fecha} (inicial)` : fecha
   }
   const id = useId()
+  const elegir = (i: number) => onCambiar(i === fechas.length - 1 ? null : (fechas[i] ?? null))
+
+  // El ancho decide cuántas fechas entran debajo sin pisarse.
+  const [marcas, setMarcas] = useState<HTMLDivElement | null>(null)
+  const [ancho, setAncho] = useState(0)
+  useEffect(() => {
+    if (!marcas) return
+    const observador = new ResizeObserver(([e]) => setAncho(e?.contentRect.width ?? 0))
+    observador.observe(marcas)
+    return () => observador.disconnect()
+  }, [marcas])
+  const visibles = fechasQueEntran(fechas.length, indice, ancho)
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col gap-1 text-sm font-medium">
+      <div className="flex flex-col text-sm font-medium">
         <span className="flex flex-wrap justify-between gap-2">
           <label htmlFor={id}>Ver la boca al</label>
           {/* El lector de pantalla lo lee en aria-valuetext. */}
@@ -284,12 +297,52 @@ function LineaDeTiempo({
           step={1}
           value={indice}
           aria-valuetext={etiqueta(indice)}
-          onChange={(e) => {
-            const i = Number(e.target.value)
-            onCambiar(i === fechas.length - 1 ? null : (fechas[i] ?? null))
-          }}
-          className="accent-primary h-10 w-full cursor-pointer"
+          onChange={(e) => elegir(Number(e.target.value))}
+          className="linea-tiempo"
         />
+        {/*
+          Una marca por cada día con registros, alineada con su parada. Se
+          puede tocar; con el teclado se usan las flechas del control.
+        */}
+        <div ref={setMarcas} aria-hidden="true" className="relative -mt-2 h-8 select-none">
+          {fechas.map((fecha, i) => {
+            const fraccion = fechas.length > 1 ? i / (fechas.length - 1) : 0
+            const izquierda = `calc(${PULGAR / 2}px + (100% - ${PULGAR}px) * ${fraccion})`
+            const elegida = i === indice
+            return (
+              <span
+                key={fecha}
+                onClick={() => elegir(i)}
+                className="absolute top-0 flex h-8 w-6 -translate-x-1/2 cursor-pointer justify-center"
+                style={{ left: izquierda }}
+              >
+                <span
+                  className={cn(
+                    'mt-0.5 h-2 w-0.5 rounded-full',
+                    elegida ? 'bg-foreground' : 'bg-muted-foreground',
+                  )}
+                />
+                {visibles.has(i) && (
+                  <span
+                    className={cn(
+                      'absolute top-3 text-xs whitespace-nowrap tabular-nums',
+                      i === 0
+                        ? 'left-1/2 -ml-2.5'
+                        : i === fechas.length - 1
+                          ? 'right-1/2 -mr-2.5'
+                          : '',
+                      elegida
+                        ? 'text-foreground font-semibold'
+                        : 'text-muted-foreground font-normal',
+                    )}
+                  >
+                    {fechaCorta(fecha)}
+                  </span>
+                )}
+              </span>
+            )
+          })}
+        </div>
       </div>
       {dia && (
         <p className="bg-muted flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-sm">
@@ -304,6 +357,47 @@ function LineaDeTiempo({
       )}
     </div>
   )
+}
+
+/** Ancho del pulgar del control, en px: el --pulgar de .linea-tiempo en globals.css. */
+const PULGAR = 20
+/** Lo que ocupa una fecha corta ("03/03/26") debajo del control, más el aire entre dos. */
+const ANCHO_FECHA = 56
+const AIRE = 8
+
+/** "2026-03-03" → "03/03/26". */
+const fechaCorta = (fecha: string) => {
+  const [a, m, d] = fecha.split('-')
+  return `${d}/${m}/${a?.slice(2)}`
+}
+
+/**
+ * Qué fechas se escriben debajo del control sin pisarse: primero la elegida,
+ * después la inicial y la última, y las demás mientras entren. Las que no
+ * entran quedan como marca sola.
+ */
+function fechasQueEntran(cantidad: number, elegida: number, ancho: number): Set<number> {
+  const centro = (i: number) =>
+    PULGAR / 2 + (ancho - PULGAR) * (cantidad > 1 ? i / (cantidad - 1) : 0)
+  // La primera y la última se alinean con el borde para no salirse.
+  const tramo = (i: number): [number, number] =>
+    i === 0
+      ? [0, ANCHO_FECHA]
+      : i === cantidad - 1
+        ? [ancho - ANCHO_FECHA, ancho]
+        : [centro(i) - ANCHO_FECHA / 2, centro(i) + ANCHO_FECHA / 2]
+  const orden = [elegida, 0, cantidad - 1, ...Array.from({ length: cantidad }, (_, i) => i)]
+  const elegidas: number[] = []
+  for (const i of orden) {
+    if (elegidas.includes(i)) continue
+    const [desde, hasta] = tramo(i)
+    const libre = elegidas.every((j) => {
+      const [d, h] = tramo(j)
+      return hasta + AIRE <= d || h + AIRE <= desde
+    })
+    if (libre) elegidas.push(i)
+  }
+  return new Set(elegidas)
 }
 
 /** "Pieza 36: C II-OM (caries), nota: sensibilidad" o "Pieza 36, sin registros". */
