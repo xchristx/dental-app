@@ -1,5 +1,5 @@
 -- Alta de producción (decisión 0030). Se corre UNA sola vez, en el SQL Editor
--- del proyecto sifel-produccion, después de:
+-- del proyecto sifel-prod, después de:
 --   1. aplicar las migraciones (workflow "Publicar en producción"), y
 --   2. crear las dos cuentas en Authentication → Users → Add user → Create new
 --      user, con "Auto Confirm User". La contraseña puede ser larga y al azar:

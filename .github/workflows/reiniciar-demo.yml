@@ -1,6 +1,6 @@
 name: Reiniciar la demo
 
-# La demo (sifel.netlify.app) se reinicia cada día con las migraciones y el
+# La demo (sifel-demo.netlify.app, decisión 0030) se reinicia cada día con las migraciones y el
 # seed: datos inventados en la semana actual (decisión 0015). Así nunca queda
 # vacía, se borra lo que cambien las visitas y el proyecto gratis de Supabase
 # no se pausa por inactividad.
@@ -53,6 +53,6 @@ jobs:
 
       - name: Comprobar que la demo responde
         run: |
-          estado=$(curl -s -o /dev/null -w '%{http_code}' https://sifel.netlify.app/entrar)
-          echo "sifel.netlify.app/entrar respondió $estado"
+          estado=$(curl -s -o /dev/null -w '%{http_code}' https://sifel-demo.netlify.app/entrar)
+          echo "sifel-demo.netlify.app/entrar respondió $estado"
           [ "$estado" = "200" ]

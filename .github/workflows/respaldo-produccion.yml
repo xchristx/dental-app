@@ -32,7 +32,7 @@ jobs:
     # Los secretos de producción viven en este environment.
     environment: produccion
     env:
-      # Session pooler de sifel-produccion (los runners no tienen IPv6).
+      # Session pooler de sifel-prod (los runners no tienen IPv6).
       PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
       PROYECTO_PRODUCCION: ${{ vars.PROYECTO_PRODUCCION }}
       PROYECTO_DEMO: mbqrsaxdecuuqitavcel

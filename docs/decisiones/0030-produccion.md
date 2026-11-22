@@ -5,6 +5,8 @@
 - **Reemplaza:**
   - De la [0016](0016-region-de-supabase.md), que antes de crear producción se mide la latencia desde la conexión de la dentista. Ahora se mide después.
   - De la [0007](0007-autenticacion.md), que el cliente OAuth de Google se configura en los dos proyectos. Ahora va solo en producción.
+  - De la [0016](0016-region-de-supabase.md), que producción y la demo ocupan el cupo de proyectos gratis del autor. Pasan a una cuenta de Supabase aparte, de Sifel.
+  - De la [0015](0015-demo-se-reinicia-cada-dia.md), que la demo está en `sifel.netlify.app`. Pasa a `sifel-demo.netlify.app`, y `sifel.netlify.app` queda para producción.
 - **Sigue:** la [0011](0011-produccion-en-plan-gratis.md). Los respaldos están en la [0031](0031-respaldos-en-google-drive.md).
 
 ## Contexto
@@ -15,12 +17,28 @@ El cupo gratis de Supabase permite dos proyectos activos (0016). Hoy solo está 
 
 ## Decisión
 
+### Una cuenta solo para Sifel
+
+- **Una cuenta de Google dedicada**, con verificación en dos pasos. Es dueña de:
+  - la cuenta de Supabase;
+  - el cliente OAuth en Google Cloud;
+  - la carpeta de respaldos en Drive (0031).
+
+  Para entrar a la app, la dentista y el autor usan sus propias cuentas de Google: esta solo administra.
+- **Una cuenta de Supabase aparte,** con el correo de Sifel y una organización `Sifel` que tiene los dos proyectos, la demo y producción.
+  - El cupo de 2 proyectos gratis activos es por persona (0016). Así no choca con los otros proyectos del autor.
+  - La demo se **transfiere** desde la cuenta del autor. Un proyecto transferido conserva su URL y sus claves, así que Netlify, `DEMO_DB_URL` y el reinicio diario no cambian.
+  - Después, el autor sale de la organización o queda como Developer. Como Owner o Admin, los proyectos contarían en su cupo personal.
+
 ### Dónde
 
-- **Supabase:** un proyecto nuevo, `sifel-produccion`, en sa-east-1 (São Paulo). Se crea sin medir antes desde la conexión de la dentista.
+- **Supabase:** un proyecto nuevo, `sifel-prod`, en sa-east-1 (São Paulo). Se crea sin medir antes desde la conexión de la dentista.
   - Esa medición se hace después.
   - Si otra región sale más de 20 ms mejor, se pasa a esa región con un respaldo y una restauración (0031), y se escribe una decisión nueva.
-- **Web:** un segundo sitio de Netlify, del mismo repositorio, que se publica desde la rama `produccion`. La demo sigue en `sifel.netlify.app`, publicada desde `main`.
+- **Web:** producción va en **`sifel.netlify.app`**, la dirección corta, que es la que va a usar la dentista. La demo pasa a **`sifel-demo.netlify.app`**.
+  - El sitio actual de Netlify se renombra a `sifel-demo`. Conserva su configuración de demo y sigue publicando `main`.
+  - Se crea un sitio nuevo llamado `sifel`, del mismo repositorio, que publica la rama `produccion`.
+  - Los nombres de Netlify son únicos entre todos sus usuarios. Por eso, apenas se libera `sifel`, se reserva con un sitio provisorio hasta que producción esté lista.
 
 ### Cómo se publica
 
@@ -56,6 +74,8 @@ Los secretos de producción están en el environment `produccion` de GitHub. Sol
 - La organización de producción permite archivos (`permite_archivos` en `true` por defecto, 0027), porque sus archivos se respaldan (0031).
 
 ## Consecuencias
+
+- Los enlaces viejos a `sifel.netlify.app` (portafolio, CV, mensajes) llevan a la entrada de producción, no a la demo. Hay que cambiarlos por `sifel-demo.netlify.app`.
 
 - Publicar en producción es un paso consciente, con respaldo previo. Un merge a `main` solo cambia la demo.
 - Si una migración necesita un cambio de datos o algo que no puede salir mal, se prueba antes restaurando un respaldo de producción en local (0031).
