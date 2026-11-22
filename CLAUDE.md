@@ -42,6 +42,7 @@ Monorepo con pnpm y Turborepo. Todo se corre desde la raíz.
 - `pnpm db:test`: tests pgTAP de `supabase/tests/`.
 - `pnpm test:e2e`: pruebas de punta a punta con Playwright (necesita el Supabase local y Chrome). Cada archivo reinicia la base local con el seed.
 - `supabase migration new <nombre>`: crea una migración. Nunca se cambia el esquema desde el panel de Supabase.
+- Producción (0030) solo se toca con el workflow "Publicar en producción" (respaldo, migraciones sin seed y rama `produccion`). Nunca se corre `db reset` ni el seed contra producción. Guía: `docs/operacion/produccion.md`.
 
 ## Convenciones de código
 

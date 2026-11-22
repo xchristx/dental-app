@@ -1,0 +1,77 @@
+name: Publicar en producción
+
+# Lleva main a producción (decisión 0030), a mano y en este orden:
+#   1. respalda la base y los archivos (por si una migración sale mal);
+#   2. aplica las migraciones nuevas, sin seed: el seed nunca va a producción;
+#   3. mueve la rama `produccion` a este commit de main. El sitio de producción
+#      en Netlify se publica desde esa rama, así que la web nueva sale recién
+#      cuando la base ya tiene su esquema.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: publicar-produccion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  respaldo:
+    name: Respaldo previo
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/respaldo-produccion.yml
+    secrets: inherit
+
+  migrar:
+    name: Migraciones
+    needs: respaldo
+    runs-on: ubuntu-latest
+    environment: produccion
+    env:
+      PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+      PROYECTO_PRODUCCION: ${{ vars.PROYECTO_PRODUCCION }}
+      PROYECTO_DEMO: mbqrsaxdecuuqitavcel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar que el secreto es de producción
+        run: |
+          case "$PROD_DB_URL" in
+            *"$PROYECTO_DEMO"*) echo "::error::PROD_DB_URL apunta a la demo."; exit 1 ;;
+            *"$PROYECTO_PRODUCCION"*) echo "Apunta a producción." ;;
+            *) echo "::error::PROD_DB_URL no es del proyecto $PROYECTO_PRODUCCION."; exit 1 ;;
+          esac
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.0.0
+
+      - name: Migraciones pendientes
+        run: supabase db push --remote="$PROD_DB_URL" --dry-run
+
+      - name: Aplicar
+        # Sin --include-seed.
+        run: supabase db push --remote="$PROD_DB_URL" --yes
+
+  publicar:
+    name: Mover la rama produccion
+    needs: migrar
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Avanzar produccion hasta este commit
+        run: |
+          # Solo avanza (fast-forward): si produccion tiene algo que main no, corta.
+          if git rev-parse --verify -q origin/produccion > /dev/null; then
+            git merge-base --is-ancestor origin/produccion "$GITHUB_SHA" \
+              || { echo "::error::produccion tiene commits que no están en main."; exit 1; }
+          fi
+          git push origin "$GITHUB_SHA:refs/heads/produccion"
+          echo "produccion → $GITHUB_SHA. Netlify publica el sitio de producción desde esa rama."
