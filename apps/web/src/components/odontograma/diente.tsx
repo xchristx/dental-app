@@ -5,21 +5,21 @@ import { cn } from '@/lib/utils'
 
 // Diagrama de cinco caras (0020): un cuadrado con el centro (oclusal o
 // incisal) y cuatro trapecios alrededor. viewBox de 40 × 40.
-const REGIONES = {
+export const REGIONES = {
   arriba: '4,4 36,4 26,14 14,14',
   abajo: '4,36 36,36 26,26 14,26',
   izquierda: '4,4 14,14 14,26 4,36',
   derecha: '36,4 26,14 26,26 36,36',
   centro: '14,14 26,14 26,26 14,26',
 } as const
-type Region = keyof typeof REGIONES
+export type Region = keyof typeof REGIONES
 
 /**
  * En qué parte del dibujo cae cada cara. Vestibular mira hacia afuera de la
  * boca (arriba en las superiores) y mesial hacia la línea media: a la derecha
  * en las piezas del lado derecho del paciente, que se dibujan a la izquierda.
  */
-function regionDe(cara: Cara, pieza: number): Region {
+export function regionDe(cara: Cara, pieza: number): Region {
   const superior = esSuperior(pieza)
   const ladoDerecho = [1, 4, 5, 8].includes(Math.floor(pieza / 10))
   switch (cara) {

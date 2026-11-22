@@ -13,6 +13,7 @@ import {
 } from '@dental/core'
 import { Diente } from '@/components/odontograma/diente'
 import { HojaPieza, type AperturaPieza } from '@/components/odontograma/hoja-pieza'
+import { usePincel } from '@/components/odontograma/pincel'
 import { Enlace } from '@/components/enlace'
 import { Button } from '@/components/ui/button'
 import { tituloDePagina } from '@/lib/navegacion'
@@ -75,6 +76,13 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
   const indices = calcularIndices(vigentes, datos.codigos)
   const porPieza = new Map<number, RegistroOdontograma[]>()
   for (const r of vigentes) porPieza.set(r.pieza, [...(porPieza.get(r.pieza) ?? []), r])
+  // El pincel trabaja sobre el gráfico.
+  const pincel = usePincel({
+    codigos: datos.codigos,
+    pacienteId,
+    organizacionId: datos.organizacionId,
+    onActivar: () => setVista('grafico'),
+  })
 
   return (
     <>
@@ -94,22 +102,25 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
       </dl>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid grid-cols-2 gap-1" role="group" aria-label="Vista">
-          {(
-            [
-              ['grafico', 'Gráfico'],
-              ['tabla', 'Tabla'],
-            ] as const
-          ).map(([valor, texto]) => (
-            <Button
-              key={valor}
-              variant={vista === valor ? 'default' : 'outline'}
-              aria-pressed={vista === valor}
-              onClick={() => setVista(valor)}
-            >
-              {texto}
-            </Button>
-          ))}
+        <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-1" role="group" aria-label="Vista">
+            {(
+              [
+                ['grafico', 'Gráfico'],
+                ['tabla', 'Tabla'],
+              ] as const
+            ).map(([valor, texto]) => (
+              <Button
+                key={valor}
+                variant={vista === valor ? 'default' : 'outline'}
+                aria-pressed={vista === valor}
+                onClick={() => setVista(valor)}
+              >
+                {texto}
+              </Button>
+            ))}
+          </div>
+          {pincel.boton}
         </div>
         <p className="flex gap-4 text-sm">
           <span className="flex items-center gap-1.5">
@@ -127,15 +138,24 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
         </p>
       </div>
 
+      {pincel.barra}
+
       {vista === 'grafico' ? (
-        <Grafico porPieza={porPieza} codigos={codigos} onElegir={(p) => abrir([p])} />
+        <Grafico
+          porPieza={porPieza}
+          codigos={codigos}
+          onElegir={(p) => (pincel.activo ? pincel.tocar(p) : abrir([p]))}
+        />
       ) : (
         <Tabla porPieza={porPieza} codigos={codigos} onElegir={(piezas) => abrir(piezas)} />
       )}
 
-      <p className="text-muted-foreground text-sm">
-        Toca una pieza para ver lo registrado o agregar algo.
-      </p>
+      {!pincel.activo && (
+        <p className="text-muted-foreground text-sm">
+          Toca una pieza para ver lo registrado o agregar algo. Con el pincel, eliges qué marcar una
+          vez y tocas varias piezas seguidas.
+        </p>
+      )}
 
       <PlanDeTratamiento
         pendientes={pendientes}
@@ -151,6 +171,7 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
         pacienteId={pacienteId}
         organizacionId={datos.organizacionId}
       />
+      {pincel.hoja}
     </>
   )
 }

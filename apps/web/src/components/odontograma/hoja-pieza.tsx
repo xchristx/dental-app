@@ -1,19 +1,18 @@
 import { useState, useTransition } from 'react'
 import { CheckIcon, ProhibitIcon } from '@phosphor-icons/react'
 import {
-  CARAS,
   codigoParaTratar,
   describirPieza,
   errorDeRegistro,
   estadoOdontograma,
   fechaEnZona,
   formatearFechaNumerica,
-  nombreCara,
   textoRegistro,
   type Cara,
   type RegistroOdontograma,
 } from '@dental/core'
 import { claseCampo } from '@/components/historia/campos'
+import { CarasGrandes } from './caras-grandes'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -33,8 +32,6 @@ const COLOR_TEXTO = {
   realizado: 'text-odontograma-azul',
 } as const
 const ROMANOS = ['I', 'II', 'III', 'IV']
-// Orden en que se leen las caras alrededor del diente.
-const ORDEN_CARAS: Cara[] = ['V', 'M', 'O', 'D', 'L']
 
 /** Qué abrir: las piezas de la fila y, si viene del plan, el hallazgo a tratar. */
 export interface AperturaPieza {
@@ -388,45 +385,12 @@ export function HojaPieza({
               </label>
 
               {codigo?.porCaras && (
-                <fieldset className="flex flex-col gap-1.5">
-                  <legend className="mb-1.5 text-sm font-medium">Caras</legend>
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {ORDEN_CARAS.map((cara) => {
-                      const nombre = nombreCara(cara, pieza)
-                      const elegida = form.caras.includes(cara)
-                      return (
-                        <label
-                          key={cara}
-                          title={nombre.larga}
-                          className={cn(
-                            'border-input flex min-h-11 cursor-pointer flex-col items-center justify-center rounded-sm border text-sm transition-colors duration-150',
-                            'has-[:focus-visible]:ring-ring/40 has-[:focus-visible]:ring-3',
-                            elegida
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-card hover:bg-muted',
-                          )}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={elegida}
-                            onChange={(e) =>
-                              cambiar({
-                                caras: e.target.checked
-                                  ? CARAS.filter((c) => c === cara || form.caras.includes(c))
-                                  : form.caras.filter((c) => c !== cara),
-                              })
-                            }
-                            className="sr-only"
-                          />
-                          <span className="font-medium">{nombre.corta}</span>
-                          <span className="text-[0.6875rem] leading-tight opacity-80">
-                            {nombre.larga}
-                          </span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </fieldset>
+                <CarasGrandes
+                  pieza={pieza}
+                  caras={form.caras}
+                  tipo={codigo.tipo}
+                  onCambiar={(caras) => cambiar({ caras })}
+                />
               )}
 
               {codigo?.usaGrado && (
