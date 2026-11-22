@@ -1,0 +1,147 @@
+name: Respaldo de producción
+
+# Respaldo diario de producción (decisiones 0011 y 0031): la base con
+# `supabase db dump` y los archivos nuevos de Storage. Todo se cifra con age
+# ANTES de salir del runner, con las claves públicas del autor y de la
+# dentista, y se sube a Google Drive con rclone. Solo ellos pueden descifrarlo.
+#
+# El repositorio es público, y los logs de Actions también: ningún paso imprime
+# datos, y nada sin cifrar se sube como artifact.
+#
+# Además mantiene despierto el proyecto gratis de Supabase (0011).
+
+on:
+  schedule:
+    # 07:00 UTC = 03:00 en La Paz.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+  # "Publicar en producción" lo llama antes de migrar.
+  workflow_call:
+
+concurrency:
+  group: respaldo-produccion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  respaldar:
+    name: Base y archivos, cifrados, a Google Drive
+    runs-on: ubuntu-latest
+    # Los secretos de producción viven en este environment.
+    environment: produccion
+    env:
+      # Session pooler de sifel-produccion (los runners no tienen IPv6).
+      PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+      PROYECTO_PRODUCCION: ${{ vars.PROYECTO_PRODUCCION }}
+      PROYECTO_DEMO: mbqrsaxdecuuqitavcel
+      # Una o más claves públicas de age (age1...), separadas por espacios.
+      CLAVES_PUBLICAS: ${{ vars.RESPALDO_CLAVES_PUBLICAS }}
+      # La sección [drive] de rclone.conf, con scope drive.file.
+      RCLONE_DRIVE_CONF: ${{ secrets.RCLONE_DRIVE_CONF }}
+      # Storage por S3: Project Settings → Storage → S3 access keys.
+      S3_ACCESS_KEY_ID: ${{ secrets.PROD_S3_ACCESS_KEY_ID }}
+      S3_SECRET_ACCESS_KEY: ${{ secrets.PROD_S3_SECRET_ACCESS_KEY }}
+      PUBLISHABLE_KEY: ${{ vars.PROD_SUPABASE_PUBLISHABLE_KEY }}
+      CARPETA: sifel-respaldos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar la configuración
+        run: |
+          falta=0
+          for v in PROD_DB_URL PROYECTO_PRODUCCION CLAVES_PUBLICAS RCLONE_DRIVE_CONF \
+                   S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY PUBLISHABLE_KEY; do
+            if [ -z "${!v}" ]; then echo "::error::Falta $v (ver docs/operacion/produccion.md)."; falta=1; fi
+          done
+          [ "$falta" = 0 ] || exit 1
+          case "$PROD_DB_URL" in
+            *"$PROYECTO_DEMO"*) echo "::error::PROD_DB_URL apunta a la demo."; exit 1 ;;
+            *"$PROYECTO_PRODUCCION"*) echo "Apunta a producción." ;;
+            *) echo "::error::PROD_DB_URL no es del proyecto $PROYECTO_PRODUCCION."; exit 1 ;;
+          esac
+          for clave in $CLAVES_PUBLICAS; do
+            case "$clave" in age1*) ;; *) echo "::error::RESPALDO_CLAVES_PUBLICAS tiene algo que no es una clave pública de age."; exit 1 ;; esac
+          done
+
+      - name: Instalar age y rclone
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age rclone > /dev/null
+          mkdir -p ~/.config/rclone
+          printf '%s\n' "$RCLONE_DRIVE_CONF" > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
+          grep -q '^\[drive\]' ~/.config/rclone/rclone.conf || { echo "::error::RCLONE_DRIVE_CONF no tiene la sección [drive]."; exit 1; }
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.0.0
+
+      - name: Respaldar la base
+        run: |
+          set -euo pipefail
+          umask 077
+          dir=$(mktemp -d)
+          fecha=$(TZ=America/La_Paz date +%F)
+          # Datos sin storage.buckets: el bucket lo crea una migración (0027).
+          supabase db dump --remote="$PROD_DB_URL" --data-only --use-copy -x storage.buckets -f "$dir/datos.sql" > /dev/null
+          supabase db dump --remote="$PROD_DB_URL" -f "$dir/esquema.sql" > /dev/null
+          # La última migración aplicada: para restaurar con el mismo esquema.
+          # En la primera publicación todavía no hay ninguna.
+          if [ "$(psql "$PROD_DB_URL" -tAc "select to_regclass('supabase_migrations.schema_migrations') is not null")" = "t" ]; then
+            psql "$PROD_DB_URL" -tAc 'select max(version) from supabase_migrations.schema_migrations' > "$dir/migracion.txt"
+          else
+            echo ninguna > "$dir/migracion.txt"
+          fi
+          [ -s "$dir/datos.sql" ] && [ -s "$dir/esquema.sql" ] && [ -s "$dir/migracion.txt" ]
+
+          destinatarios=()
+          for clave in $CLAVES_PUBLICAS; do destinatarios+=(-r "$clave"); done
+          tar -C "$dir" -czf - datos.sql esquema.sql migracion.txt \
+            | age "${destinatarios[@]}" -o "$dir/base-$fecha.tar.gz.age"
+          rm -f "$dir/datos.sql" "$dir/esquema.sql"
+
+          rclone copyto "$dir/base-$fecha.tar.gz.age" "drive:$CARPETA/base/base-$fecha.tar.gz.age"
+          echo "Base respaldada: base-$fecha.tar.gz.age ($(du -h "$dir/base-$fecha.tar.gz.age" | cut -f1)), migración $(cat "$dir/migracion.txt")."
+          # Se guardan los últimos 30 días.
+          rclone delete --min-age 30d "drive:$CARPETA/base"
+          rm -rf "$dir"
+
+      - name: Respaldar los archivos nuevos de Storage
+        env:
+          RCLONE_CONFIG_SUPA_TYPE: s3
+          RCLONE_CONFIG_SUPA_PROVIDER: Other
+          RCLONE_CONFIG_SUPA_ENDPOINT: https://${{ vars.PROYECTO_PRODUCCION }}.storage.supabase.co/storage/v1/s3
+          RCLONE_CONFIG_SUPA_REGION: sa-east-1
+          RCLONE_CONFIG_SUPA_FORCE_PATH_STYLE: 'true'
+          RCLONE_CONFIG_SUPA_ACCESS_KEY_ID: ${{ secrets.PROD_S3_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_SUPA_SECRET_ACCESS_KEY: ${{ secrets.PROD_S3_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          # Los archivos no se modifican ni se borran (0027): alcanza con subir
+          # los que todavía no están en Drive, cada uno cifrado.
+          # Antes de la primera migración no existe el bucket.
+          if ! rclone lsd supa: | grep -qE ' archivos$'; then
+            echo "::notice::Todavía no existe el bucket archivos: no hay archivos que respaldar."
+            exit 0
+          fi
+          dir=$(mktemp -d)
+          rclone lsf -R --files-only supa:archivos | sort > "$dir/storage.txt"
+          rclone lsf -R --files-only "drive:$CARPETA/archivos" 2>/dev/null | sed 's/\.age$//' | sort > "$dir/drive.txt" || true
+          comm -23 "$dir/storage.txt" "$dir/drive.txt" > "$dir/nuevos.txt"
+
+          destinatarios=()
+          for clave in $CLAVES_PUBLICAS; do destinatarios+=(-r "$clave"); done
+          while IFS= read -r ruta; do
+            rclone cat "supa:archivos/$ruta" | age "${destinatarios[@]}" | rclone rcat "drive:$CARPETA/archivos/$ruta.age"
+          done < "$dir/nuevos.txt"
+          echo "Archivos en Storage: $(wc -l < "$dir/storage.txt"). Nuevos respaldados: $(wc -l < "$dir/nuevos.txt")."
+          rm -rf "$dir"
+
+      - name: Mantener despierto el proyecto
+        run: |
+          estado=$(curl -s -o /dev/null -w '%{http_code}' \
+            "https://$PROYECTO_PRODUCCION.supabase.co/auth/v1/health" -H "apikey: $PUBLISHABLE_KEY")
+          echo "Auth respondió $estado"
+          [ "$estado" = "200" ]
