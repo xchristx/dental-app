@@ -8,6 +8,11 @@ export interface Archivo {
   bytes: number
   nota: string | null
   fecha: string
+  /** La Rx de la que es la imagen, con su pieza (0029). */
+  rxId: string | null
+  pieza: number | null
+  /** El pago del que es el comprobante (0029). */
+  movimientoId: string | null
   /** URL firmada: vence en una hora (0027). */
   url: string | null
 }
@@ -22,7 +27,10 @@ export interface ArchivosDelPaciente {
 
 const UNA_HORA = 60 * 60
 
-/** Radiografías y fotos de un paciente, con URLs firmadas para verlas. */
+/**
+ * Radiografías, fotos y comprobantes de un paciente (0027, 0029), con URLs
+ * firmadas para verlas. La ficha, el panel de la pieza y el recibo comparten esta consulta.
+ */
 export function consultaArchivos(pacienteId: string) {
   return {
     queryKey: ['archivos', pacienteId],
@@ -41,9 +49,10 @@ async function archivosDePaciente(pacienteId: string): Promise<ArchivosDelPacien
       .maybeSingle(),
     supabase
       .from('archivos')
-      .select('id, tipo, mime, bytes, nota, fecha, ruta')
+      .select(
+        'id, tipo, mime, bytes, nota, fecha, ruta, rx_id, movimiento_id, rx:odontograma_rx(pieza)',
+      )
       .eq('paciente_id', pacienteId)
-      .in('tipo', ['radiografia', 'foto'])
       .is('deleted_at', null)
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false }),
@@ -72,6 +81,9 @@ async function archivosDePaciente(pacienteId: string): Promise<ArchivosDelPacien
       bytes: a.bytes,
       nota: a.nota,
       fecha: a.fecha,
+      rxId: a.rx_id,
+      pieza: a.rx?.pieza ?? null,
+      movimientoId: a.movimiento_id,
       url: urlDe.get(a.ruta) ?? null,
     })),
   }

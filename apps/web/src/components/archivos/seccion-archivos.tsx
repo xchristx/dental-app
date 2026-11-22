@@ -26,16 +26,22 @@ const TIPOS = [
   { valor: 'foto', texto: 'Foto' },
 ] as const
 
-/** "Radiografía del 03/03/2026". */
+/** "Radiografía del 03/03/2026", o "Radiografía de la pieza 36 del 03/03/2026" si es de una Rx. */
 const titulo = (a: Archivo) =>
-  `${NOMBRE_TIPO_ARCHIVO[a.tipo]} del ${formatearFechaNumerica(a.fecha)}`
+  `${NOMBRE_TIPO_ARCHIVO[a.tipo]}${a.pieza ? ` de la pieza ${a.pieza}` : ''} del ${formatearFechaNumerica(a.fecha)}`
 
-/** Radiografías y fotos del paciente (0027), ordenadas por fecha. */
+/**
+ * Radiografías y fotos del paciente (0027), ordenadas por fecha. Incluye las
+ * imágenes de cada Rx; los comprobantes se ven en el recibo de su pago (0029).
+ */
 export function SeccionArchivos({ pacienteId }: { pacienteId: string }) {
   const archivos = useQuery(consultaArchivos(pacienteId))
   const [subiendo, setSubiendo] = useState(false)
   const [viendo, setViendo] = useState<Archivo | null>(null)
-  const datos = archivos.data
+  const datos = archivos.data && {
+    ...archivos.data,
+    archivos: archivos.data.archivos.filter((a) => a.tipo !== 'comprobante'),
+  }
 
   return (
     <section aria-labelledby="titulo-archivos" className="flex flex-col gap-3">
@@ -97,7 +103,9 @@ export function SeccionArchivos({ pacienteId }: { pacienteId: string }) {
                       />
                     )}
                     <span className="px-2 py-1.5 text-xs">
-                      <span className="block font-medium">{NOMBRE_TIPO_ARCHIVO[a.tipo]}</span>
+                      <span className="block font-medium">
+                        {a.pieza ? `Rx · pieza ${a.pieza}` : NOMBRE_TIPO_ARCHIVO[a.tipo]}
+                      </span>
                       <span className="text-muted-foreground tabular-nums">
                         {formatearFechaNumerica(a.fecha)}
                       </span>

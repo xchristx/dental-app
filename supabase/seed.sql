@@ -272,7 +272,10 @@ insert into public.movimientos_pago (
 select
   '10000000-0000-4000-8000-000000000001', m.presupuesto::uuid, m.tipo, m.monto, m.forma, m.motivo,
   (now() at time zone 'America/La_Paz')::date - m.hace, '70000000-0000-4000-8000-000000000001',
-  '20000000-0000-4000-8000-000000000001', now() - make_interval(days => m.hace)
+  '20000000-0000-4000-8000-000000000001',
+  -- Un segundo por orden: now() es el mismo en toda la transacción, y la planilla
+  -- desempata los del mismo día por created_at.
+  now() - make_interval(days => m.hace) + make_interval(secs => m.orden)
 from (values
   (1, '90000000-0000-4000-8000-000000000001', 'pago',   100000, 'efectivo',      null, 200),
   (2, '90000000-0000-4000-8000-000000000001', 'pago',    40000, 'qr',            null, 170),

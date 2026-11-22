@@ -57,26 +57,37 @@ export function formatearTamano(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
 }
 
-/** Un archivo nuevo de la ficha (los comprobantes se suben desde el pago). */
-export const DatosArchivo = z.object({
-  id: z.uuid(),
-  pacienteId: z.uuid(),
-  tipo: z.enum(['radiografia', 'foto'], 'Elige si es una radiografía o una foto.'),
-  mime: z.enum(MIME_ARCHIVO, 'Ese formato no se puede subir. Usa una foto (JPG o PNG) o un PDF.'),
-  bytes: z
-    .number()
-    .int()
-    .positive('El archivo está vacío.')
-    .max(TAMANO_MAXIMO_ARCHIVO, 'El archivo pesa más de 10 MB.'),
-  nota: z
-    .string()
-    .trim()
-    .max(200, 'Máximo 200 caracteres.')
-    .transform((v) => (v === '' ? null : v))
-    .nullable(),
-  fecha: z
-    .string()
-    .refine(esFechaValida, 'Elige una fecha válida.')
-    .refine((v) => v <= fechaEnZona(new Date(), ZONA_LA_PAZ), 'La fecha no puede ser futura.'),
-})
+/**
+ * Un archivo nuevo: de la ficha, la imagen de una Rx o el comprobante de un
+ * pago (0029). Lo ligado a una Rx es una radiografía; un comprobante va con su pago.
+ */
+export const DatosArchivo = z
+  .object({
+    id: z.uuid(),
+    pacienteId: z.uuid(),
+    tipo: z.enum(TIPOS_ARCHIVO, 'Elige si es una radiografía o una foto.'),
+    rxId: z.uuid().nullable().default(null),
+    movimientoId: z.uuid().nullable().default(null),
+    mime: z.enum(MIME_ARCHIVO, 'Ese formato no se puede subir. Usa una foto (JPG o PNG) o un PDF.'),
+    bytes: z
+      .number()
+      .int()
+      .positive('El archivo está vacío.')
+      .max(TAMANO_MAXIMO_ARCHIVO, 'El archivo pesa más de 10 MB.'),
+    nota: z
+      .string()
+      .trim()
+      .max(200, 'Máximo 200 caracteres.')
+      .transform((v) => (v === '' ? null : v))
+      .nullable(),
+    fecha: z
+      .string()
+      .refine(esFechaValida, 'Elige una fecha válida.')
+      .refine((v) => v <= fechaEnZona(new Date(), ZONA_LA_PAZ), 'La fecha no puede ser futura.'),
+  })
+  .refine((a) => a.rxId === null || a.tipo === 'radiografia', 'Lo de una Rx es una radiografía.')
+  .refine(
+    (a) => (a.tipo === 'comprobante') === (a.movimientoId !== null),
+    'Un comprobante va con su pago.',
+  )
 export type DatosArchivo = z.infer<typeof DatosArchivo>

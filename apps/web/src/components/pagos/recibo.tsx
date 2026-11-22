@@ -1,4 +1,4 @@
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { DownloadSimpleIcon, WhatsappLogoIcon } from '@phosphor-icons/react'
 import { filasDelRecibo, numeroDeRecibo, type DatosRecibo } from '@dental/core'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,16 @@ import { descargarRecibo, enlaceRecibo, enviarRecibo } from '@/lib/pagos/recibo'
  * El recibo de un pago, listo para mandar por WhatsApp (0028). Va dentro de
  * una hoja; se abre al guardar un pago o desde la planilla.
  */
-export function HojaRecibo({ recibo, telefono }: { recibo: DatosRecibo; telefono: string | null }) {
+export function HojaRecibo({
+  recibo,
+  telefono,
+  comprobante,
+}: {
+  recibo: DatosRecibo
+  telefono: string | null
+  /** La foto del comprobante del pago (0029), si corresponde. */
+  comprobante?: ReactNode
+}) {
   const [estado, setEstado] = useState<'compartido' | 'descargado' | 'cancelado' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
@@ -55,6 +64,15 @@ export function HojaRecibo({ recibo, telefono }: { recibo: DatosRecibo; telefono
           </dl>
           <p className="text-muted-foreground text-xs">Este recibo no es una factura.</p>
         </article>
+
+        {comprobante && (
+          <section aria-labelledby="titulo-comprobante" className="flex flex-col gap-2">
+            <h3 id="titulo-comprobante" className="text-sm font-medium">
+              Comprobante del pago
+            </h3>
+            {comprobante}
+          </section>
+        )}
 
         <div role="status" className="text-sm empty:hidden">
           {estado === 'compartido' && 'Listo: el recibo se compartió.'}

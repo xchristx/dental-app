@@ -14,6 +14,7 @@ import {
   type DatosRecibo,
   type FormaPago,
 } from '@dental/core'
+import { ArchivosLigados } from '@/components/archivos/archivos-ligados'
 import { claseCampo } from '@/components/historia/campos'
 import { HojaRecibo } from '@/components/pagos/recibo'
 import { Button } from '@/components/ui/button'
@@ -147,7 +148,22 @@ export function SeccionPagos({ pacienteId }: { pacienteId: string }) {
             )}
             {abierto?.tipo === 'recibo' &&
               (recibo ? (
-                <HojaRecibo recibo={recibo} telefono={pagos.data.paciente.telefono} />
+                <HojaRecibo
+                  recibo={recibo}
+                  telefono={pagos.data.paciente.telefono}
+                  comprobante={
+                    // En efectivo no hay comprobante (0029).
+                    recibo.formaPago !== 'efectivo' && abierto.tipo === 'recibo' ? (
+                      <ArchivosLigados
+                        tipo="comprobante"
+                        movimientoId={abierto.movimientoId}
+                        pacienteId={pacienteId}
+                        fecha={recibo.fecha}
+                        nombre={`del recibo ${numeroDeRecibo(recibo.numero)}`}
+                      />
+                    ) : null
+                  }
+                />
               ) : (
                 <div aria-busy="true" aria-label="Cargando el recibo" className="p-6">
                   <div className="bg-muted h-64 rounded-lg" />

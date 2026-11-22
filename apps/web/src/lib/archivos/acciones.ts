@@ -9,7 +9,10 @@ const ERROR_GENERICO = 'No pudimos subir el archivo. Revisa tu conexión e inté
 
 const MENSAJES: Record<string, string> = {
   AR001: 'En la demo no se suben archivos.',
+  AR002: 'Eso es de otro paciente.',
   AR003: 'La fecha no puede ser futura.',
+  AR004: 'Solo un pago lleva comprobante.',
+  AR005: 'La Rx o el pago están anulados.',
 }
 
 function fallo(accion: string, error: { code?: string; message: string }): ResultadoArchivos {
@@ -25,7 +28,16 @@ function fallo(accion: string, error: { code?: string; message: string }): Resul
  */
 export async function subirArchivo(
   archivo: File,
-  datos: { id: string; pacienteId: string; tipo: string; nota: string; fecha: string },
+  datos: {
+    id: string
+    pacienteId: string
+    tipo: string
+    nota: string | null
+    fecha: string
+    /** La imagen de una Rx o el comprobante de un pago (0029). */
+    rxId?: string | null
+    movimientoId?: string | null
+  },
   organizacionId: string,
 ): Promise<ResultadoArchivos> {
   const preparado = await prepararArchivo(archivo)
@@ -59,6 +71,8 @@ export async function subirArchivo(
     organization_id: organizacionId,
     paciente_id: a.pacienteId,
     tipo: a.tipo,
+    rx_id: a.rxId,
+    movimiento_id: a.movimientoId,
     ruta,
     mime: a.mime,
     bytes: a.bytes,

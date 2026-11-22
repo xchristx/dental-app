@@ -37,4 +37,28 @@ describe('archivos', () => {
       DatosArchivo.safeParse({ ...base, bytes: 11 * 1024 * 1024 }).error?.issues[0]?.message,
     ).toBe('El archivo pesa más de 10 MB.')
   })
+
+  it('liga la imagen a su Rx y el comprobante a su pago (0029)', () => {
+    const base = {
+      id: '5a0e1c2d-3b4f-4a5b-8c6d-7e8f9a0b1c2d',
+      pacienteId: '6b1f2d3e-4c5a-4b6c-9d7e-8f9a0b1c2d3e',
+      mime: 'image/jpeg',
+      bytes: 300000,
+      nota: null,
+      fecha: '2026-01-10',
+    }
+    const otro = '7c2a3e4f-5d6b-4c7d-8e8f-9a0b1c2d3e4f'
+    const sinLigar = DatosArchivo.safeParse({ ...base, tipo: 'foto' }).data
+    expect([sinLigar?.rxId, sinLigar?.movimientoId]).toEqual([null, null])
+    expect(DatosArchivo.safeParse({ ...base, tipo: 'radiografia', rxId: otro }).success).toBe(true)
+    expect(
+      DatosArchivo.safeParse({ ...base, tipo: 'foto', rxId: otro }).error?.issues[0]?.message,
+    ).toBe('Lo de una Rx es una radiografía.')
+    expect(
+      DatosArchivo.safeParse({ ...base, tipo: 'comprobante', movimientoId: otro }).success,
+    ).toBe(true)
+    expect(DatosArchivo.safeParse({ ...base, tipo: 'comprobante' }).error?.issues[0]?.message).toBe(
+      'Un comprobante va con su pago.',
+    )
+  })
 })
