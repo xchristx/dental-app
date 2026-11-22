@@ -4,7 +4,9 @@ import {
   DatosRegistroOdontograma,
   FILAS_ODONTOGRAMA,
   calcularIndices,
+  codigoParaTratar,
   describirPieza,
+  estadoOdontograma,
   errorDeRegistro,
   esPiezaValida,
   nombreCara,
@@ -119,11 +121,60 @@ describe('errorDeRegistro', () => {
   })
 })
 
+describe('estadoOdontograma', () => {
+  const codigos = [
+    { id: 'C', tipo: 'hallazgo' as const, simbolo: 'superficie' as const },
+    { id: 'Ext', tipo: 'hallazgo' as const, simbolo: 'cruz' as const },
+    { id: 'RR', tipo: 'hallazgo' as const, simbolo: 'texto' as const },
+    { id: 'Obt', tipo: 'realizado' as const, simbolo: 'superficie' as const },
+    { id: 'PC', tipo: 'realizado' as const, simbolo: 'cruz' as const },
+  ]
+  const registro = (
+    id: string,
+    pieza: number,
+    codigoId: string | null,
+    resuelveId = null as string | null,
+  ) => ({
+    id,
+    pieza,
+    codigoId,
+    resuelveId,
+    caras: null,
+    grado: null,
+    nota: null,
+    fecha: '2026-01-10',
+  })
+
+  it('un hallazgo tratado deja de estar vigente y sale del plan', () => {
+    const e = estadoOdontograma(
+      [
+        registro('caries36', 36, 'C'),
+        registro('obt36', 36, 'Obt', 'caries36'),
+        registro('ext15', 15, 'Ext'),
+        registro('caries55', 55, 'C'),
+        registro('nota14', 14, null),
+      ],
+      codigos,
+    )
+    expect(e.vigentes.map((r) => r.id)).toEqual(['obt36', 'ext15', 'caries55', 'nota14'])
+    // Por pieza, en el orden de la tabla: 15, después su temporal 55.
+    expect(e.pendientes.map((r) => r.id)).toEqual(['ext15', 'caries55'])
+    expect(e.tratadoPor.get('caries36')?.id).toBe('obt36')
+  })
+
+  it('sugiere el código realizado que se dibuja igual', () => {
+    expect(codigoParaTratar({ simbolo: 'superficie' }, codigos)?.id).toBe('Obt')
+    expect(codigoParaTratar({ simbolo: 'cruz' }, codigos)?.id).toBe('PC')
+    expect(codigoParaTratar({ simbolo: 'texto' }, codigos)).toBeNull()
+  })
+})
+
 describe('DatosRegistroOdontograma', () => {
   const base = {
     id: '5a0e1c2d-3b4f-4a5b-8c6d-7e8f9a0b1c2d',
     pacienteId: '6b1f2d3e-4c5a-4b6c-9d7e-8f9a0b1c2d3e',
     codigoId: null,
+    resuelveId: null,
     pieza: 14,
     caras: null,
     grado: null,

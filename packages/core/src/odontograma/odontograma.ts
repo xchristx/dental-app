@@ -28,6 +28,8 @@ export interface RegistroOdontograma {
   pieza: number
   /** null: una nota sola sobre la pieza. */
   codigoId: string | null
+  /** En un registro realizado: el hallazgo que trató (0021). */
+  resuelveId: string | null
   caras: Cara[] | null
   grado: number | null
   nota: string | null
@@ -182,6 +184,8 @@ export const DatosRegistroOdontograma = z
     id: z.uuid(),
     pacienteId: z.uuid(),
     codigoId: z.uuid().nullable(),
+    /** Al marcar un hallazgo como tratado (0021). */
+    resuelveId: z.uuid().nullable(),
     pieza: z.number().refine(esPiezaValida, 'Esa pieza no existe.'),
     caras: z.array(z.enum(CARAS)).nullable(),
     grado: z.number().int().min(1).max(4).nullable(),
@@ -209,4 +213,49 @@ export function describirPieza(pieza: number): string {
   const cuadrante = Math.floor(pieza / 10)
   const lado = LADOS[(cuadrante - 1) % 4] ?? ''
   return `${esTemporal(pieza) ? 'Temporal' : 'Permanente'} · ${lado}`
+}
+
+export interface EstadoOdontograma<R extends RegistroOdontograma> {
+  /** Lo que se dibuja y cuenta en los índices: todo menos los hallazgos ya tratados. */
+  vigentes: R[]
+  /** Hallazgos sin tratar: el plan de tratamiento, ordenado por pieza. */
+  pendientes: R[]
+  /** Hallazgo tratado → el registro realizado que lo trató. */
+  tratadoPor: Map<string, R>
+}
+
+/**
+ * Estado del odontograma a partir de los registros no anulados (0021). Un
+ * hallazgo deja de estar vigente cuando un registro realizado lo resuelve.
+ */
+export function estadoOdontograma<R extends RegistroOdontograma>(
+  registros: R[],
+  codigos: Pick<CodigoOdontograma, 'id' | 'tipo'>[],
+): EstadoOdontograma<R> {
+  const tipoDe = new Map(codigos.map((c) => [c.id, c.tipo]))
+  const tratadoPor = new Map<string, R>()
+  for (const r of registros) if (r.resuelveId) tratadoPor.set(r.resuelveId, r)
+  const vigentes = registros.filter((r) => !tratadoPor.has(r.id))
+  const pendientes = vigentes
+    .filter((r) => r.codigoId !== null && tipoDe.get(r.codigoId) === 'hallazgo')
+    .sort((a, b) => FILAS_ORDEN.indexOf(a.pieza) - FILAS_ORDEN.indexOf(b.pieza))
+  return { vigentes, pendientes, tratadoPor }
+}
+
+// Orden de las piezas en la tabla, con cada temporal después de su permanente.
+const FILAS_ORDEN = FILAS_ODONTOGRAMA.flatMap((f) =>
+  f.temporal ? [f.permanente, f.temporal] : [f.permanente],
+)
+
+/**
+ * Qué código realizado sugerir al tratar un hallazgo: el primero que se dibuja
+ * igual (caries → obturación, extracción indicada → perdida, endodoncia
+ * indicada → endodoncia). Es solo una sugerencia: se puede cambiar.
+ */
+export function codigoParaTratar<C extends Pick<CodigoOdontograma, 'id' | 'tipo' | 'simbolo'>>(
+  hallazgo: Pick<CodigoOdontograma, 'simbolo'>,
+  codigos: C[],
+): C | null {
+  if (hallazgo.simbolo === 'texto') return null
+  return codigos.find((c) => c.tipo === 'realizado' && c.simbolo === hallazgo.simbolo) ?? null
 }

@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
-import { CaretLeftIcon } from '@phosphor-icons/react'
+import { CaretLeftIcon, CheckIcon } from '@phosphor-icons/react'
 import {
   ARCADAS,
   FILAS_ODONTOGRAMA,
   calcularIndices,
   esSuperior,
+  estadoOdontograma,
   textoRegistro,
   type RegistroOdontograma,
 } from '@dental/core'
 import { Diente } from '@/components/odontograma/diente'
-import { HojaPieza } from '@/components/odontograma/hoja-pieza'
+import { HojaPieza, type AperturaPieza } from '@/components/odontograma/hoja-pieza'
 import { Enlace } from '@/components/enlace'
 import { Button } from '@/components/ui/button'
 import { tituloDePagina } from '@/lib/navegacion'
@@ -65,11 +66,15 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
   const [vista, setVista] = useState<Vista>(() =>
     window.matchMedia('(min-width: 48rem)').matches ? 'grafico' : 'tabla',
   )
-  const [piezas, setPiezas] = useState<number[] | null>(null)
+  const [apertura, setApertura] = useState<AperturaPieza | null>(null)
+  const abrir = (piezas: number[], tratarId: string | null = null) =>
+    setApertura({ piezas, tratarId })
   const codigos = new Map(datos.codigos.map((c) => [c.id, c]))
-  const indices = calcularIndices(datos.registros, datos.codigos)
+  // Los hallazgos ya tratados no se dibujan ni cuentan: queda lo realizado (0021).
+  const { vigentes, pendientes } = estadoOdontograma(datos.registros, datos.codigos)
+  const indices = calcularIndices(vigentes, datos.codigos)
   const porPieza = new Map<number, RegistroOdontograma[]>()
-  for (const r of datos.registros) porPieza.set(r.pieza, [...(porPieza.get(r.pieza) ?? []), r])
+  for (const r of vigentes) porPieza.set(r.pieza, [...(porPieza.get(r.pieza) ?? []), r])
 
   return (
     <>
@@ -108,7 +113,12 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
         </div>
         <p className="flex gap-4 text-sm">
           <span className="flex items-center gap-1.5">
-            <span aria-hidden="true" className="bg-odontograma-rojo size-3 rounded-sm" />A tratar
+            {/* Con rayas, como en el gráfico: no se distingue solo por el color. */}
+            <span
+              aria-hidden="true"
+              className="size-3 rounded-sm bg-[repeating-linear-gradient(45deg,var(--odontograma-rojo)_0_2px,var(--card)_2px_3px)]"
+            />
+            A tratar
           </span>
           <span className="flex items-center gap-1.5">
             <span aria-hidden="true" className="bg-odontograma-azul size-3 rounded-sm" />
@@ -118,25 +128,78 @@ function Contenido({ pacienteId, datos }: { pacienteId: string; datos: Odontogra
       </div>
 
       {vista === 'grafico' ? (
-        <Grafico porPieza={porPieza} codigos={codigos} onElegir={(p) => setPiezas([p])} />
+        <Grafico porPieza={porPieza} codigos={codigos} onElegir={(p) => abrir([p])} />
       ) : (
-        <Tabla porPieza={porPieza} codigos={codigos} onElegir={setPiezas} />
+        <Tabla porPieza={porPieza} codigos={codigos} onElegir={(piezas) => abrir(piezas)} />
       )}
 
       <p className="text-muted-foreground text-sm">
         Toca una pieza para ver lo registrado o agregar algo.
       </p>
 
+      <PlanDeTratamiento
+        pendientes={pendientes}
+        codigos={codigos}
+        onTratar={(r) => abrir([r.pieza], r.id)}
+      />
+
       <HojaPieza
-        piezas={piezas ?? []}
-        abierta={piezas !== null}
-        onCerrar={() => setPiezas(null)}
+        apertura={apertura}
+        onCerrar={() => setApertura(null)}
         registros={datos.registros}
         codigos={datos.codigos}
         pacienteId={pacienteId}
         organizacionId={datos.organizacionId}
       />
     </>
+  )
+}
+
+/** Hallazgos sin tratar, por pieza (0021). Sale de los registros: no se guarda aparte. */
+function PlanDeTratamiento({
+  pendientes,
+  codigos,
+  onTratar,
+}: {
+  pendientes: RegistroOdontograma[]
+  codigos: Map<string, Codigo>
+  onTratar: (hallazgo: RegistroOdontograma) => void
+}) {
+  return (
+    <section aria-labelledby="titulo-plan" className="flex flex-col gap-2">
+      <h2 id="titulo-plan" className="text-lg font-medium">
+        Plan de tratamiento
+      </h2>
+      {pendientes.length === 0 ? (
+        <p className="text-muted-foreground text-sm">No hay hallazgos pendientes.</p>
+      ) : (
+        <ul className="border-border bg-card divide-border divide-y rounded-lg border text-sm">
+          {pendientes.map((r) => {
+            const c = r.codigoId ? codigos.get(r.codigoId) : undefined
+            if (!c) return null
+            const texto = textoRegistro(r, c)
+            return (
+              <li key={r.id} className="flex items-center gap-3 px-3 py-2">
+                <span className="w-7 font-medium tabular-nums">{r.pieza}</span>
+                <p className="min-w-0 flex-1">
+                  <span className="text-odontograma-rojo font-medium">{texto}</span> {c.nombre}
+                  {r.nota && <span className="text-muted-foreground"> · {r.nota}</span>}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label={`Marcar ${texto} de la pieza ${r.pieza} como tratado`}
+                  onClick={() => onTratar(r)}
+                >
+                  <CheckIcon weight="bold" />
+                  Tratar
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
   )
 }
 

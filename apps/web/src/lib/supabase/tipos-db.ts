@@ -554,6 +554,7 @@ export type Database = {
           organization_id: string
           paciente_id: string
           pieza: number
+          resuelve_id: string | null
           updated_at: string
         }
         ComputedFields: never
@@ -570,6 +571,7 @@ export type Database = {
           organization_id: string
           paciente_id: string
           pieza: number
+          resuelve_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -585,6 +587,7 @@ export type Database = {
           organization_id?: string
           paciente_id?: string
           pieza?: number
+          resuelve_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -607,6 +610,13 @@ export type Database = {
             columns: ['organization_id', 'paciente_id']
             isOneToOne: false
             referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'odontograma_registros_resuelve'
+            columns: ['organization_id', 'resuelve_id']
+            isOneToOne: false
+            referencedRelation: 'odontograma_registros'
             referencedColumns: ['organization_id', 'id']
           },
         ]

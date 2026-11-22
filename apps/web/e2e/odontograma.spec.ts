@@ -2,6 +2,7 @@
 // papel, y agregar y quitar registros. Sofía tiene dentición mixta en el seed.
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { reiniciarBase, sql } from './apoyo/base'
+import { hoy } from './apoyo/fechas'
 import {
   ESCRITORIO,
   alerta,
@@ -102,11 +103,11 @@ test('se anota una nota sola sobre la pieza, sin código', async () => {
   await expect(indices()).toContainText('CPO-D 1C 1 · P 0 · O 0')
 })
 
-test('quitar un hallazgo lo saca del gráfico y del índice', async () => {
+test('anular un hallazgo cargado por error lo saca del gráfico y del índice', async () => {
   await page.getByRole('button', { name: /^Pieza 55/ }).click()
   await expect(titulo(h)).toHaveText('Pieza 55')
-  await h.getByRole('button', { name: 'Quitar C II-O' }).click()
-  await control(h, 'Sí, quitar').click()
+  await h.getByRole('button', { name: 'Anular C II-O' }).click()
+  await control(h, 'Sí, anular').click()
   await expect(h).toContainText('Nada registrado en esta pieza.')
   await page.keyboard.press('Escape')
   await expect(indices()).toContainText('ceo-d 2c 0 · e 1 · o 1')
@@ -130,4 +131,59 @@ test('la tabla muestra la permanente y la temporal juntas, como en papel', async
   await expect(titulo(h)).toHaveText('Pieza 15')
   await h.getByRole('button', { name: '55 · Temporal' }).click()
   await expect(titulo(h)).toHaveText('Pieza 55')
+  await page.keyboard.press('Escape')
+  await expect(h).toHaveCount(0)
+})
+
+const hoyNumerico = () => hoy().split('-').reverse().join('/')
+const plan = () =>
+  principal(page)
+    .getByRole('region', { name: 'Plan de tratamiento' })
+    .locator('li')
+    .evaluateAll((li) => li.map((x) => (x as HTMLElement).innerText.replace(/\n+/g, ' ')))
+
+test('desde el plan, un hallazgo se marca como tratado y queda lo realizado', async () => {
+  await expect
+    .poll(plan)
+    .toEqual([
+      '36 C II-OM Caries Tratar',
+      '85 Ext Extracción indicada · Movilidad, por exfoliar Tratar',
+    ])
+
+  await principal(page)
+    .getByRole('button', { name: 'Marcar C II-OM de la pieza 36 como tratado' })
+    .click()
+  await expect(titulo(h)).toHaveText('Pieza 36')
+  await expect(h).toContainText('Tratando C II-OM caries')
+  // Sugiere la obturación con las mismas caras.
+  const obturacion = await h
+    .locator('option', { hasText: 'Obt · Obturación' })
+    .getAttribute('value')
+  await expect(campo(h, 'Qué se hizo')).toHaveValue(obturacion ?? 'falta la opción')
+  await expect(h.getByRole('checkbox', { name: /Oclusal/ })).toBeChecked()
+  await expect(h.getByRole('checkbox', { name: /Mesial/ })).toBeChecked()
+  await campo(h, 'Nota').fill('Resina A2')
+  await control(h, 'Guardar tratamiento').click()
+
+  const caries = h
+    .getByRole('region', { name: 'Registrado' })
+    .locator('li')
+    .filter({ hasText: 'C II-OM Caries' })
+  await expect(caries).toContainText(`Tratado el ${hoyNumerico()} con Obt-OM`)
+  await expect(caries.getByRole('button')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+
+  await expect.poll(plan).toEqual(['85 Ext Extracción indicada · Movilidad, por exfoliar Tratar'])
+  // Ya no es una caries: cuenta como obturada.
+  await expect(indices()).toContainText('CPO-D 1C 0 · P 0 · O 1')
+})
+
+test('anular el tratamiento deja el hallazgo pendiente otra vez', async () => {
+  await page.getByRole('button', { name: /^36 / }).click()
+  await h.getByRole('button', { name: 'Anular Obt-OM' }).click()
+  await expect(h).toContainText('El hallazgo que trató vuelve a quedar pendiente.')
+  await control(h, 'Sí, anular').click()
+  await page.keyboard.press('Escape')
+  await expect.poll(plan).toHaveLength(2)
+  await expect(indices()).toContainText('CPO-D 1C 1 · P 0 · O 0')
 })
