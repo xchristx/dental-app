@@ -51,14 +51,16 @@ test('la planilla es como la de papel: abonado, saldo anterior y saldo actual', 
       Pagado: 'Bs 2.200',
       Saldo: 'Bs 4.200',
     })
-  const filas = await planilla('Ortodoncia')
-  expect(filas.map((f) => f.slice(1))).toEqual([
-    ['Bs 1.000 · Efectivo', 'Bs 6.500', 'Bs 5.500', 'N.º 0001'],
-    ['Bs 400 · QR', 'Bs 5.500', 'Bs 5.100', 'N.º 0002'],
-    ['Bs 400 · Transferencia', 'Bs 5.100', 'Bs 4.700', 'N.º 0003'],
-    ['Ajuste −Bs 100 · Descuento por pago puntual', 'Bs 4.700', 'Bs 4.600', '—'],
-    ['Bs 400 · QR', 'Bs 4.600', 'Bs 4.200', 'N.º 0004'],
-  ])
+  // Con poll: la tabla puede terminar de acomodarse después del resumen.
+  await expect
+    .poll(async () => (await planilla('Ortodoncia')).map((f) => f.slice(1)))
+    .toEqual([
+      ['Bs 1.000 · Efectivo', 'Bs 6.500', 'Bs 5.500', 'N.º 0001'],
+      ['Bs 400 · QR', 'Bs 5.500', 'Bs 5.100', 'N.º 0002'],
+      ['Bs 400 · Transferencia', 'Bs 5.100', 'Bs 4.700', 'N.º 0003'],
+      ['Ajuste −Bs 100 · Descuento por pago puntual', 'Bs 4.700', 'Bs 4.600', '—'],
+      ['Bs 400 · QR', 'Bs 4.600', 'Bs 4.200', 'N.º 0004'],
+    ])
   await expect(
     principal(page).getByRole('region', { name: 'Planilla de pagos de Ortodoncia' }),
   ).toBeVisible()

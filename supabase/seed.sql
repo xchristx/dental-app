@@ -5,8 +5,9 @@
 -- así la demo siempre muestra algo al reiniciarla.
 -- Los pacientes no tienen teléfono: un número inventado podría ser de alguien real.
 
-insert into public.organizaciones (id, nombre) values
-  ('10000000-0000-4000-8000-000000000001', 'Consultorio de demostración');
+-- La demo es pública: no sube archivos (0027). Las pruebas locales lo activan.
+insert into public.organizaciones (id, nombre, permite_archivos) values
+  ('10000000-0000-4000-8000-000000000001', 'Consultorio de demostración', false);
 
 -- Usuaria de la demo: la usa el botón "Entrar como demo". Su contraseña es
 -- pública a propósito; solo ve esta organización de datos inventados.

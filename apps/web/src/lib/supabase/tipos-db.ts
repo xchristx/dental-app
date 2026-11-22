@@ -74,6 +74,90 @@ export type Database = {
           },
         ]
       }
+      archivos: {
+        Row: {
+          autor_id: string | null
+          bytes: number
+          created_at: string
+          deleted_at: string | null
+          fecha: string
+          id: string
+          mime: string
+          movimiento_id: string | null
+          nota: string | null
+          organization_id: string
+          paciente_id: string
+          ruta: string
+          rx_id: string | null
+          tipo: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          autor_id?: string | null
+          bytes: number
+          created_at?: string
+          deleted_at?: string | null
+          fecha: string
+          id?: string
+          mime: string
+          movimiento_id?: string | null
+          nota?: string | null
+          organization_id: string
+          paciente_id: string
+          ruta: string
+          rx_id?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          bytes?: number
+          created_at?: string
+          deleted_at?: string | null
+          fecha?: string
+          id?: string
+          mime?: string
+          movimiento_id?: string | null
+          nota?: string | null
+          organization_id?: string
+          paciente_id?: string
+          ruta?: string
+          rx_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'archivos_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'archivos_organization_id_movimiento_id_fkey'
+            columns: ['organization_id', 'movimiento_id']
+            isOneToOne: false
+            referencedRelation: 'movimientos_pago'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'archivos_organization_id_paciente_id_fkey'
+            columns: ['organization_id', 'paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'archivos_organization_id_rx_id_fkey'
+            columns: ['organization_id', 'rx_id']
+            isOneToOne: false
+            referencedRelation: 'odontograma_rx'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
       citas: {
         Row: {
           created_at: string
@@ -840,6 +924,7 @@ export type Database = {
           id: string
           moneda: string
           nombre: string
+          permite_archivos: boolean
           updated_at: string
           zona_horaria: string
         }
@@ -850,6 +935,7 @@ export type Database = {
           id?: string
           moneda?: string
           nombre: string
+          permite_archivos?: boolean
           updated_at?: string
           zona_horaria?: string
         }
@@ -859,6 +945,7 @@ export type Database = {
           id?: string
           moneda?: string
           nombre?: string
+          permite_archivos?: boolean
           updated_at?: string
           zona_horaria?: string
         }
