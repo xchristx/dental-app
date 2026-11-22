@@ -1,10 +1,12 @@
 import { useState, useTransition } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Enlace } from '@/components/enlace'
 import { useIr, useParametro } from '@/lib/navegacion'
 import {
   ArrowCounterClockwiseIcon,
   CalendarPlusIcon,
   CheckIcon,
+  NotePencilIcon,
   ProhibitIcon,
   UserCheckIcon,
   WarningIcon,
@@ -20,6 +22,7 @@ import {
   nombreConEspecialidad,
   fechaEnZona,
   formatearDiaLargo,
+  formatearFechaNumerica,
   formatearHora,
   formatearLlegada,
   mensajeRecordatorio,
@@ -27,6 +30,8 @@ import {
   puedeReagendar,
 } from '@dental/core'
 import { FormularioCita, type DatosReagendar } from '@/components/agenda/agendar-cita'
+import { AvisoAlergias } from '@/components/historia/aviso-alergias'
+import { FormularioEvolucion, ListaEvoluciones } from '@/components/historia/evolucion'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -47,6 +52,7 @@ import {
 import type { CitaAgenda, EnlacesReagenda } from '@/lib/agenda/datos'
 import type { OpcionesAgendar } from '@/lib/agenda/opciones'
 import { ZONA } from '@/lib/agenda/zona'
+import { consultaHistoria, type Evolucion } from '@/lib/historia/datos'
 import { cn } from '@/lib/utils'
 
 const claseCampo =
@@ -116,6 +122,13 @@ export function DetalleCita({
   const [error, setError] = useState<string | null>(null)
   const [pendiente, iniciar] = useTransition()
   const [confirmarCancelacion, setConfirmarCancelacion] = useState(false)
+  // Evolución que se está escribiendo (vacía) o corrigiendo (0018).
+  const [escribiendo, setEscribiendo] = useState<{ evolucion?: Evolucion } | null>(null)
+  // Alergias y evolución del paciente. Es la misma consulta que la de su ficha.
+  const historia = useQuery({
+    ...consultaHistoria(cita.pacienteId ?? ''),
+    enabled: cita.pacienteId !== null,
+  })
   const [telefono, setTelefono] = useState(cita.telefono ?? '')
   // El campo muestra la llegada guardada, también justo después de tocar "Llegó".
   const llegadaGuardada = cita.llegada ? formatearHora(cita.llegada, ZONA) : ''
@@ -211,8 +224,25 @@ export function DetalleCita({
           onGuardada={(nueva) => void ir(`/?fecha=${nueva.fecha}&cita=${nueva.id}`)}
         />
       )}
+      {cita.pacienteId && historia.data && (
+        <FormularioEvolucion
+          abierto={escribiendo !== null}
+          onCerrar={() => setEscribiendo(null)}
+          pacienteId={cita.pacienteId}
+          organizacionId={historia.data.organizacionId}
+          citas={[
+            {
+              id: cita.id,
+              fecha,
+              etiqueta: `${formatearFechaNumerica(fecha)} · ${cita.tipo ?? 'Cita'} · ${cita.lugar.nombre}`,
+            },
+          ]}
+          citaId={cita.id}
+          evolucion={escribiendo?.evolucion}
+        />
+      )}
       <Sheet
-        open={!reagendando}
+        open={!reagendando && !escribiendo}
         onOpenChange={(abierto) => {
           // Cerrar solo cambia la URL: los datos ya están en la página.
           if (!abierto) void ir(urlCerrar, { reemplazar: true })
@@ -227,6 +257,18 @@ export function DetalleCita({
           </SheetHeader>
 
           <div className="flex flex-col gap-6 px-4 py-3 md:px-6">
+            {cita.pacienteId && historia.data && (
+              <div className="flex flex-col gap-1.5">
+                <AvisoAlergias anamnesis={historia.data.anamnesis} />
+                <Enlace
+                  href={`/pacientes/${cita.pacienteId}`}
+                  className="text-muted-foreground hover:text-foreground self-start text-sm underline underline-offset-2"
+                >
+                  Ver ficha y antecedentes
+                </Enlace>
+              </div>
+            )}
+
             <dl className="divide-border border-border divide-y rounded-lg border">
               <Dato nombre="Estado">{NOMBRE_ESTADO[cita.estado]}</Dato>
               {!esBloqueo && <Dato nombre="Tipo">{cita.tipo ?? 'Sin tipo'}</Dato>}
@@ -320,6 +362,13 @@ export function DetalleCita({
                 )}
                 {botonReagendar}
               </div>
+            )}
+
+            {cita.estado === 'atendida' && historia.data && (
+              <SeccionEvolucionDeLaCita
+                evoluciones={historia.data.evoluciones.filter((e) => e.citaId === cita.id)}
+                onEscribir={(evolucion) => setEscribiendo({ evolucion })}
+              />
             )}
 
             {puedeRecordar && (
@@ -468,6 +517,31 @@ export function DetalleCita({
         </SheetContent>
       </Sheet>
     </>
+  )
+}
+
+/** Lo que se hizo en esta cita, o el botón para escribirlo (0018). */
+function SeccionEvolucionDeLaCita({
+  evoluciones,
+  onEscribir,
+}: {
+  evoluciones: Evolucion[]
+  /** Sin argumento, escribe una nueva; con una evolución, la corrige. */
+  onEscribir: (evolucion?: Evolucion) => void
+}) {
+  return (
+    <section aria-labelledby="titulo-evolucion-cita" className="flex flex-col gap-2">
+      <h3 id="titulo-evolucion-cita" className="font-medium">
+        Evolución
+      </h3>
+      {evoluciones.length > 0 && (
+        <ListaEvoluciones evoluciones={evoluciones} onCorregir={onEscribir} />
+      )}
+      <Button variant="outline" onClick={() => onEscribir()}>
+        <NotePencilIcon weight="bold" />
+        {evoluciones.length > 0 ? 'Agregar otra' : 'Escribir qué se hizo'}
+      </Button>
+    </section>
   )
 }
 

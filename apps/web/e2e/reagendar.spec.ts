@@ -149,8 +149,8 @@ test('en la ficha, la original dice "Reagendada" y la nueva está en próximas',
     page
       .locator(`section[aria-label="${seccion}"] li`)
       .evaluateAll((li) => li.map((x) => (x as HTMLElement).innerText.replace(/\n/g, ' | ')))
-  await expect.poll(() => filas('Historial')).toHaveLength(1)
-  expect((await filas('Historial'))[0]).toMatch(/Reagendada.*No asistió$/)
+  await expect.poll(() => filas('Historial de citas')).toHaveLength(1)
+  expect((await filas('Historial de citas'))[0]).toMatch(/Reagendada.*No asistió$/)
   const proximas = await filas('Próximas citas')
   expect(proximas).toHaveLength(1)
   expect(proximas[0]).toMatch(new RegExp(`^${diaLargo(VIERNES)} · 15:00`))

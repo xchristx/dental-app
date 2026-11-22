@@ -123,3 +123,49 @@ from semana s, (values
   ('60000000-0000-4000-8000-000000000011', 4, '10:00', '11:00', '20000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000009', '40000000-0000-4000-8000-000000000004', null, 'agendada', null),
   ('60000000-0000-4000-8000-000000000012', 4, '18:00', '19:00', '20000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000010', '40000000-0000-4000-8000-000000000001', null, 'cancelada', null)
 ) as c(id, dia, desde, hasta, profesional, lugar, paciente, tipo, nota, estado, llegada);
+
+-- Historia clínica (0018). Anamnesis de algunos pacientes y la evolución de
+-- las citas atendidas, escritas por Laura (la usuaria demo).
+insert into public.anamnesis (
+  organization_id, paciente_id, antecedentes_personales, antecedentes_familiares,
+  alergias, sin_alergias, medicamentos, autor_id, profesional_id, created_at
+) values
+  ('10000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000001',
+   'Sin enfermedades de base. Bruxismo nocturno.', 'Madre con hipertensión.',
+   'Penicilina (urticaria).', false, null,
+   '70000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', now() - interval '90 days'),
+  ('10000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000002',
+   'Hipertensión arterial controlada.', null,
+   null, true, 'Losartán 50 mg, una vez al día.',
+   '70000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', now() - interval '40 days'),
+  ('10000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000004',
+   'Diabetes tipo 2.', 'Padre y hermano con diabetes.',
+   'Ibuprofeno.', false, 'Metformina 850 mg, dos veces al día.',
+   '70000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', now() - interval '200 days');
+
+with semana as (
+  select date_trunc('week', now() at time zone 'America/La_Paz')::date as lunes
+)
+insert into public.evoluciones (
+  organization_id, paciente_id, cita_id, fecha, texto, autor_id, profesional_id, created_at
+)
+select
+  '10000000-0000-4000-8000-000000000001',
+  e.paciente::uuid,
+  e.cita::uuid,
+  s.lunes + e.dia,
+  e.texto,
+  '70000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  -- Escrita al terminar la cita (o antes de ahora, si la cita es más tarde).
+  least(((s.lunes + e.dia) + e.hora::time) at time zone 'America/La_Paz', now())
+from semana s, (values
+  ('50000000-0000-4000-8000-000000000001', null, -90, '11:00',
+   'Primera consulta. Caries II-O en 36 y I-P en 25. Profilaxis y enseñanza de cepillado.'),
+  ('50000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 0, '11:00',
+   'Control. Obturación OM en 36 con resina A2. Se indica placa de descanso por bruxismo.'),
+  ('50000000-0000-4000-8000-000000000002', '60000000-0000-4000-8000-000000000002', 0, '17:00',
+   'Endodoncia en 46, primera sesión: apertura, conductometría y medicación con hidróxido de calcio.'),
+  ('50000000-0000-4000-8000-000000000003', '60000000-0000-4000-8000-000000000003', 1, '11:00',
+   'Control. Sin caries nuevas. Tartrectomía y pulido.')
+) as e(paciente, cita, dia, hora, texto);

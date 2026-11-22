@@ -86,7 +86,8 @@ export function FormularioPaciente({ paciente }: { paciente?: PacienteLista }) {
               <SheetHeader>
                 <SheetTitle>{esNuevo ? 'Nuevo paciente' : 'Editar paciente'}</SheetTitle>
                 <SheetDescription>
-                  Los antecedentes y el odontograma llegan con la historia clínica.
+                  Los antecedentes y las alergias se cargan en la anamnesis, en la ficha del
+                  paciente.
                 </SheetDescription>
               </SheetHeader>
 

@@ -3,6 +3,77 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      anamnesis: {
+        Row: {
+          alergias: string | null
+          antecedentes_familiares: string | null
+          antecedentes_personales: string | null
+          autor_id: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          medicamentos: string | null
+          organization_id: string
+          paciente_id: string
+          profesional_id: string | null
+          sin_alergias: boolean
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          alergias?: string | null
+          antecedentes_familiares?: string | null
+          antecedentes_personales?: string | null
+          autor_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          medicamentos?: string | null
+          organization_id: string
+          paciente_id: string
+          profesional_id?: string | null
+          sin_alergias?: boolean
+          updated_at?: string
+        }
+        Update: {
+          alergias?: string | null
+          antecedentes_familiares?: string | null
+          antecedentes_personales?: string | null
+          autor_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          medicamentos?: string | null
+          organization_id?: string
+          paciente_id?: string
+          profesional_id?: string | null
+          sin_alergias?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'anamnesis_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'anamnesis_organization_id_paciente_id_fkey'
+            columns: ['organization_id', 'paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'anamnesis_organization_id_profesional_id_fkey'
+            columns: ['organization_id', 'profesional_id']
+            isOneToOne: false
+            referencedRelation: 'profesionales'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
       citas: {
         Row: {
           created_at: string
@@ -106,6 +177,78 @@ export type Database = {
             columns: ['organization_id', 'reagendada_desde']
             isOneToOne: false
             referencedRelation: 'citas'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
+      evoluciones: {
+        Row: {
+          autor_id: string | null
+          cita_id: string | null
+          created_at: string
+          deleted_at: string | null
+          fecha: string
+          id: string
+          organization_id: string
+          paciente_id: string
+          profesional_id: string | null
+          texto: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          autor_id?: string | null
+          cita_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha: string
+          id?: string
+          organization_id: string
+          paciente_id: string
+          profesional_id?: string | null
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          cita_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha?: string
+          id?: string
+          organization_id?: string
+          paciente_id?: string
+          profesional_id?: string | null
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'evoluciones_organization_id_cita_id_fkey'
+            columns: ['organization_id', 'cita_id']
+            isOneToOne: false
+            referencedRelation: 'citas'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'evoluciones_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'evoluciones_organization_id_paciente_id_fkey'
+            columns: ['organization_id', 'paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'evoluciones_organization_id_profesional_id_fkey'
+            columns: ['organization_id', 'profesional_id']
+            isOneToOne: false
+            referencedRelation: 'profesionales'
             referencedColumns: ['organization_id', 'id']
           },
         ]
@@ -431,7 +574,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      es_admin_de: { Args: { org: string }; Returns: boolean }
       org_ids_del_usuario: { Args: Record<PropertyKey, never>; Returns: string[] }
+      profesional_del_usuario: { Args: { org: string }; Returns: string }
       reagendar_cita: {
         Args: {
           p_estado_original: string
