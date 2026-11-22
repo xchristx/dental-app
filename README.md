@@ -6,7 +6,7 @@ Se construye con una dentista real que hoy lleva todo en papel.
 
 **Estado:** MVP 1 (agenda) completo: inicio de sesión, agenda (día en el celular, semana desde tablet), agendar con horarios libres y avisos, detalle de cita con estado, llegada, recordatorio por WhatsApp, reagendar y aviso de llegada tarde, pacientes y ajustes de lugares, profesionales y horarios. MVP 2 (historia clínica) completo: anamnesis con alergias destacadas, evolución por cita, derivaciones, examen bucal y odontograma (tabla y gráfico, con CPO-D y ceo-d, columna Rx, línea de tiempo y catálogo de códigos editable). MVP 3 (pagos y archivos) completo: presupuestos y planilla de pagos, recibo en PDF por WhatsApp, radiografías y fotos por paciente, la imagen de cada Rx y el comprobante de cada pago. Producción (decisiones 0030 y 0031): se entra con Google, se publica a mano después de un respaldo, y hay respaldos diarios cifrados en Google Drive. Ver la [guía de producción](docs/operacion/produccion.md).
 
-**Demo:** <https://sifel.netlify.app> (datos inventados, se reinicia cada día). En Android se puede instalar desde el menú del navegador: "Instalar app" o "Agregar a la pantalla de inicio".
+**Demo:** <https://sifel-demo.netlify.app> (datos inventados, se reinicia cada día). En Android se puede instalar desde el menú del navegador: "Instalar app" o "Agregar a la pantalla de inicio".
 
 ## Desarrollo
 

@@ -5,6 +5,7 @@
 - **Reemplaza:**
   - De la [0016](0016-region-de-supabase.md), que antes de crear producción se mide la latencia desde la conexión de la dentista. Ahora se mide después.
   - De la [0007](0007-autenticacion.md), que el cliente OAuth de Google se configura en los dos proyectos. Ahora va solo en producción.
+  - De la [0015](0015-demo-se-reinicia-cada-dia.md), que la demo está en `sifel.netlify.app`. Pasa a `sifel-demo.netlify.app`, y `sifel.netlify.app` queda para producción.
 - **Sigue:** la [0011](0011-produccion-en-plan-gratis.md). Los respaldos están en la [0031](0031-respaldos-en-google-drive.md).
 
 ## Contexto
@@ -20,7 +21,10 @@ El cupo gratis de Supabase permite dos proyectos activos (0016). Hoy solo está 
 - **Supabase:** un proyecto nuevo, `sifel-produccion`, en sa-east-1 (São Paulo). Se crea sin medir antes desde la conexión de la dentista.
   - Esa medición se hace después.
   - Si otra región sale más de 20 ms mejor, se pasa a esa región con un respaldo y una restauración (0031), y se escribe una decisión nueva.
-- **Web:** un segundo sitio de Netlify, del mismo repositorio, que se publica desde la rama `produccion`. La demo sigue en `sifel.netlify.app`, publicada desde `main`.
+- **Web:** producción va en **`sifel.netlify.app`**, la dirección corta, que es la que va a usar la dentista. La demo pasa a **`sifel-demo.netlify.app`**.
+  - El sitio actual de Netlify se renombra a `sifel-demo`. Conserva su configuración de demo y sigue publicando `main`.
+  - Se crea un sitio nuevo llamado `sifel`, del mismo repositorio, que publica la rama `produccion`.
+  - Los nombres de Netlify son únicos entre todos sus usuarios. Por eso, apenas se libera `sifel`, se reserva con un sitio provisorio hasta que producción esté lista.
 
 ### Cómo se publica
 
@@ -56,6 +60,8 @@ Los secretos de producción están en el environment `produccion` de GitHub. Sol
 - La organización de producción permite archivos (`permite_archivos` en `true` por defecto, 0027), porque sus archivos se respaldan (0031).
 
 ## Consecuencias
+
+- Los enlaces viejos a `sifel.netlify.app` (portafolio, CV, mensajes) llevan a la entrada de producción, no a la demo. Hay que cambiarlos por `sifel-demo.netlify.app`.
 
 - Publicar en producción es un paso consciente, con respaldo previo. Un merge a `main` solo cambia la demo.
 - Si una migración necesita un cambio de datos o algo que no puede salir mal, se prueba antes restaurando un respaldo de producción en local (0031).
