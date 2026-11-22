@@ -7,6 +7,8 @@ import {
   codigoParaTratar,
   describirPieza,
   estadoOdontograma,
+  fechasDelOdontograma,
+  registrosAlDia,
   errorDeRegistro,
   esPiezaValida,
   nombreCara,
@@ -166,6 +168,40 @@ describe('estadoOdontograma', () => {
     expect(codigoParaTratar({ simbolo: 'superficie' }, codigos)?.id).toBe('Obt')
     expect(codigoParaTratar({ simbolo: 'cruz' }, codigos)?.id).toBe('PC')
     expect(codigoParaTratar({ simbolo: 'texto' }, codigos)).toBeNull()
+  })
+})
+
+describe('la boca en una fecha', () => {
+  const codigos = [
+    { id: 'C', tipo: 'hallazgo' as const },
+    { id: 'Obt', tipo: 'realizado' as const },
+  ]
+  const r = (id: string, codigoId: string, fecha: string, resuelveId: string | null = null) => ({
+    id,
+    pieza: 36,
+    codigoId,
+    resuelveId,
+    caras: null,
+    grado: null,
+    nota: null,
+    fecha,
+  })
+  const registros = [
+    r('caries', 'C', '2026-03-03'),
+    r('obt', 'Obt', '2026-03-10', 'caries'),
+    r('caries2', 'C', '2026-04-07'),
+  ]
+
+  it('lista los días con registros, del inicial al más nuevo', () => {
+    expect(fechasDelOdontograma(registros)).toEqual(['2026-03-03', '2026-03-10', '2026-04-07'])
+  })
+
+  it('antes del tratamiento, el hallazgo se ve pendiente', () => {
+    const inicial = estadoOdontograma(registrosAlDia(registros, '2026-03-05'), codigos)
+    expect(inicial.pendientes.map((x) => x.id)).toEqual(['caries'])
+    const despues = estadoOdontograma(registrosAlDia(registros, '2026-03-10'), codigos)
+    expect(despues.pendientes).toEqual([])
+    expect(despues.vigentes.map((x) => x.id)).toEqual(['obt'])
   })
 })
 

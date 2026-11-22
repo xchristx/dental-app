@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ZONA_LA_PAZ, esFechaValida, fechaEnZona } from '../fechas/fechas'
+import { ZONA_LA_PAZ, esFechaValida, fechaEnZona, type Fecha } from '../fechas/fechas'
 
 // Odontograma (decisión 0020). Numeración FDI y caras según las Normas en
 // Salud Oral (2010); los códigos salen del catálogo de cada organización.
@@ -258,4 +258,21 @@ export function codigoParaTratar<C extends Pick<CodigoOdontograma, 'id' | 'tipo'
 ): C | null {
   if (hallazgo.simbolo === 'texto') return null
   return codigos.find((c) => c.tipo === 'realizado' && c.simbolo === hallazgo.simbolo) ?? null
+}
+
+/**
+ * Los registros como estaban un día: los de esa fecha o antes. Un tratamiento
+ * posterior no cuenta, así que su hallazgo vuelve a verse pendiente. Lo
+ * anulado nunca se incluye: fue un error (0021).
+ */
+export function registrosAlDia<R extends Pick<RegistroOdontograma, 'fecha'>>(
+  registros: R[],
+  fecha: Fecha,
+): R[] {
+  return registros.filter((r) => r.fecha <= fecha)
+}
+
+/** Los días con registros, del más viejo (el odontograma inicial) al más nuevo. */
+export function fechasDelOdontograma(registros: Pick<RegistroOdontograma, 'fecha'>[]): Fecha[] {
+  return [...new Set(registros.map((r) => r.fecha))].sort()
 }
