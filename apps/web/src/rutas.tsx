@@ -10,6 +10,7 @@ import { sesionActual } from '@/lib/auth/acciones'
 import { PaginaAgenda } from '@/paginas/agenda'
 import {
   PaginaAjustes,
+  PaginaOdontograma,
   PaginaPaciente,
   PaginaPacientes,
   PaginaVolverDeGoogle,
@@ -72,6 +73,11 @@ const paciente = createRoute({
   path: '/pacientes/$id',
   component: PaginaPaciente,
 })
+const odontograma = createRoute({
+  getParentRoute: () => app,
+  path: '/pacientes/$id/odontograma',
+  component: PaginaOdontograma,
+})
 const ajustes = createRoute({
   getParentRoute: () => app,
   path: '/ajustes',
@@ -81,7 +87,7 @@ const ajustes = createRoute({
 const arbol = raiz.addChildren([
   entrar,
   volverDeGoogle,
-  app.addChildren([agenda, pacientes, paciente, ajustes]),
+  app.addChildren([agenda, pacientes, paciente, odontograma, ajustes]),
 ])
 
 export const router = createRouter({

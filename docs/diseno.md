@@ -58,6 +58,16 @@ Cada lugar elige uno de estos colores. En la agenda, la cita se ve con el fondo 
 
 El rojo **no** se usa como color de lugar, para que un choque nunca se confunda con un lugar.
 
+### Odontograma
+Los dos colores de la convención general (0020). Se usan solo en el odontograma: para pintar las caras, para los símbolos y para el texto de los códigos.
+
+| Token | Valor | Uso | Contraste sobre blanco |
+|---|---|---|---|
+| `odontograma-rojo` | `#C4261D` | Hallazgos: lo que hay que tratar | 5,7 |
+| `odontograma-azul` | `#1D5FC4` | Realizados: hecho o en buen estado | 6,0 |
+
+En Tailwind: `text-odontograma-rojo`, `fill-odontograma-azul`, etc. El color nunca va solo: la tabla también separa hallazgos y realizados en columnas distintas, y el gráfico tiene leyenda.
+
 ### Forma y espacio
 - Radios: `4px` para inputs y botones, `8px` para tarjetas, `12px` para hojas y diálogos. Las pills (`9999px`) solo en los badges.
 - Sombras: ninguna en reposo. Solo los diálogos y las hojas llevan `0 8px 24px rgba(0,0,0,0.06)` para separarse del fondo.

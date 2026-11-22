@@ -4,7 +4,7 @@ App de gestión para consultorios odontológicos: agenda en varios lugares, hist
 
 Se construye con una dentista real que hoy lleva todo en papel.
 
-**Estado:** MVP 1 (agenda) completo: inicio de sesión, agenda (día en el celular, semana desde tablet), agendar con horarios libres y avisos, detalle de cita con estado, llegada, recordatorio por WhatsApp, reagendar y aviso de llegada tarde, pacientes y ajustes de lugares, profesionales y horarios. MVP 2 (historia clínica) en curso: anamnesis con alergias destacadas, evolución por cita y derivaciones; falta el odontograma. Antes del primer paciente real faltan los preparativos de producción de la decisión 0011.
+**Estado:** MVP 1 (agenda) completo: inicio de sesión, agenda (día en el celular, semana desde tablet), agendar con horarios libres y avisos, detalle de cita con estado, llegada, recordatorio por WhatsApp, reagendar y aviso de llegada tarde, pacientes y ajustes de lugares, profesionales y horarios. MVP 2 (historia clínica) en curso: anamnesis con alergias destacadas, evolución por cita, derivaciones y odontograma (tabla y gráfico, con CPO-D y ceo-d); falta editar el catálogo de códigos desde Ajustes. Antes del primer paciente real faltan los preparativos de producción de la decisión 0011.
 
 **Demo:** <https://sifel.netlify.app> (datos inventados, se reinicia cada día). En Android se puede instalar desde el menú del navegador: "Instalar app" o "Agregar a la pantalla de inicio".
 
@@ -51,6 +51,7 @@ Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome inst
   - [0017: La web pasa a ser una SPA con Vite](docs/decisiones/0017-spa-con-vite.md)
   - [0018: Historia clínica, primera parte: anamnesis y evolución](docs/decisiones/0018-anamnesis-y-evolucion.md)
   - [0019: Derivaciones](docs/decisiones/0019-derivaciones.md)
+  - [0020: Odontograma con las normas generales](docs/decisiones/0020-odontograma.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack
