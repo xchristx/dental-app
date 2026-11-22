@@ -1,9 +1,10 @@
 'use client'
 
 import { Suspense } from 'react'
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { usePathname } from 'next/navigation'
 import { CalendarDotsIcon, GearSixIcon, UsersIcon } from '@phosphor-icons/react'
+import { Cargando } from '@/components/ui/cargando'
 import { cn } from '@/lib/utils'
 
 // Secciones del MVP 1 (decisión 0009).
@@ -33,6 +34,33 @@ function LeerRuta({ Lista }: { Lista: (p: { pathname: string | null }) => React.
   return <Lista pathname={usePathname()} />
 }
 
+/**
+ * Ícono y texto de una sección. Si la sección todavía no se precargó (la
+ * primera vez, o con mala señal), el servidor puede tardar en responder: el
+ * texto se marca enseguida y el ícono pasa a ser un indicador de carga, para
+ * que no parezca que la app se quedó congelada.
+ */
+function ContenidoSeccion({
+  Icono,
+  texto,
+  tamano,
+}: {
+  Icono: (typeof secciones)[number]['Icono']
+  texto: string
+  tamano: string
+}) {
+  const { pending } = useLinkStatus()
+  return (
+    <>
+      <span className={cn('grid place-items-center *:col-start-1 *:row-start-1', tamano)}>
+        <Icono weight="bold" className={cn(tamano, pending && 'cargando-reemplaza')} />
+        {pending && <Cargando decorativo className={tamano} />}
+      </span>
+      <span className={cn(pending && 'text-foreground')}>{texto}</span>
+    </>
+  )
+}
+
 function ListaLateral({ pathname }: { pathname: string | null }) {
   return (
     <ul className="flex flex-col gap-1">
@@ -50,8 +78,7 @@ function ListaLateral({ pathname }: { pathname: string | null }) {
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
-              <Icono weight="bold" className="size-4" />
-              {texto}
+              <ContenidoSeccion Icono={Icono} texto={texto} tamano="size-4" />
             </Link>
           </li>
         )
@@ -75,8 +102,7 @@ function ListaInferior({ pathname }: { pathname: string | null }) {
                 activa ? 'text-foreground font-medium' : 'text-muted-foreground',
               )}
             >
-              <Icono weight="bold" className="size-5" />
-              {texto}
+              <ContenidoSeccion Icono={Icono} texto={texto} tamano="size-5" />
             </Link>
           </li>
         )

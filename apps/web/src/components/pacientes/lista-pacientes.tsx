@@ -1,10 +1,26 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { CaretRightIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { coincideBusqueda, edad, type Fecha } from '@dental/core'
+import { Cargando } from '@/components/ui/cargando'
 import type { PacienteLista } from '@/lib/pacientes/datos'
+import { cn } from '@/lib/utils'
+
+/** Mientras se abre la ficha (si no estaba precargada), la flecha pasa a ser un indicador de carga. */
+function FlechaFila() {
+  const { pending } = useLinkStatus()
+  return (
+    <span className="grid size-4 place-items-center *:col-start-1 *:row-start-1">
+      <CaretRightIcon
+        weight="bold"
+        className={cn('text-muted-foreground size-4', pending && 'cargando-reemplaza')}
+      />
+      {pending && <Cargando decorativo className="size-4" />}
+    </span>
+  )
+}
 
 /** Lista de pacientes con búsqueda sin tildes. `hoy` viene del servidor, para calcular la edad. */
 export function ListaPacientes({ pacientes, hoy }: { pacientes: PacienteLista[]; hoy: Fecha }) {
@@ -56,7 +72,7 @@ export function ListaPacientes({ pacientes, hoy }: { pacientes: PacienteLista[];
                         .join(' · ')}
                     </p>
                   </div>
-                  <CaretRightIcon weight="bold" className="text-muted-foreground size-4" />
+                  <FlechaFila />
                 </Link>
               </li>
             )

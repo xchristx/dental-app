@@ -125,5 +125,77 @@
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
     }
+    /* El indicador de carga no se detiene: gira lento, para que se note que sigue trabajando. */
+    progress.cargando:indeterminate {
+      animation-duration: 6s, 0.01ms !important;
+    }
+  }
+}
+
+/*
+ * Indicador de carga (components/ui/cargando.tsx): un <progress> sin valor
+ * con forma de anillo. Aparece recién a los 150 ms, así una carga rápida no
+ * parpadea.
+ */
+@keyframes cargando-girar {
+  to {
+    rotate: 1turn;
+  }
+}
+@keyframes cargando-aparecer {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes cargando-ocultar {
+  to {
+    opacity: 0;
+  }
+}
+
+@layer components {
+  progress.cargando:indeterminate {
+    --tamano: 1.25rem;
+    --grosor: 2px;
+    inline-size: var(--tamano);
+    block-size: var(--tamano);
+    border-radius: 50%;
+    appearance: none;
+    background: conic-gradient(from 90deg, var(--foreground) 158deg, transparent 0) var(--border);
+    animation:
+      cargando-girar 1.5s linear infinite,
+      cargando-aparecer 150ms 150ms both;
+
+    @supports (background-clip: border-area) {
+      border: var(--grosor) solid transparent;
+      background-clip: border-area;
+      background-origin: border-box;
+    }
+    @supports not (background-clip: border-area) {
+      border: 0;
+      mask-image: radial-gradient(
+        farthest-side,
+        transparent calc(100% - var(--grosor)),
+        black calc(100% - var(--grosor))
+      );
+    }
+    @media (forced-colors: active) {
+      forced-color-adjust: none;
+      background: conic-gradient(from 90deg, CanvasText 158deg, transparent 0) Canvas;
+    }
+  }
+  progress.cargando:indeterminate::-webkit-progress-bar {
+    display: none;
+  }
+  progress.cargando:indeterminate::-webkit-progress-value {
+    display: none;
+  }
+  progress.cargando:indeterminate::-moz-progress-bar {
+    display: none;
+  }
+
+  /* Lo que el indicador reemplaza se va al mismo tiempo que él aparece. */
+  .cargando-reemplaza {
+    animation: cargando-ocultar 150ms 150ms both;
   }
 }

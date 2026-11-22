@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useRef } from 'react'
+import { createContext, use, useId, useMemo, useRef, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CaretDownIcon, CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react'
@@ -19,6 +19,7 @@ import { BloqueCita } from '@/components/agenda/bloque-cita'
 import { DetalleSeleccionado } from '@/components/agenda/detalle-cita'
 import { EnlaceDetalle } from '@/components/agenda/enlace-detalle'
 import { Button } from '@/components/ui/button'
+import { Cargando } from '@/components/ui/cargando'
 import type { CitaAgenda, EnlacesReagenda } from '@/lib/agenda/datos'
 import type { OpcionesAgendar } from '@/lib/agenda/opciones'
 import { ZONA } from '@/lib/agenda/zona'
@@ -61,17 +62,36 @@ export function AgendaSemana({
   const fecha = esDeLaSemana(pedida, lunes) ? pedida : fechaInicial
   const hrefCita = (id: string) => urlAgenda({ fecha, cita: id })
 
+  // Otra semana va al servidor y puede tardar: mientras tanto, la semana que
+  // se ve queda atenuada y junto a la fecha aparece un indicador de carga.
+  const router = useRouter()
+  const [cargando, iniciar] = useTransition()
+  const cambio = useMemo(
+    () => ({ cargando, ir: (href: string) => iniciar(() => router.push(href)) }),
+    [cargando, router],
+  )
+  const atenuar = cn(cargando && 'opacity-50 transition-opacity delay-150 duration-200')
+
   return (
-    <>
+    <CambioDeSemana value={cambio}>
       <Encabezado fecha={fecha} lunes={lunes} hoy={hoy}>
         <AgendarCita opciones={opciones} fecha={fecha} />
       </Encabezado>
-      <VistaDia citas={delDia(citas, fecha)} hrefCita={hrefCita} />
-      <VistaSemana citas={citas} lunes={lunes} hoy={hoy} hrefCita={hrefCita} />
+      <p role="status" className="sr-only">
+        {cargando ? 'Cargando la semana…' : ''}
+      </p>
+      <VistaDia citas={delDia(citas, fecha)} hrefCita={hrefCita} className={atenuar} />
+      <VistaSemana citas={citas} lunes={lunes} hoy={hoy} hrefCita={hrefCita} className={atenuar} />
       <DetalleSeleccionado citas={citas} enlaces={enlaces} opciones={opciones} fecha={fecha} />
-    </>
+    </CambioDeSemana>
   )
 }
+
+/** Ir a otra semana (con el servidor) y saber si todavía está cargando. */
+const CambioDeSemana = createContext<{ cargando: boolean; ir: (href: string) => void }>({
+  cargando: false,
+  ir: () => {},
+})
 
 function esDeLaSemana(fecha: Fecha, lunes: Fecha) {
   return fecha >= lunes && fecha <= sumarDias(lunes, 6)
@@ -100,6 +120,7 @@ function EnlaceFecha({
   children: React.ReactNode
   'aria-label'?: string
 }) {
+  const { ir } = use(CambioDeSemana)
   // "Hoy" va sin fecha en la URL, como al entrar.
   const href = urlAgenda({ fecha: fecha === hoy ? undefined : fecha })
   if (esDeLaSemana(fecha, lunes)) {
@@ -109,8 +130,19 @@ function EnlaceFecha({
       </EnlaceDetalle>
     )
   }
+  // Sigue siendo un Link (precarga, abrir en otra pestaña), pero el clic
+  // normal navega dentro de la transición que muestra la carga.
   return (
-    <Link href={href} className={className} {...props}>
+    <Link
+      href={href}
+      className={className}
+      {...props}
+      onClick={(e) => {
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+        e.preventDefault()
+        ir(href)
+      }}
+    >
       {children}
     </Link>
   )
@@ -205,7 +237,7 @@ function Encabezado({
  * su semana.
  */
 function ElegirFecha({ fecha, lunes, hoy }: { fecha: Fecha; lunes: Fecha; hoy: Fecha }) {
-  const router = useRouter()
+  const { ir: irASemana, cargando } = use(CambioDeSemana)
   const entrada = useRef<HTMLInputElement>(null)
   const idAyuda = useId()
 
@@ -225,7 +257,7 @@ function ElegirFecha({ fecha, lunes, hoy }: { fecha: Fecha; lunes: Fecha; hoy: F
     // "Hoy" va sin fecha en la URL, como al entrar.
     const href = urlAgenda({ fecha: destino === hoy ? undefined : destino })
     if (esDeLaSemana(destino, lunes)) window.history.pushState(null, '', href)
-    else router.push(href)
+    else irASemana(href)
   }
 
   return (
@@ -238,10 +270,10 @@ function ElegirFecha({ fecha, lunes, hoy }: { fecha: Fecha; lunes: Fecha; hoy: F
         className="hover:bg-muted focus-visible:ring-ring/40 -mx-1.5 inline-block rounded-sm px-1.5 py-1.5 text-left transition-colors duration-150 outline-none focus-visible:ring-3"
       >
         <span className="md:hidden">
-          <ConFlecha texto={formatearDiaLargo(fecha)} />
+          <ConFlecha texto={formatearDiaLargo(fecha)} cargando={cargando} />
         </span>
         <span className="hidden md:inline">
-          <ConFlecha texto={formatearRangoSemana(lunes)} />
+          <ConFlecha texto={formatearRangoSemana(lunes)} cargando={cargando} />
         </span>
       </button>
       <span id={idAyuda} className="sr-only">
@@ -262,29 +294,47 @@ function ElegirFecha({ fecha, lunes, hoy }: { fecha: Fecha; lunes: Fecha; hoy: F
   )
 }
 
-/** La flecha va pegada a la última palabra: si el título corta, bajan juntas. */
-function ConFlecha({ texto }: { texto: string }) {
+/**
+ * La flecha va pegada a la última palabra: si el título corta, bajan juntas.
+ * Mientras carga otra semana, en su lugar aparece el indicador de carga (sin
+ * mover nada: ocupan el mismo espacio). El aviso para lectores de pantalla lo
+ * da el role="status" de AgendaSemana.
+ */
+function ConFlecha({ texto, cargando }: { texto: string; cargando: boolean }) {
   const corte = texto.lastIndexOf(' ') + 1
   return (
     <>
       {texto.slice(0, corte)}
       <span className="whitespace-nowrap">
         {texto.slice(corte)}
-        <CaretDownIcon
-          weight="bold"
-          className="text-muted-foreground ml-2 inline-block size-5 align-middle"
-        />
+        <span className="ml-2 inline-grid size-5 place-items-center align-middle *:col-start-1 *:row-start-1">
+          <CaretDownIcon
+            weight="bold"
+            className={cn('text-muted-foreground size-5', cargando && 'cargando-reemplaza')}
+          />
+          {cargando && <Cargando decorativo className="size-5" />}
+        </span>
       </span>
     </>
   )
 }
 
-function VistaDia({ citas, hrefCita }: { citas: CitaAgenda[]; hrefCita: (id: string) => string }) {
+function VistaDia({
+  citas,
+  hrefCita,
+  className,
+}: {
+  citas: CitaAgenda[]
+  hrefCita: (id: string) => string
+  className?: string
+}) {
   if (citas.length === 0) {
-    return <p className="text-muted-foreground md:hidden">No tienes citas este día.</p>
+    return (
+      <p className={cn('text-muted-foreground md:hidden', className)}>No tienes citas este día.</p>
+    )
   }
   return (
-    <ol className="flex flex-col gap-3 md:hidden">
+    <ol className={cn('flex flex-col gap-3 md:hidden', className)}>
       {citas.map((cita) => (
         <li key={cita.id}>
           <BloqueCita cita={cita} href={hrefCita(cita.id)} />
@@ -299,14 +349,16 @@ function VistaSemana({
   lunes,
   hoy,
   hrefCita,
+  className,
 }: {
   citas: CitaAgenda[]
   lunes: Fecha
   hoy: Fecha
   hrefCita: (id: string) => string
+  className?: string
 }) {
   return (
-    <div className="hidden flex-1 grid-cols-7 gap-2 md:grid xl:gap-3">
+    <div className={cn('hidden flex-1 grid-cols-7 gap-2 md:grid xl:gap-3', className)}>
       {diasDeLaSemana(lunes).map((dia) => {
         const { nombre, numero } = diaCorto(dia)
         const esHoy = dia === hoy

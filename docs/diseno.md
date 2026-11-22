@@ -104,6 +104,7 @@ Se cargan con `next/font`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
   - `cancelada`: tachada y con opacidad 50 %.
 - **Listas:** filas separadas por un borde inferior. No van tarjetas dentro de tarjetas.
 - **Formularios:** en el celular, en una hoja inferior (sheet). Desde tablet, en un panel lateral derecho. Nunca en un diálogo centrado.
+- **Cargando:** mientras una página carga, se ven formas grises fijas (esqueleto). Si lo que se tocó tarda en responder (una sección que no estaba precargada, otra semana), el indicador de carga (`components/ui/cargando.tsx`, un anillo que gira) reemplaza al ícono de lo que se tocó. Aparece recién a los 150 ms, así una carga rápida no parpadea. Al cambiar de semana, además, la semana anterior se atenúa al 50 % hasta que llega la nueva.
 
 ## Agenda
 
@@ -134,4 +135,5 @@ Se cargan con `next/font`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
 ## Movimiento
 - Solo transiciones cortas (150 a 200 ms) en hover, al presionar y al abrir hojas.
 - Sin animaciones al hacer scroll ni apariciones escalonadas.
-- Se respeta `prefers-reduced-motion`.
+- La única animación continua es el indicador de carga.
+- Se respeta `prefers-reduced-motion`. El indicador de carga no se detiene: gira más lento, para que se note que la app sigue trabajando.
