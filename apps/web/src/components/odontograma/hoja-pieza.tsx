@@ -14,6 +14,7 @@ import {
   type RadiografiaOdontograma,
   type RegistroOdontograma,
 } from '@dental/core'
+import { ArchivosLigados, nombreDeRx } from '@/components/archivos/archivos-ligados'
 import { claseCampo } from '@/components/historia/campos'
 import { CarasGrandes } from './caras-grandes'
 import { Button } from '@/components/ui/button'
@@ -471,6 +472,15 @@ export function HojaPieza({
                             </Button>
                           )}
                         </div>
+                        {anulando !== r.id && (
+                          <ArchivosLigados
+                            tipo="radiografia"
+                            rxId={r.id}
+                            pacienteId={pacienteId}
+                            fecha={r.fecha}
+                            nombre={nombreDeRx(r.fecha)}
+                          />
+                        )}
                         {anulando === r.id && (
                           <div className="bg-destructive-bg flex flex-col gap-2 rounded-lg p-3">
                             <p className="text-destructive">

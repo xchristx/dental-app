@@ -4,7 +4,7 @@ App de gestión para consultorios odontológicos: agenda en varios lugares, hist
 
 Se construye con una dentista real que hoy lleva todo en papel.
 
-**Estado:** MVP 1 (agenda) completo: inicio de sesión, agenda (día en el celular, semana desde tablet), agendar con horarios libres y avisos, detalle de cita con estado, llegada, recordatorio por WhatsApp, reagendar y aviso de llegada tarde, pacientes y ajustes de lugares, profesionales y horarios. MVP 2 (historia clínica) en curso: anamnesis con alergias destacadas, evolución por cita, derivaciones y odontograma (tabla y gráfico, con CPO-D y ceo-d); falta editar el catálogo de códigos desde Ajustes. Antes del primer paciente real faltan los preparativos de producción de la decisión 0011.
+**Estado:** MVP 1 (agenda) completo: inicio de sesión, agenda (día en el celular, semana desde tablet), agendar con horarios libres y avisos, detalle de cita con estado, llegada, recordatorio por WhatsApp, reagendar y aviso de llegada tarde, pacientes y ajustes de lugares, profesionales y horarios. MVP 2 (historia clínica) completo: anamnesis con alergias destacadas, evolución por cita, derivaciones, examen bucal y odontograma (tabla y gráfico, con CPO-D y ceo-d, columna Rx, línea de tiempo y catálogo de códigos editable). MVP 3 (pagos y archivos) completo: presupuestos y planilla de pagos, recibo en PDF por WhatsApp, radiografías y fotos por paciente, la imagen de cada Rx y el comprobante de cada pago. Antes del primer paciente real faltan los preparativos de producción de la decisión 0011.
 
 **Demo:** <https://sifel.netlify.app> (datos inventados, se reinicia cada día). En Android se puede instalar desde el menú del navegador: "Instalar app" o "Agregar a la pantalla de inicio".
 
@@ -60,6 +60,7 @@ Las pruebas de punta a punta necesitan el Supabase local levantado y Chrome inst
   - [0026: Presupuestos y libro de pagos](docs/decisiones/0026-presupuestos-y-libro-de-pagos.md)
   - [0027: Archivos de pacientes (radiografías y fotos)](docs/decisiones/0027-archivos-de-pacientes.md)
   - [0028: Recibo por WhatsApp, sin firma](docs/decisiones/0028-recibo-por-whatsapp.md)
+  - [0029: La imagen de cada Rx y el comprobante de cada pago](docs/decisiones/0029-imagen-de-la-rx-y-comprobante-del-pago.md)
 - [Guía de diseño](docs/diseno.md)
 
 ## Stack

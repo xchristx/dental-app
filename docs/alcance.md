@@ -29,7 +29,7 @@ Prioridad: resolver primero lo que más le complica a la dentista, que es **la a
 ## MVP 3: Pagos y archivos
 - Plan de tratamiento: total, cuota inicial y cuota sugerida.
 - Libro de pagos (solo se agregan movimientos). El saldo se calcula, y se muestra con el mismo formato que su planilla de papel.
-- Forma de pago (efectivo, QR o transferencia) y foto del comprobante.
+- Forma de pago (efectivo, QR o transferencia) y foto del comprobante (decisión 0029).
 - Recibo en PDF que se comparte por WhatsApp. Sin firma: ella confirmó que alcanza con el recibo (decisión 0028).
 - Radiografías y fotos por paciente. En Android se pueden compartir desde WhatsApp.
 
