@@ -4,6 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["DEPLOY_ID"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
