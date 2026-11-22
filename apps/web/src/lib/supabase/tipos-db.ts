@@ -563,6 +563,83 @@ export type Database = {
           },
         ]
       }
+      movimientos_pago: {
+        Row: {
+          autor_id: string | null
+          created_at: string
+          deleted_at: string | null
+          fecha: string
+          forma_pago: string | null
+          id: string
+          moneda: string
+          monto_centavos: number
+          motivo: string | null
+          numero_recibo: number | null
+          organization_id: string
+          presupuesto_id: string
+          profesional_id: string | null
+          tipo: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          autor_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha: string
+          forma_pago?: string | null
+          id?: string
+          moneda?: string
+          monto_centavos: number
+          motivo?: string | null
+          numero_recibo?: number | null
+          organization_id: string
+          presupuesto_id: string
+          profesional_id?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha?: string
+          forma_pago?: string | null
+          id?: string
+          moneda?: string
+          monto_centavos?: number
+          motivo?: string | null
+          numero_recibo?: number | null
+          organization_id?: string
+          presupuesto_id?: string
+          profesional_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'movimientos_pago_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'movimientos_pago_organization_id_presupuesto_id_fkey'
+            columns: ['organization_id', 'presupuesto_id']
+            isOneToOne: false
+            referencedRelation: 'presupuestos'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'movimientos_pago_organization_id_profesional_id_fkey'
+            columns: ['organization_id', 'profesional_id']
+            isOneToOne: false
+            referencedRelation: 'profesionales'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
       odontograma_codigos: {
         Row: {
           abreviatura: string
@@ -829,6 +906,80 @@ export type Database = {
           },
         ]
       }
+      presupuestos: {
+        Row: {
+          autor_id: string | null
+          created_at: string
+          cuota_inicial_centavos: number | null
+          cuota_sugerida_centavos: number | null
+          deleted_at: string | null
+          descripcion: string
+          fecha: string
+          id: string
+          moneda: string
+          organization_id: string
+          paciente_id: string
+          profesional_id: string | null
+          total_centavos: number
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          autor_id?: string | null
+          created_at?: string
+          cuota_inicial_centavos?: number | null
+          cuota_sugerida_centavos?: number | null
+          deleted_at?: string | null
+          descripcion: string
+          fecha: string
+          id?: string
+          moneda?: string
+          organization_id: string
+          paciente_id: string
+          profesional_id?: string | null
+          total_centavos: number
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          created_at?: string
+          cuota_inicial_centavos?: number | null
+          cuota_sugerida_centavos?: number | null
+          deleted_at?: string | null
+          descripcion?: string
+          fecha?: string
+          id?: string
+          moneda?: string
+          organization_id?: string
+          paciente_id?: string
+          profesional_id?: string | null
+          total_centavos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'presupuestos_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'presupuestos_organization_id_paciente_id_fkey'
+            columns: ['organization_id', 'paciente_id']
+            isOneToOne: false
+            referencedRelation: 'pacientes'
+            referencedColumns: ['organization_id', 'id']
+          },
+          {
+            foreignKeyName: 'presupuestos_organization_id_profesional_id_fkey'
+            columns: ['organization_id', 'profesional_id']
+            isOneToOne: false
+            referencedRelation: 'profesionales'
+            referencedColumns: ['organization_id', 'id']
+          },
+        ]
+      }
       profesionales: {
         Row: {
           created_at: string
@@ -866,6 +1017,30 @@ export type Database = {
             foreignKeyName: 'profesionales_organization_id_fkey'
             columns: ['organization_id']
             isOneToOne: false
+            referencedRelation: 'organizaciones'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      recibos_contador: {
+        Row: {
+          organization_id: string
+          ultimo: number
+        }
+        ComputedFields: never
+        Insert: {
+          organization_id: string
+          ultimo?: number
+        }
+        Update: {
+          organization_id?: string
+          ultimo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'recibos_contador_organization_id_fkey'
+            columns: ['organization_id']
+            isOneToOne: true
             referencedRelation: 'organizaciones'
             referencedColumns: ['id']
           },
@@ -934,6 +1109,7 @@ export type Database = {
         }
         Returns: string
       }
+      saldo_presupuesto_centavos: { Args: { presupuesto: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
