@@ -1,5 +1,10 @@
 import { createContext, use, useId, useRef } from 'react'
-import { CaretDownIcon, CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react'
+import {
+  CalendarBlankIcon,
+  CaretDownIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+} from '@phosphor-icons/react'
 import {
   diaCorto,
   diasDeLaSemana,
@@ -143,7 +148,7 @@ function Encabezado({
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-3">
-      <h1 className="font-heading text-3xl leading-[1.1] tracking-[-0.02em]">
+      <h1 className="titulo-pagina">
         <ElegirFecha fecha={fecha} lunes={lunes} hoy={hoy} />
       </h1>
 
@@ -286,7 +291,16 @@ function VistaDia({
 }) {
   if (citas.length === 0) {
     return (
-      <p className={cn('text-muted-foreground md:hidden', className)}>No tienes citas este día.</p>
+      <div
+        className={cn(
+          'border-input flex flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-10 text-center md:hidden',
+          className,
+        )}
+      >
+        <CalendarBlankIcon weight="bold" className="text-muted-foreground size-6" />
+        <p className="font-medium">No tienes citas este día.</p>
+        <p className="text-muted-foreground text-sm">Con «Agendar» sumas una cita o un bloqueo.</p>
+      </div>
     )
   }
   return (
@@ -323,8 +337,10 @@ function VistaSemana({
           <section key={dia} aria-label={formatearDiaLargo(dia)} className="min-w-0">
             <h2
               className={cn(
-                'border-border mb-3 flex items-baseline gap-1.5 border-b pb-2 text-sm',
-                esHoy ? 'text-foreground font-medium' : 'text-muted-foreground',
+                'mb-3 flex items-baseline gap-1.5 border-b pb-2 text-sm',
+                esHoy
+                  ? 'border-foreground text-foreground font-medium'
+                  : 'border-border text-muted-foreground',
               )}
             >
               {nombre}

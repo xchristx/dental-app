@@ -41,6 +41,7 @@ Monorepo con pnpm y Turborepo. Todo se corre desde la raíz.
 - `pnpm db:reset`: aplica las migraciones de `supabase/migrations/` y carga `supabase/seed.sql`.
 - `pnpm db:test`: tests pgTAP de `supabase/tests/`.
 - `pnpm test:e2e`: pruebas de punta a punta con Playwright (necesita el Supabase local y Chrome). Cada archivo reinicia la base local con el seed.
+- `pnpm --filter @dental/web guia`: regenera la guía de uso para la dentista (`docs/guia/guia-sifel.pdf`) con capturas del Supabase local y el seed. Los textos están en `apps/web/guia/guia.html`; cuando cambia algo que ella ve, se actualiza la guía.
 - `supabase migration new <nombre>`: crea una migración. Nunca se cambia el esquema desde el panel de Supabase.
 - Producción (0030) solo se toca con el workflow "Publicar en producción" (respaldo, migraciones sin seed y rama `produccion`). Nunca se corre `db reset` ni el seed contra producción. Guía: `docs/operacion/produccion.md`.
 

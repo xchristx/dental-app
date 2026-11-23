@@ -16,8 +16,8 @@ export function PaginaAjustes() {
   const datos = ajustes.data
 
   return (
-    <main className="flex w-full max-w-3xl flex-col gap-10 px-4 py-8 md:px-6 lg:px-8">
-      <h1 className="text-2xl font-medium">Ajustes</h1>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-8 md:px-6 lg:px-8">
+      <h1 className="titulo-pagina">Ajustes</h1>
 
       {datos ? (
         <>

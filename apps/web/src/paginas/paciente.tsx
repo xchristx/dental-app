@@ -24,6 +24,7 @@ import { SeccionEvolucion, type OpcionCita } from '@/components/historia/evoluci
 import { ResumenOdontograma } from '@/components/odontograma/resumen'
 import { SeccionPagos } from '@/components/pagos/seccion-pagos'
 import { FormularioPaciente } from '@/components/pacientes/formulario-paciente'
+import { Monograma } from '@/components/pacientes/monograma'
 import { ZONA } from '@/lib/agenda/zona'
 import { consultaHistoria } from '@/lib/historia/datos'
 import { tituloDePagina } from '@/lib/navegacion'
@@ -39,7 +40,9 @@ export function PaginaPaciente() {
   if (ficha.data === null) return <PaginaNoEncontrada />
 
   return (
-    <main className="flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6 lg:px-8">
+    // Cada sección de la ficha arranca con un divisor: así se lee como un
+    // documento por partes y no como una sola lista larga.
+    <main className="[&>section]:border-border mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6 lg:px-8 [&>section]:border-t [&>section]:pt-6">
       <Enlace
         href="/pacientes"
         className="text-muted-foreground hover:text-foreground -ml-1 flex min-h-11 items-center gap-1 self-start text-sm"
@@ -83,14 +86,17 @@ function Ficha({ paciente }: { paciente: FichaPaciente }) {
   return (
     <>
       <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-medium">{paciente.nombre}</h1>
-            {habito && (
-              <p className="text-muted-foreground">
-                {textoPuntualidad(habito.llegada)} (según {habito.citas} citas)
-              </p>
-            )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-4">
+            <Monograma nombre={paciente.nombre} grande />
+            <div className="min-w-0">
+              <h1 className="titulo-pagina">{paciente.nombre}</h1>
+              {habito && (
+                <p className="text-muted-foreground mt-1">
+                  {textoPuntualidad(habito.llegada)} (según {habito.citas} citas)
+                </p>
+              )}
+            </div>
           </div>
           <FormularioPaciente paciente={paciente} />
         </div>

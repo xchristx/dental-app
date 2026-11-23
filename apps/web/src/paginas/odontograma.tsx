@@ -45,7 +45,7 @@ export function PaginaOdontograma() {
   if (paciente.data === null || odontograma.data === null) return <PaginaNoEncontrada />
 
   return (
-    <main className="flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6 lg:px-8">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6 lg:px-8">
       <Enlace
         href={`/pacientes/${id}`}
         className="text-muted-foreground hover:text-foreground -ml-1 flex min-h-11 items-center gap-1 self-start text-sm"
@@ -53,7 +53,7 @@ export function PaginaOdontograma() {
         <CaretLeftIcon weight="bold" className="size-4" />
         {nombre ?? 'Paciente'}
       </Enlace>
-      <h1 className="text-2xl font-medium">Odontograma</h1>
+      <h1 className="titulo-pagina">Odontograma</h1>
       {odontograma.data ? (
         <Contenido pacienteId={id} datos={odontograma.data} />
       ) : (

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { DatosPaciente, coincideBusqueda, edad, puntualidad, textoPuntualidad } from './pacientes'
+import {
+  DatosPaciente,
+  coincideBusqueda,
+  edad,
+  iniciales,
+  puntualidad,
+  textoPuntualidad,
+} from './pacientes'
 
 const ID = '5a0e1c2d-3b4f-4a5b-8c6d-7e8f9a0b1c2d'
 
@@ -97,5 +104,15 @@ describe('textoPuntualidad', () => {
       'Suele llegar 1 h 10 min antes',
     )
     expect(textoPuntualidad({ tipo: 'a_tiempo' })).toBe('Suele llegar a tiempo')
+  })
+})
+
+describe('iniciales', () => {
+  it('toma el primer nombre y el primer apellido (datos inventados)', () => {
+    expect(iniciales('Lucía Fernández')).toBe('LF')
+    expect(iniciales('  mateo  ')).toBe('M')
+    expect(iniciales('Ana María Quispe Mamani')).toBe('AQ')
+    expect(iniciales('Ángel Ortiz Rojas')).toBe('ÁO')
+    expect(iniciales('')).toBe('')
   })
 })

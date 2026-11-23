@@ -14,8 +14,8 @@ export function LayoutApp() {
   return (
     <div className="flex flex-1">
       <aside className="border-border bg-card sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-6 border-r px-3 py-6 lg:flex">
-        <p className="flex items-center gap-2 px-3 font-medium">
-          <ToothIcon weight="bold" className="size-5" />
+        <p className="titulo-hoja flex items-center gap-2 px-3">
+          <ToothIcon weight="bold" className="size-6" />
           Sifel
         </p>
         <nav aria-label="Secciones">

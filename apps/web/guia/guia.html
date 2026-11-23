@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sifel · Guía de uso</title>
+    <!--
+      Plantilla de la guía. generar.ts reemplaza {{captura:…}}, {{fuente-…}}
+      y {{fecha}}, y la imprime a PDF. Colores y fuentes de docs/diseno.md.
+    -->
+    <style>
+      @font-face {
+        font-family: 'Geist';
+        src: url('{{fuente-geist}}') format('woff2');
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: 'Newsreader';
+        src: url('{{fuente-newsreader}}') format('woff2');
+        font-weight: 200 800;
+      }
+      @page {
+        size: A4;
+        margin: 16mm 16mm 18mm;
+      }
+      :root {
+        --fondo: #f7f6f3;
+        --texto: #2f3437;
+        --secundario: #6f6e69;
+        --borde: #eaeaea;
+        --peligro: #9f2f2d;
+        --peligro-bg: #fdebec;
+        --aviso: #956400;
+        --aviso-bg: #fbf3db;
+        --verde: #346538;
+        --verde-bg: #edf3ec;
+        --azul: #1f6c9f;
+        --azul-bg: #e1f3fe;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        font-family: 'Geist', system-ui, sans-serif;
+        font-size: 10.5pt;
+        line-height: 1.55;
+        color: var(--texto);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      body {
+        margin: 0;
+      }
+      h1,
+      h2,
+      h3 {
+        font-weight: 400;
+        text-wrap: balance;
+        margin: 0;
+      }
+      h2 {
+        font-family: 'Newsreader', Georgia, serif;
+        font-size: 26pt;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin-bottom: 4mm;
+      }
+      h3 {
+        font-size: 12pt;
+        font-weight: 600;
+        margin: 5mm 0 1.5mm;
+      }
+      p {
+        margin: 0 0 2.5mm;
+        text-wrap: pretty;
+      }
+      ul,
+      ol {
+        margin: 0 0 3mm;
+        padding-left: 5mm;
+      }
+      li {
+        margin-bottom: 1.2mm;
+      }
+      strong {
+        font-weight: 600;
+      }
+      .boton {
+        display: inline-block;
+        padding: 0 1.6mm;
+        border: 1px solid var(--borde);
+        border-radius: 1mm;
+        background: #fff;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .secundario {
+        color: var(--secundario);
+      }
+
+      /* Cada sección empieza en una página nueva. */
+      section {
+        break-before: page;
+      }
+      .numero {
+        font-size: 9pt;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        color: var(--secundario);
+        margin-bottom: 1mm;
+      }
+      .entrada {
+        font-size: 11.5pt;
+        color: var(--secundario);
+        max-width: 150mm;
+        margin-bottom: 6mm;
+      }
+
+      /* Texto al lado de la captura del celular. */
+      .fila {
+        display: grid;
+        grid-template-columns: 1fr 60mm;
+        gap: 8mm;
+        align-items: start;
+        break-inside: avoid;
+        margin-bottom: 4mm;
+      }
+      .fila.invertida {
+        grid-template-columns: 60mm 1fr;
+      }
+      figure {
+        margin: 0;
+        break-inside: avoid;
+      }
+      figure img {
+        display: block;
+        width: 100%;
+        border: 1px solid var(--borde);
+        border-radius: 3mm;
+      }
+      .celular img {
+        border-radius: 5mm;
+        border: 1.5mm solid #1c1c1c;
+      }
+      figcaption {
+        font-size: 8.5pt;
+        color: var(--secundario);
+        margin-top: 1.5mm;
+        text-align: center;
+      }
+      .ancha {
+        margin: 2mm 0 5mm;
+      }
+      .ancha img {
+        max-height: 80mm;
+        width: auto;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      .bloque {
+        break-inside: avoid;
+      }
+
+      .consejo {
+        background: var(--fondo);
+        border-radius: 2mm;
+        padding: 3mm 4mm;
+        margin: 3mm 0 4mm;
+        break-inside: avoid;
+      }
+      .consejo > strong:first-child {
+        display: block;
+        margin-bottom: 0.5mm;
+      }
+      .consejo p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Pequeñas muestras de los estados, como en la agenda. */
+      .estado {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 0 2mm;
+        font-size: 8.5pt;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .estado.agendada {
+        background: #fff;
+        border: 1px solid var(--borde);
+        color: var(--secundario);
+      }
+      .estado.confirmada {
+        background: var(--verde-bg);
+        color: var(--verde);
+      }
+      .estado.no-asistio {
+        background: var(--peligro-bg);
+        color: var(--peligro);
+      }
+      .estado.cancelada {
+        color: var(--secundario);
+        text-decoration: line-through;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1mm 0 4mm;
+        font-size: 10pt;
+      }
+      td {
+        border-bottom: 1px solid var(--borde);
+        padding: 1.8mm 2mm 1.8mm 0;
+        vertical-align: top;
+      }
+      td:first-child {
+        width: 34mm;
+      }
+      .rojo {
+        color: #c4261d;
+        font-weight: 600;
+      }
+      .azul {
+        color: #1d5fc4;
+        font-weight: 600;
+      }
+
+      /* Portada */
+      .portada {
+        display: grid;
+        grid-template-columns: 1fr 62mm;
+        gap: 10mm;
+        align-items: center;
+        min-height: 255mm;
+      }
+      .portada .marca {
+        font-family: 'Newsreader', Georgia, serif;
+        font-size: 18pt;
+        margin-bottom: 18mm;
+      }
+      .portada h1 {
+        font-family: 'Newsreader', Georgia, serif;
+        font-size: 44pt;
+        line-height: 1.02;
+        letter-spacing: -0.025em;
+        margin-bottom: 6mm;
+      }
+      .portada .bajada {
+        font-size: 13pt;
+        color: var(--secundario);
+        max-width: 95mm;
+        margin-bottom: 14mm;
+      }
+      .portada .pie {
+        font-size: 9.5pt;
+        color: var(--secundario);
+        border-top: 1px solid var(--borde);
+        padding-top: 4mm;
+        max-width: 95mm;
+      }
+      .indice {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 10mm;
+        columns: 2;
+        column-gap: 8mm;
+      }
+      .indice li {
+        display: flex;
+        gap: 3mm;
+        break-inside: avoid;
+      }
+      .indice span {
+        color: var(--secundario);
+        font-variant-numeric: tabular-nums;
+        min-width: 6mm;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Portada -->
+    <div class="portada">
+      <div>
+        <p class="marca">Sifel</p>
+        <h1>Guía de uso</h1>
+        <p class="bajada">
+          La agenda de tus lugares de trabajo, la historia clínica de cada paciente y sus pagos, en
+          tu celular.
+        </p>
+        <ol class="indice">
+          <li><span>1</span>Antes de empezar</li>
+          <li><span>2</span>Ajustes: lo que se carga una vez</li>
+          <li><span>3</span>La agenda</li>
+          <li><span>4</span>Agendar una cita</li>
+          <li><span>5</span>El día de la cita</li>
+          <li><span>6</span>Pacientes y su ficha</li>
+          <li><span>7</span>Odontograma</li>
+          <li><span>8</span>Pagos y recibos</li>
+          <li><span>9</span>Preguntas frecuentes</li>
+          <li><span>10</span>Lo que viene después</li>
+        </ol>
+        <p class="pie">
+          {{fecha}}. Las imágenes son de una versión de prueba, con pacientes inventados.
+        </p>
+      </div>
+      <figure class="celular">
+        <img src="{{captura:agenda-dia}}" alt="La agenda de un día en el celular" />
+      </figure>
+    </div>
+
+    <!-- 1 -->
+    <section>
+      <p class="numero">1</p>
+      <h2>Antes de empezar</h2>
+      <p class="entrada">
+        Sifel funciona en el navegador del celular y de la computadora. No hace falta bajarla de
+        ninguna tienda de aplicaciones.
+      </p>
+
+      <div class="fila">
+        <div>
+          <h3>Entrar</h3>
+          <ol>
+            <li>Abre <strong>sifel.netlify.app</strong> en Chrome.</li>
+            <li>Toca <span class="boton">Entrar con Google</span> y elige tu cuenta.</li>
+          </ol>
+          <p>
+            Solo entran las cuentas que ya fueron invitadas: no hay registro abierto. Si te dice que
+            tu cuenta no tiene acceso, avísale a quien administra la app.
+          </p>
+
+          <h3>Dejarla como app en el celular</h3>
+          <ol>
+            <li>
+              Con Sifel abierta en Chrome, toca el menú <strong>⋮</strong> de arriba a la derecha.
+            </li>
+            <li>
+              Toca <strong>Instalar aplicación</strong> (en algunos celulares dice
+              <strong>Agregar a la pantalla principal</strong>).
+            </li>
+          </ol>
+          <p>
+            Queda un ícono con el diente en tu pantalla, y se abre a pantalla completa, como
+            cualquier otra app.
+          </p>
+
+          <h3>Cómo se mueve uno por la app</h3>
+          <p>
+            En el celular, la barra de abajo tiene las tres secciones:
+            <strong>Agenda</strong>, <strong>Pacientes</strong> y <strong>Ajustes</strong>. En la
+            computadora están en una barra a la izquierda. Es la misma app: lo que cargas en un lado
+            aparece enseguida en el otro.
+          </p>
+
+          <div class="consejo">
+            <strong>Para practicar sin miedo</strong>
+            <p>
+              En <strong>sifel-demo.netlify.app</strong> hay una copia con pacientes inventados.
+              Toca <span class="boton">Entrar como demo</span> y prueba todo lo que quieras: se
+              reinicia cada día y no toca a tus pacientes.
+            </p>
+          </div>
+        </div>
+        <figure class="celular">
+          <img src="{{captura:entrar}}" alt="Pantalla para entrar" />
+          <figcaption>La pantalla para entrar.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section>
+      <p class="numero">2</p>
+      <h2>Ajustes: lo que se carga una vez</h2>
+      <p class="entrada">
+        Antes de agendar, dile a la app dónde y cuándo atiendes. Con eso te sugiere horarios libres
+        y te avisa de los choques.
+      </p>
+
+      <div class="fila">
+        <div>
+          <h3>Lugares de trabajo</h3>
+          <p>
+            Cada consultorio o clínica donde atiendes, con un <strong>color</strong>: así sabes en
+            la agenda, de un vistazo, dónde es cada cita. Para cada lugar eliges:
+          </p>
+          <ul>
+            <li>
+              <strong>Tiene un solo sillón:</strong> la app no deja agendar dos citas a la vez ahí,
+              aunque sean de distintas profesionales.
+            </li>
+            <li>
+              <strong>El lugar asigna el sillón</strong> (por ejemplo, una clínica): se pueden
+              cruzar citas de distintas profesionales.
+            </li>
+          </ul>
+
+          <h3>Profesionales</h3>
+          <p>
+            Tú y tus socias. Cárgalas aunque no usen la app: así, cuando una socia ocupa el
+            consultorio, la agenda lo sabe y te avisa si quieres agendar a la misma hora.
+          </p>
+
+          <h3>Horarios de atención</h3>
+          <p>
+            Para cada día, de qué hora a qué hora atiendes y en qué lugar. Toca
+            <span class="boton">Agregar horario</span> para sumar un tramo. Los cambios valen desde
+            hoy: las semanas pasadas conservan el horario que tenían.
+          </p>
+
+          <h3>Tiempo para trasladarte</h3>
+          <p>
+            Cuánto tardas de un lugar a otro. Si entre dos citas en lugares distintos queda menos
+            tiempo, la agenda te avisa.
+          </p>
+
+          <h3>Códigos del odontograma</h3>
+          <p>
+            Las abreviaturas que usas (C, Obt, Ext…). Ya vienen cargadas; puedes cambiar cómo se
+            dibuja cada una o agregar las tuyas.
+          </p>
+        </div>
+        <figure class="celular">
+          <img src="{{captura:ajustes}}" alt="Ajustes en el celular" />
+          <figcaption>Los lugares y las profesionales, en Ajustes.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section>
+      <p class="numero">3</p>
+      <h2>La agenda</h2>
+      <p class="entrada">
+        Todas tus citas de todos los lugares en un solo lugar, cada una con el color de donde es.
+      </p>
+
+      <div class="fila">
+        <div>
+          <h3>En el celular: un día</h3>
+          <ul>
+            <li>Las flechas pasan al día anterior o al siguiente.</li>
+            <li><span class="boton">Hoy</span> te trae de vuelta a hoy.</li>
+            <li>
+              <strong>Toca la fecha</strong> (el título grande) para abrir el calendario e ir a
+              cualquier día de una vez.
+            </li>
+          </ul>
+
+          <h3>Qué muestra cada cita</h3>
+          <p>
+            La hora, el paciente, el tipo de cita y el lugar. El borde de color es el lugar. La
+            etiqueta es el estado:
+          </p>
+          <table>
+            <tr>
+              <td><span class="estado agendada">Agendada</span></td>
+              <td>Está en la agenda, todavía sin confirmar.</td>
+            </tr>
+            <tr>
+              <td><span class="estado confirmada">Confirmada</span></td>
+              <td>El paciente respondió que viene.</td>
+            </tr>
+            <tr>
+              <td>Atendida</td>
+              <td>No lleva etiqueta: dice cómo llegó, por ejemplo "Llegó 25 min tarde".</td>
+            </tr>
+            <tr>
+              <td><span class="estado no-asistio">No asistió</span></td>
+              <td>No vino.</td>
+            </tr>
+            <tr>
+              <td><span class="estado cancelada">Cancelada</span></td>
+              <td>Se ve tachada y clara. El horario queda libre.</td>
+            </tr>
+          </table>
+          <p>
+            Un <strong>bloqueo</strong> es un tiempo ocupado sin paciente: un trámite, la clínica,
+            un viaje. Se ve como una cita, con el motivo en lugar del nombre.
+          </p>
+        </div>
+        <figure class="celular">
+          <img src="{{captura:agenda-dia}}" alt="La agenda de un día" />
+          <figcaption>Un día, en el celular.</figcaption>
+        </figure>
+      </div>
+
+      <div class="bloque">
+        <h3>En la computadora: la semana entera</h3>
+        <p>
+          Las flechas pasan de semana en semana. El día de hoy se marca arriba de su columna. Al
+          tocar una cita, su detalle se abre a la derecha y la semana sigue a la vista.
+        </p>
+        <figure class="ancha">
+          <img src="{{captura:semana}}" alt="La agenda de la semana en la computadora" />
+        </figure>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section>
+      <p class="numero">4</p>
+      <h2>Agendar una cita</h2>
+      <p class="entrada">
+        Toca <span class="boton">Agendar</span>: en el celular está fijo abajo; en la computadora,
+        arriba a la derecha.
+      </p>
+
+      <div class="fila">
+        <div>
+          <h3>Cita con paciente</h3>
+          <ol>
+            <li>
+              <strong>Paciente:</strong> escribe parte del nombre y elígelo. Si es la primera vez,
+              toca <strong>Paciente nuevo</strong> y carga su celular: lo vas a necesitar para los
+              recordatorios.
+            </li>
+            <li>
+              <strong>Tipo de cita:</strong> control, endodoncia, cirugía… La duración se completa
+              sola según el tipo, y la puedes cambiar.
+            </li>
+            <li><strong>Profesional, fecha y duración.</strong></li>
+            <li>
+              <strong>Horarios libres:</strong> la app te muestra los huecos que quedan ese día,
+              separados por lugar, según tu horario de atención. Toca uno.
+            </li>
+            <li>Toca <span class="boton">Agendar</span>.</li>
+          </ol>
+
+          <h3>Bloqueo</h3>
+          <p>
+            Arriba del formulario, elige <strong>Bloqueo</strong> para marcar un tiempo en que no
+            atiendes. Escribe el motivo (por ejemplo, "trámite en el banco") y toca
+            <span class="boton">Guardar bloqueo</span>.
+          </p>
+
+          <h3>Los avisos</h3>
+          <table>
+            <tr>
+              <td><span class="estado no-asistio">Choque</span></td>
+              <td>
+                Ya tienes otra cita a esa hora, o el sillón está ocupado. No deja guardar: elige
+                otro horario.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <span class="estado" style="background: var(--aviso-bg); color: var(--aviso)"
+                  >Aviso</span
+                >
+              </td>
+              <td>
+                Queda poco tiempo para trasladarte, o es fuera de tu horario. Puedes agendar igual:
+                el botón dice <span class="boton">Agendar igual</span>.
+              </td>
+            </tr>
+          </table>
+        </div>
+        <figure class="celular">
+          <img src="{{captura:agendar}}" alt="Formulario de nueva cita" />
+          <figcaption>Nueva cita, con los horarios libres del día.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section>
+      <p class="numero">5</p>
+      <h2>El día de la cita</h2>
+      <p class="entrada">
+        Toca una cita en la agenda para ver su detalle. Ahí está todo lo que haces con ella, en el
+        orden en que suele pasar.
+      </p>
+
+      <div class="fila">
+        <div>
+          <h3>Antes</h3>
+          <ul>
+            <li>
+              <span class="boton">Enviar recordatorio</span> abre WhatsApp con el mensaje ya
+              escrito: "Hola, Diego. Te escribo para recordarte tu cita…". Solo tienes que tocar
+              enviar. La app anota cuándo lo mandaste.
+            </li>
+            <li>
+              <span class="boton">Confirmó</span> cuando el paciente te responde que viene. Solo
+              aparece antes de la hora de la cita.
+            </li>
+            <li>
+              <span class="boton">Reagendar</span> para moverla a otro día u hora. La cita nueva
+              queda unida a la anterior, para que sepas de dónde vino.
+            </li>
+          </ul>
+
+          <h3>Cuando llega</h3>
+          <ul>
+            <li>
+              <span class="boton">Llegó</span> guarda la hora de llegada. Aparece desde el mismo
+              día, porque hay pacientes que llegan mucho antes. Si la hora quedó mal, la puedes
+              corregir.
+            </li>
+            <li>Si llegó tarde, la app te dice si atenderlo completo atrasa tu cita siguiente.</li>
+            <li>
+              Con varias citas, la ficha del paciente te dice cómo suele llegar: "Suele llegar 25
+              min tarde".
+            </li>
+          </ul>
+
+          <h3>Después</h3>
+          <ul>
+            <li>
+              <span class="boton">Escribir qué se hizo</span> guarda la evolución de esa cita en la
+              historia clínica.
+            </li>
+            <li>
+              <span class="boton">No asistió</span> si no vino. Aparece desde la hora de la cita.
+            </li>
+            <li>
+              <strong>Cancelar cita</strong>: queda en el historial como cancelada y el horario se
+              libera.
+            </li>
+          </ul>
+
+          <div class="consejo">
+            <strong>Si te equivocas</strong>
+            <p>
+              Casi todo se deshace desde el mismo detalle: "Deshacer «Llegó»", "Quitar la
+              confirmación", "Deshacer la cancelación".
+            </p>
+          </div>
+          <p>
+            Arriba de todo, si el paciente tiene <strong>alergias</strong> cargadas, se ven en rojo.
+            Si todavía no se las preguntaste, un aviso amarillo te lo recuerda.
+          </p>
+        </div>
+        <figure class="celular">
+          <img src="{{captura:detalle-cita}}" alt="Detalle de una cita" />
+          <figcaption>El detalle de una cita agendada.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section>
+      <p class="numero">6</p>
+      <h2>Pacientes y su ficha</h2>
+      <p class="entrada">
+        La ficha de papel, pero siempre a mano y con todo junto: datos, historia clínica,
+        odontograma, archivos y pagos.
+      </p>
+
+      <div class="fila">
+        <div>
+          <h3>Buscar</h3>
+          <p>
+            En <strong>Pacientes</strong>, escribe parte del nombre. No importan las tildes ni las
+            mayúsculas, y busca por partes: "luc fer" encuentra a Lucía Fernández.
+          </p>
+          <p>
+            <span class="boton">Agregar paciente</span> para cargar uno nuevo. También se agregan
+            desde "Agendar".
+          </p>
+
+          <h3>Qué hay en la ficha</h3>
+          <table>
+            <tr>
+              <td>Arriba</td>
+              <td>
+                Las alergias, el celular (con un botón para escribirle por WhatsApp), la fecha de
+                nacimiento y la edad.
+              </td>
+            </tr>
+            <tr>
+              <td>Próximas citas</td>
+              <td>Toca una para abrirla en la agenda.</td>
+            </tr>
+            <tr>
+              <td>Anamnesis</td>
+              <td>
+                Antecedentes personales y familiares, alergias y medicamentos. Guarda cada versión,
+                con la fecha y quién la actualizó.
+              </td>
+            </tr>
+            <tr>
+              <td>Odontograma</td>
+              <td>Un resumen. <span class="boton">Abrir</span> lleva al odontograma completo.</td>
+            </tr>
+            <tr>
+              <td>Evolución</td>
+              <td>
+                Qué se hizo en cada cita, con la fecha y quién lo hizo. Se corrige el mismo día;
+                después queda fija, como en papel, y se aclara con una entrada nueva.
+              </td>
+            </tr>
+            <tr>
+              <td>Derivaciones</td>
+              <td>Quién te lo mandó ("derivado por") y a quién lo mandaste ("derivado a").</td>
+            </tr>
+            <tr>
+              <td>Radiografías y fotos</td>
+              <td>
+                <span class="boton">Subir radiografía o foto</span>: eliges la imagen o el PDF de tu
+                celular, si es radiografía o foto, y un detalle (por ejemplo, "panorámica").
+              </td>
+            </tr>
+            <tr>
+              <td>Pagos</td>
+              <td>Los presupuestos y la planilla de pagos (sección 8).</td>
+            </tr>
+            <tr>
+              <td>Historial</td>
+              <td>Todas sus citas anteriores, con su estado.</td>
+            </tr>
+          </table>
+        </div>
+        <figure class="celular">
+          <img src="{{captura:ficha}}" alt="La ficha de un paciente" />
+          <figcaption>La ficha, con sus alergias arriba.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section>
+      <p class="numero">7</p>
+      <h2>Odontograma</h2>
+      <p class="entrada">
+        Desde la ficha, en Odontograma, toca <span class="boton">Abrir</span>. Tiene piezas
+        permanentes y temporales, y usa la convención de siempre: <span class="rojo">rojo</span> lo
+        que hay que tratar y <span class="azul">azul</span> lo hecho o en buen estado.
+      </p>
+
+      <div class="fila">
+        <div>
+          <h3>Dos vistas de lo mismo</h3>
+          <ul>
+            <li>
+              <strong>Tabla:</strong> pieza por pieza, con lo que hay que tratar y lo hecho en
+              columnas separadas, como tu ficha en papel. Es la que se ve primero en el celular.
+            </li>
+            <li>
+              <strong>Gráfico:</strong> la boca dibujada a partir de lo que cargaste. No se dibuja a
+              mano: se arma sola.
+            </li>
+          </ul>
+          <p>
+            Cambias de una a otra con los botones <span class="boton">Gráfico</span> y
+            <span class="boton">Tabla</span>.
+          </p>
+
+          <h3>Los índices</h3>
+          <p>
+            Arriba, el <strong>CPO-D</strong> (permanentes) y el <strong>ceo-d</strong>
+            (temporales) se calculan solos con lo que cargas.
+          </p>
+
+          <h3>Ver cómo estaba antes</h3>
+          <p>
+            La barra <strong>Ver la boca al</strong> te deja mover la fecha hacia atrás y ver el
+            odontograma como estaba ese día.
+          </p>
+
+          <h3>Examen bucal</h3>
+          <p>
+            Higiene, oclusión y observaciones, debajo del plan de tratamiento. Toca
+            <span class="boton">Cargar examen</span>.
+          </p>
+        </div>
+        <figure class="celular">
+          <img src="{{captura:odontograma-tabla}}" alt="El odontograma en vista de tabla" />
+          <figcaption>La vista de tabla, en el celular.</figcaption>
+        </figure>
+      </div>
+
+      <figure class="ancha">
+        <img src="{{captura:odontograma}}" alt="El gráfico del odontograma en la computadora" />
+        <figcaption>El gráfico, en la computadora.</figcaption>
+      </figure>
+
+      <div class="fila invertida">
+        <figure class="celular">
+          <img src="{{captura:pieza}}" alt="Lo registrado en una pieza" />
+          <figcaption>Al tocar la pieza 36.</figcaption>
+        </figure>
+        <div>
+          <h3>Cargar algo en una pieza</h3>
+          <ol>
+            <li>Toca la pieza (en la tabla o en el gráfico).</li>
+            <li>Ves lo que ya tiene registrado y sus radiografías.</li>
+            <li>
+              Elige el <strong>código</strong>. Si se pinta por caras, toca las caras; si lleva
+              grado (como la caries), elígelo.
+            </li>
+            <li>
+              Si quieres, una nota (por ejemplo, "resina A2") y toca
+              <span class="boton">Agregar a la pieza 36</span>.
+            </li>
+          </ol>
+
+          <h3>Pincel: varias piezas seguidas</h3>
+          <p>
+            Toca <span class="boton">Pincel</span>, elige qué marcar una vez y después toca todas
+            las piezas que lo llevan. Cada una se guarda al instante.
+          </p>
+
+          <h3>Plan de tratamiento</h3>
+          <p>
+            Debajo del gráfico, la lista de todo lo que está en rojo. Cuando lo tratas, toca
+            <span class="boton">Tratar</span> (o, dentro de la pieza,
+            <span class="boton">Marcar como tratado</span>) y elige qué se hizo: pasa a azul y queda
+            unido al hallazgo.
+          </p>
+
+          <h3>Radiografías de una pieza</h3>
+          <p>
+            Dentro de la pieza, anota la fecha en que se tomó la Rx y, si quieres, adjunta la
+            imagen.
+          </p>
+
+          <p class="secundario">
+            Un registro equivocado se <strong>anula</strong>: queda tachado, para que se sepa qué
+            pasó.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section>
+      <p class="numero">8</p>
+      <h2>Pagos y recibos</h2>
+      <p class="entrada">
+        Tu planilla de pagos, con las mismas columnas: fecha, lo abonado y el saldo. La app hace las
+        cuentas.
+      </p>
+
+      <div class="fila">
+        <div>
+          <h3>1. El presupuesto</h3>
+          <p>
+            En la ficha del paciente, en Pagos, toca
+            <span class="boton">Nuevo presupuesto</span>: qué tratamiento es, el total y, si
+            quieres, la cuota inicial y la cuota sugerida.
+          </p>
+
+          <h3>2. Cada pago</h3>
+          <p>
+            <span class="boton">Registrar pago</span>: el monto, la forma de pago (efectivo, QR o
+            transferencia) y, si quieres, la foto del comprobante. El saldo se actualiza solo.
+          </p>
+
+          <h3>3. Si algo cambia</h3>
+          <p>
+            <span class="boton">Ajuste</span> sube o baja el saldo con un motivo: un descuento, un
+            tratamiento que se agregó, un pago mal cargado.
+          </p>
+
+          <div class="consejo">
+            <strong>Los pagos no se borran</strong>
+            <p>
+              Un pago mal cargado se corrige con un ajuste. Así la planilla siempre cuadra y nunca
+              desaparece una línea, igual que en papel.
+            </p>
+          </div>
+        </div>
+        <figure>
+          <img src="{{captura:pagos}}" alt="La planilla de pagos de un paciente" />
+          <figcaption>La planilla de una ortodoncia en cuotas.</figcaption>
+        </figure>
+      </div>
+
+      <div class="fila invertida">
+        <figure class="celular">
+          <img src="{{captura:recibo}}" alt="Vista previa de un recibo" />
+          <figcaption>El recibo, listo para mandar.</figcaption>
+        </figure>
+        <div>
+          <h3>El recibo</h3>
+          <p>
+            Cada pago tiene su número de recibo (N.º 0001, 0002…). Toca el número para ver el recibo
+            y después:
+          </p>
+          <ul>
+            <li>
+              <span class="boton">Enviar por WhatsApp</span> para mandárselo al paciente en PDF.
+              Reemplaza la firma de la planilla.
+            </li>
+            <li><span class="boton">Descargar PDF</span> para guardarlo o imprimirlo.</li>
+          </ul>
+          <p>
+            Dice el monto en números y en letras, la forma de pago, el saldo anterior y el actual.
+            Aclara que no es una factura.
+          </p>
+          <p>Si cargaste la foto del comprobante, la ves en el mismo lugar, debajo del recibo.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section>
+      <p class="numero">9</p>
+      <h2>Preguntas frecuentes</h2>
+
+      <h3>¿Si se me pierde o se rompe el celular, pierdo los datos?</h3>
+      <p>
+        No. Los datos no están en el celular, están guardados en internet. Entra desde otro celular
+        o la computadora, con tu misma cuenta de Google, y está todo.
+      </p>
+
+      <h3>¿Hay una copia de seguridad?</h3>
+      <p>
+        Sí, todos los días se hace una copia de toda la información, incluidas las radiografías y
+        fotos. Se guarda cifrada en Google Drive: sin la clave, nadie la puede abrir.
+      </p>
+
+      <h3>¿Funciona sin internet?</h3>
+      <p>
+        Todavía no: necesita conexión, aunque sea la de datos del celular. Que funcione sin conexión
+        viene más adelante (sección 10).
+      </p>
+
+      <h3>Me aparece "No pudimos cargar tus datos"</h3>
+      <p>
+        Revisa que tengas internet y toca <span class="boton">Intentar de nuevo</span>. Si sigue
+        pasando después de unos minutos, avísale a quien administra la app.
+      </p>
+
+      <h3>¿Quién más puede ver mis pacientes?</h3>
+      <p>Solo las cuentas invitadas a tu consultorio. Cada consultorio ve únicamente lo suyo.</p>
+
+      <h3>¿Mis socias pueden entrar?</h3>
+      <p>
+        Todavía no. Por ahora se cargan en Ajustes, en Profesionales, para que la agenda sepa cuándo
+        ocupan el consultorio. El acceso para ellas viene más adelante.
+      </p>
+
+      <h3>¿Puedo borrar un pago?</h3>
+      <p>No, a propósito: un pago mal cargado se corrige con un ajuste (sección 8).</p>
+
+      <h3>¿La hora está bien aunque viaje?</h3>
+      <p>Sí. La agenda siempre muestra la hora de Bolivia.</p>
+    </section>
+
+    <!-- 10 -->
+    <section>
+      <p class="numero">10</p>
+      <h2>Lo que viene después</h2>
+      <p class="entrada">
+        Esta guía cubre todo lo que la app hace hoy. Lo siguiente, en este orden más o menos:
+      </p>
+      <ul>
+        <li><strong>Consentimientos</strong> por tipo de tratamiento, firmados en el celular.</li>
+        <li>
+          <strong>Pacientes a llamar para control</strong>: una lista de quiénes ya cumplieron 3 a 6
+          meses desde su última cita.
+        </li>
+        <li><strong>Acceso para tus socias.</strong></li>
+        <li><strong>Una app de Android que funcione sin conexión.</strong></li>
+      </ul>
+      <div class="consejo">
+        <strong>Tu opinión cuenta</strong>
+        <p>
+          Si algo te cuesta, te sobra un paso o falta algo que hacías en papel, anótalo y cuéntalo.
+          La app se hizo a partir de cómo trabajas tú, y se sigue ajustando igual.
+        </p>
+      </div>
+    </section>
+  </body>
+</html>

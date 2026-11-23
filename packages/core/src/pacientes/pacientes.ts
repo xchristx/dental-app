@@ -98,3 +98,19 @@ export function textoPuntualidad(llegada: Llegada): string {
       return `Suele llegar ${formatearDuracion(llegada.minutos)} antes`
   }
 }
+
+/**
+ * Hasta dos iniciales para el monograma del paciente: la del primer nombre y
+ * la del primer apellido. "Lucía Fernández" → "LF", "Mateo" → "M".
+ */
+export function iniciales(nombre: string): string {
+  const palabras = nombre.trim().split(/\s+/).filter(Boolean)
+  const primera = palabras[0]
+  if (!primera) return ''
+  // Con tres palabras o más, la segunda suele ser un segundo nombre: se usa la penúltima.
+  const otra = palabras.length > 2 ? palabras[palabras.length - 2] : palabras[1]
+  return [primera, otra]
+    .filter((p): p is string => p !== undefined)
+    .map((p) => p.charAt(0).toLocaleUpperCase('es'))
+    .join('')
+}

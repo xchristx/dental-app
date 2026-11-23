@@ -35,3 +35,7 @@ test-results/
 # Claves privadas y respaldos de producción (0031): nunca al repositorio
 sifel-respaldo-*.txt
 *.age
+
+# guía de uso: capturas y compilación intermedias (el PDF sí va)
+apps/web/dist-guia/
+apps/web/guia/capturas/

@@ -8,7 +8,8 @@
     "preview": "vite preview --port 4173",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p e2e",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "guia": "playwright test --config guia/playwright.config.ts"
   },
   "dependencies": {
     "@dental/core": "workspace:*",

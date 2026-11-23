@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { CaretRightIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { coincideBusqueda, edad, type Fecha } from '@dental/core'
 import { Enlace } from '@/components/enlace'
+import { Monograma } from '@/components/pacientes/monograma'
 import type { PacienteLista } from '@/lib/pacientes/datos'
 
 /** Lista de pacientes con búsqueda sin tildes. `hoy` es la fecha de La Paz, para calcular la edad. */
@@ -44,8 +45,12 @@ export function ListaPacientes({ pacientes, hoy }: { pacientes: PacienteLista[];
               <li key={p.id}>
                 <Enlace
                   href={`/pacientes/${p.id}`}
-                  className="hover:bg-muted flex min-h-14 items-center gap-3 px-3 py-2 transition-colors duration-150"
+                  className="group hover:bg-muted/60 flex min-h-16 items-center gap-3 px-3 py-3 transition-colors duration-150"
                 >
+                  <Monograma
+                    nombre={p.nombre}
+                    className="group-hover:bg-card transition-colors duration-150"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{p.nombre}</p>
                     <p className="text-muted-foreground text-sm tabular-nums">
@@ -54,7 +59,10 @@ export function ListaPacientes({ pacientes, hoy }: { pacientes: PacienteLista[];
                         .join(' · ')}
                     </p>
                   </div>
-                  <CaretRightIcon weight="bold" className="text-muted-foreground size-4" />
+                  <CaretRightIcon
+                    weight="bold"
+                    className="text-muted-foreground size-4 transition-transform duration-150 group-hover:translate-x-0.5"
+                  />
                 </Enlace>
               </li>
             )
