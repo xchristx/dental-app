@@ -53,9 +53,11 @@ test('lista los pacientes en orden, con celular y edad', async () => {
   expect(n[0]).toBe('Andrés Quiroga')
   expect(n[10]).toBe('Valeria Gutiérrez')
   const fila = principal(page).locator('ul li a').filter({ hasText: 'Andrés' })
+  // "AQ" es el monograma: se ve, pero no es parte del nombre accesible (0032).
   expect((await fila.innerText()).replace(/\n+/g, ' | ')).toBe(
-    `Andrés Quiroga | Sin celular · ${edad('1993-04-21')} años`,
+    `AQ | Andrés Quiroga | Sin celular · ${edad('1993-04-21')} años`,
   )
+  await expect(fila).toHaveAccessibleName(`Andrés Quiroga Sin celular · ${edad('1993-04-21')} años`)
   await expect(principal(page)).toContainText('11 pacientes')
 })
 

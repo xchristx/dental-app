@@ -12,9 +12,9 @@ export function PaginaPacientes() {
   const pacientes = useQuery({ queryKey: ['pacientes'], queryFn: listaDePacientes })
 
   return (
-    <main className="flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6 lg:px-8">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6 lg:px-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-medium">Pacientes</h1>
+        <h1 className="titulo-pagina">Pacientes</h1>
         <FormularioPaciente />
       </header>
 

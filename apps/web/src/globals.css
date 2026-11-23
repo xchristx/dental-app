@@ -130,6 +130,15 @@
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
+  /* Mejora progresiva: los navegadores que no la soportan cortan como siempre. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -142,6 +151,25 @@
       animation-duration: 6s, 0.01ms !important;
     }
   }
+}
+
+/*
+ * Títulos con Newsreader (0032): el de cada página, el de las hojas y la marca.
+ * Interlineado 1,1 y tracking -0,02em, como la fecha de la agenda.
+ */
+@utility titulo-pagina {
+  font-family: var(--font-heading);
+  font-size: var(--text-3xl);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+@utility titulo-hoja {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
 }
 
 /*

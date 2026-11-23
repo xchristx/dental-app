@@ -1,6 +1,6 @@
 # Guía de diseño
 
-Cómo se ve y cómo se comporta la interfaz. Las decisiones de fondo están en [0008](decisiones/0008-diseno-e-interfaz.md) (estilo) y [0009](decisiones/0009-interfaz-en-celular-y-escritorio.md) (celular y escritorio). Esta guía se puede ir ajustando; si un cambio contradice esas decisiones, se escribe una decisión nueva.
+Cómo se ve y cómo se comporta la interfaz. Las decisiones de fondo están en [0008](decisiones/0008-diseno-e-interfaz.md) (estilo), [0009](decisiones/0009-interfaz-en-celular-y-escritorio.md) (celular y escritorio) y [0032](decisiones/0032-revision-visual.md) (títulos, monograma y pantalla de entrada). Esta guía se puede ir ajustando; si un cambio contradice esas decisiones, se escribe una decisión nueva.
 
 ## Principios
 1. **Rápida entre paciente y paciente.** Lo frecuente (ver el día, agendar, marcar "Llegó", mandar un recordatorio) está a uno o dos toques.
@@ -26,6 +26,7 @@ En el código, los neutros usan los nombres de shadcn/ui, para que sus component
 | Aviso que no bloquea | `bg-warning-bg` + `text-warning` |
 | `lugar-azul`, etc. | `bg-lugar-azul` + `text-lugar-azul-fg` |
 | Fuente de títulos (Newsreader) | `font-heading` |
+| Título de página / de hoja | `titulo-pagina` / `titulo-hoja` |
 | Sombra de diálogos y hojas | `shadow-overlay` |
 
 ### Neutros
@@ -87,16 +88,21 @@ Detalle en la decisión [0009](decisiones/0009-interfaz-en-celular-y-escritorio.
 
 - **Barra inferior:** fondo `superficie`, borde superior de 1 px, ícono y texto (14 px) en cada sección. Respeta el área segura del celular (`env(safe-area-inset-bottom)`).
 - **Barra lateral:** fondo `superficie` y borde derecho de 1 px. La sección activa lleva fondo `muted` y texto `texto`; las demás, texto `texto-secundario`.
-- Las listas y los formularios llegan hasta 768 px de ancho. La agenda usa todo el ancho.
+- Las listas y los formularios llegan hasta 768 px de ancho y se centran en el espacio libre. La agenda usa todo el ancho.
+- **Entrar:** en escritorio, dos columnas: qué hace la app con un día de muestra (el mismo `BloqueCita` de la agenda, con datos inventados) y el formulario. En el celular, solo el formulario.
 
 ## Tipografía
 | Uso | Fuente | Detalle |
 |---|---|---|
 | Interfaz y texto | Geist Sans | Interlineado 1,5. Horas con `tabular-nums` para que se alineen |
-| Título de la fecha en la agenda | Newsreader | Interlineado 1,1 y tracking -0,02em. Solo ahí |
+| Título de cada página (`h1`), incluida la fecha de la agenda | Newsreader | `titulo-pagina`: 30 px, interlineado 1,1 y tracking -0,02em (0032) |
+| Título de las hojas, marca "Sifel" y monograma grande | Newsreader | `titulo-hoja`: 24 px |
+| Títulos de sección (`h2`) y todo lo demás | Geist Sans | La serif queda para el nivel más alto |
 | Códigos del odontograma y números de recibo | Geist Mono | |
 
 Se cargan con Fontsource, en `apps/web/src/main.tsx`. Tamaño mínimo de texto: 14 px. Los inputs, 16 px.
+
+Los títulos (`h1` a `h3`) llevan `text-wrap: balance` y los párrafos, `text-wrap: pretty`, para que no quede una palabra sola en la última línea.
 
 ## Íconos
 - Phosphor (`@phosphor-icons/react`), peso `bold`, en 16 o 20 px.
@@ -113,6 +119,9 @@ Se cargan con Fontsource, en `apps/web/src/main.tsx`. Tamaño mínimo de texto: 
   - `no_asistio`: peligro.
   - `cancelada`: tachada y con opacidad 50 %.
 - **Listas:** filas separadas por un borde inferior. No van tarjetas dentro de tarjetas.
+- **Monograma:** las iniciales del paciente en un cuadrado `muted` (40 px con radio 8 px en la lista, 56 px con radio 12 px en la ficha). Es decorativo: el nombre va siempre al lado.
+- **Secciones de una página larga** (la ficha del paciente): cada una arranca con un divisor de 1 px y 24 px de aire arriba.
+- **Vacío:** cuando la vista principal no tiene nada (un día sin citas), un recuadro con borde punteado, un ícono y qué hacer. En listas secundarias alcanza con una línea de texto.
 - **Formularios:** en el celular, en una hoja inferior (sheet). Desde tablet, en un panel lateral derecho. Nunca en un diálogo centrado.
 - **Cargando:** mientras una página carga, se ven formas grises fijas (esqueleto). Si lo que se tocó tarda en responder (una sección que no estaba precargada, otra semana), el indicador de carga (`components/ui/cargando.tsx`, un anillo que gira) reemplaza al ícono de lo que se tocó. Aparece recién a los 150 ms, así una carga rápida no parpadea. Al cambiar de semana, además, la semana anterior se atenúa al 50 % hasta que llega la nueva.
 
@@ -134,7 +143,7 @@ Se cargan con Fontsource, en `apps/web/src/main.tsx`. Tamaño mínimo de texto: 
 
 ### Tablet y laptop: vista de semana
 - Encabezado: el rango de la semana en Newsreader ("23 – 29 de noviembre"), con flechas, "Hoy" y el botón "Agendar". Tocar el rango abre el mismo calendario y lleva a la semana del día elegido.
-- Siete columnas, con los mismos bloques de la vista de día. La columna de hoy se marca en el encabezado.
+- Siete columnas, con los mismos bloques de la vista de día. La columna de hoy se marca en el encabezado: el número en una pill `accion` y el borde inferior en `texto`.
 - Al tocar una cita o un hueco, se abre el panel lateral derecho y la semana sigue a la vista.
 - Atajos de teclado en escritorio: `N` nueva cita, `T` hoy, `←` y `→` para cambiar de semana, `/` buscar paciente.
 

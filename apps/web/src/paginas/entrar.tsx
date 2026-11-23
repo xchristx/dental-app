@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { GoogleLogoIcon, ToothIcon } from '@phosphor-icons/react'
 import { rutaInternaSegura } from '@dental/core'
+import { MuestraAgenda } from '@/components/muestra-agenda'
 import { Button } from '@/components/ui/button'
 import { entrarComoDemo, entrarConCorreo, entrarConGoogle } from '@/lib/auth/acciones'
 import { tituloDePagina, useIr, useParametro } from '@/lib/navegacion'
@@ -43,106 +44,110 @@ export function PaginaEntrar() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-4 py-12">
-      <header className="flex flex-col items-center gap-3 text-center">
-        <ToothIcon weight="bold" className="size-8" />
-        <div>
-          <h1 className="font-heading text-3xl leading-[1.1] tracking-[-0.02em]">Sifel</h1>
-          <p className="text-muted-foreground">Agenda dental</p>
-        </div>
-        {ES_DEMO && (
-          <p className="bg-warning-bg text-warning rounded-full px-3 py-1 text-sm font-medium">
-            Demo · datos inventados
-          </p>
-        )}
-      </header>
-
-      <div className="flex flex-col gap-6">
-        {mensajeError && (
-          <p
-            role="alert"
-            className="bg-destructive-bg text-destructive rounded-lg px-4 py-3 text-sm"
-          >
-            {mensajeError}
-          </p>
-        )}
-
-        {ES_DEMO && (
-          <div className="flex flex-col gap-2">
-            <Button
-              size="lg"
-              disabled={entrando !== null}
-              onClick={() => entrar('demo', entrarComoDemo)}
-            >
-              {entrando === 'demo' ? 'Entrando…' : 'Entrar como demo'}
-            </Button>
-            <p className="text-muted-foreground text-center text-sm">
-              Sin cuenta. Puedes probar todo: los datos se reinician.
+    // La muestra va después en el DOM (así el h1 es lo primero) y a la izquierda en pantalla.
+    <div className="grid flex-1 lg:grid-cols-2">
+      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-4 py-12">
+        <header className="flex flex-col items-center gap-3 text-center">
+          <ToothIcon weight="bold" className="size-9" />
+          <div>
+            <h1 className="titulo-pagina text-4xl">Sifel</h1>
+            <p className="text-muted-foreground mt-1">Agenda dental</p>
+          </div>
+          {ES_DEMO && (
+            <p className="bg-warning-bg text-warning rounded-full px-3 py-1 text-sm font-medium">
+              Demo · datos inventados
             </p>
-          </div>
-        )}
+          )}
+        </header>
 
-        {GOOGLE_HABILITADO && (
-          <Button
-            variant="outline"
-            disabled={entrando !== null}
-            onClick={() => entrar('google', () => entrarConGoogle(destino))}
+        <div className="flex flex-col gap-6">
+          {mensajeError && (
+            <p
+              role="alert"
+              className="bg-destructive-bg text-destructive rounded-lg px-4 py-3 text-sm"
+            >
+              {mensajeError}
+            </p>
+          )}
+
+          {ES_DEMO && (
+            <div className="flex flex-col gap-2">
+              <Button
+                size="lg"
+                disabled={entrando !== null}
+                onClick={() => entrar('demo', entrarComoDemo)}
+              >
+                {entrando === 'demo' ? 'Entrando…' : 'Entrar como demo'}
+              </Button>
+              <p className="text-muted-foreground text-center text-sm">
+                Sin cuenta. Puedes probar todo: los datos se reinician.
+              </p>
+            </div>
+          )}
+
+          {GOOGLE_HABILITADO && (
+            <Button
+              variant="outline"
+              disabled={entrando !== null}
+              onClick={() => entrar('google', () => entrarConGoogle(destino))}
+            >
+              <GoogleLogoIcon weight="bold" />
+              Entrar con Google
+            </Button>
+          )}
+
+          {(ES_DEMO || GOOGLE_HABILITADO) && (
+            <div className="text-muted-foreground flex items-center gap-3 text-sm">
+              <span className="bg-border h-px flex-1" />o con tu correo
+              <span className="bg-border h-px flex-1" />
+            </div>
+          )}
+
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const datos = new FormData(e.currentTarget)
+              void entrar('correo', () =>
+                entrarConCorreo(
+                  String(datos.get('correo') ?? ''),
+                  String(datos.get('contrasena') ?? ''),
+                ),
+              )
+            }}
           >
-            <GoogleLogoIcon weight="bold" />
-            Entrar con Google
-          </Button>
-        )}
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              Correo
+              <input
+                name="correo"
+                type="email"
+                autoComplete="email"
+                required
+                className={claseInput}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              Contraseña
+              <input
+                name="contrasena"
+                type="password"
+                autoComplete="current-password"
+                required
+                className={claseInput}
+              />
+            </label>
+            <Button variant={ES_DEMO ? 'outline' : 'default'} disabled={entrando !== null}>
+              {entrando === 'correo' ? 'Entrando…' : 'Entrar'}
+            </Button>
+          </form>
 
-        {(ES_DEMO || GOOGLE_HABILITADO) && (
-          <div className="text-muted-foreground flex items-center gap-3 text-sm">
-            <span className="bg-border h-px flex-1" />o con tu correo
-            <span className="bg-border h-px flex-1" />
-          </div>
-        )}
-
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const datos = new FormData(e.currentTarget)
-            void entrar('correo', () =>
-              entrarConCorreo(
-                String(datos.get('correo') ?? ''),
-                String(datos.get('contrasena') ?? ''),
-              ),
-            )
-          }}
-        >
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            Correo
-            <input
-              name="correo"
-              type="email"
-              autoComplete="email"
-              required
-              className={claseInput}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            Contraseña
-            <input
-              name="contrasena"
-              type="password"
-              autoComplete="current-password"
-              required
-              className={claseInput}
-            />
-          </label>
-          <Button variant={ES_DEMO ? 'outline' : 'default'} disabled={entrando !== null}>
-            {entrando === 'correo' ? 'Entrando…' : 'Entrar'}
-          </Button>
-        </form>
-
-        <p className="text-muted-foreground text-center text-sm">
-          No hay registro abierto. Para tener acceso, pide una invitación a quien administra la
-          agenda.
-        </p>
-      </div>
-    </main>
+          <p className="text-muted-foreground text-center text-sm">
+            No hay registro abierto. Para tener acceso, pide una invitación a quien administra la
+            agenda.
+          </p>
+        </div>
+      </main>
+      <MuestraAgenda />
+    </div>
   )
 }

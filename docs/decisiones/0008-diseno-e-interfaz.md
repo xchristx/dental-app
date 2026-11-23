@@ -1,7 +1,7 @@
 # 0008: Diseño e interfaz
 
 - **Fecha:** 2026-11-19
-- **Estado:** aceptada
+- **Estado:** aceptada. El uso de Newsreader "solo para el título de la fecha" lo amplía la [0032](0032-revision-visual.md): ahora va en el título de cada página, en las hojas y en la marca.
 - **Complementa:** 0001. Mantiene Tailwind y shadcn/ui, y define cómo se usan.
 
 ## Contexto
